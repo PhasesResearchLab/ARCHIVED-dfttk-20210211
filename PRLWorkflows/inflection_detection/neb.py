@@ -8,24 +8,6 @@ the style sholuld all follow atomate.
 from FireWorks import Firework, FiretaskBase
 from pymatgen.analysis.transition_state import NEBAnalysis
 
-def neb_interpolate(start, end, n_images):
-    """Linear interpolation of images along to set up and NEB calculation
-
-    Based on the Henkelman and Jónsson Perl script.
-
-    Args:
-        start: (Structure) starting structure
-        end: (Structure) ending structure
-        n_images: (Int) number of images to create
-
-    Returns:
-        A list of (n_images+2) Structures
-    """
-    # Questions:
-    # each structure will not have the same basis or volume because there should be and ISIF 3 between them, so the ions, volume, and cell shape all could/would have changed. Is that going to be okay?
-
-    pass
-
 class NEBTODbTask(FiretaskBase):
     """Uses NEBAnalysis from pymatgen to parse the outputs from an NEB calculation to """
     required_params = []
@@ -43,7 +25,7 @@ class NEBTODbTask(FiretaskBase):
 
 class NEBFW(Firework):
     """For running an NEB calculation starting from a Henkelman and Jónsson setup."""
-    def __init__(self, start_structure, end_structure, n_images, name="nudged elastic band", parents=None, vasp_cmd="vasp", db_file=None, **kwargs):
+    def __init__(self, start_structure, end_structure, n_images=5, name="nudged elastic band", parents=None, vasp_cmd="vasp", db_file=None, **kwargs):
         """
         Args:
             start_structure: (Structure) starting structure
@@ -56,6 +38,7 @@ class NEBFW(Firework):
         # if parents, get the first and second images and replace the start and end structures. How to handle passing in the structures if we know there are parents? Just pass None?
         # get the structures from the previous calculations # should this be at the workflow level or FW?
         # calculate the images
+        structures = start_structure.interpolate(end_structure, nimages=n_images+1, interpolate_lattices=True)
         # write vasp input for the start image in the main directory
         # create directories 00, 01, .. for the n_images and write POSCARs
         # run VASP - direct or with custodian (optional, of course). Should be able to override an OptmizeFW with the incar parameters
