@@ -15,6 +15,7 @@ Installation
 3. Add the folder containing the Firetasks you are interested in to the ``ADD_USER_PACKAGES`` entry in ``FW_config.yaml`` formatted like a Python import. For example:
 
 ::
+
     ADD_USER_PACKAGES:
       - PRLWorkflows.inflection_detection
 
