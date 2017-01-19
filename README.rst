@@ -19,3 +19,9 @@ Installation
     ADD_USER_PACKAGES:
       - PRLWorkflows.inflection_detection
 
+Contributing
+------------
+
+See CONTRIBUTING.rst_
+
+.. _CONTRIBUTING.rst: CONTRIBUTING.rst
