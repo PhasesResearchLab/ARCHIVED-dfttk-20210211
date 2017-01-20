@@ -8,6 +8,7 @@ to atomate.
 
 from FireWorks import Workflow, FiretaskBase, Firework
 from PRLWorkflows.inflection_detection.neb import NEBFW
+from atomate.vasp.fireworks.core import OptimizeFW
 
 def calculate_inflection_energy(energies):
     """Use sympy to construct a fit where the inflection point can be calculated.
@@ -55,10 +56,15 @@ def get_wf_inflection_detection(structure, n_images, vasp_cmd="vasp", db_file=No
         >>> get_wf_inflection_detection(struct, vasp_cmd=">>vasp_cmd<<", db_file=">>db_file<<") # use env_chk
         # returns the workflow
     """
-    # fw0 = OptimizeFW() #customize with ISIF 7.
-    # fw1 = OptimizeFW() # customize with ISIF 3
-    # fw2 = NEBFW() # set parents = 0, 1. set n_images. Which structures to set for start and end? "None"?
-    # fw3 to fw(3+n_images+2) = StaticFW for each image using a loop. Set the parents for each FW to 2
+    uis0 = {"user_incar_settings":{"incar_update":{"ISIF":7}}}
+    fw0 = OptimizeFW(structure, name="unstable structure optimization", vasp_cmd=vasp_cmd, override_default_vasp_params=uis0) #customize with ISIF 7.
+    uis1 = {"user_incar_settings":{"incar_update":{"NSW":500}}}
+    # how to prepend a pertub task to this firework? # perhaps if we do an optimization and have a
+    # task that checks the symmetry, if the symmetry is the same, then perturb and dynamically create
+    # a new FW with this perturbed structure
+    fw1 = OptimizeFW(structure, name="stabilize unstable structure", vasp_cmd=vasp_cmd, override_default_vasp_params=uis1) # customize with ISIF 3
+    fw2 = NEBFW(None, None, parents=[fw0, fw1], use_parent_structures=True) # check
+    # fw3 to fw(3+n_images+2) = StaticFW for each image using a loop. Set the parents for each FW to 2. How to get the structures? Subclass?
     # fw(3+n_images+3) = Firework(InflectionDetectionToDbTask(), name="Inflection Detection").
     # (above) Calculate the inflection based on the energies from static calculations. Parents are range(3..(3+n_images+3))
     pass
