@@ -5,8 +5,9 @@ inflection detection implementation. Until targets for release are found (e.g. p
 the style sholuld all follow atomate.
 """
 
+import os
 from FireWorks import Firework, FiretaskBase
-from atomate.vasp.firetasks.write_inputs import WriteVaspFromPMGObjects, WriteVaspFromIOSet
+from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.vasp.firetasks.run_calc import RunVaspDirect
 from pymatgen.io.vasp.inputs import Poscar
 from pymatgen.io.vasp.sets import MPStaticSet
@@ -39,6 +40,21 @@ class NEBTODbTask(FiretaskBase):
         pass
 
 
+@explicit_serialize
+class SetupNEB(FiretaskBase):
+    """
+    Write POSCARs for images files using pymatgen objects.
+
+    Required params:
+        structures
+    """
+    required_params = ["structures"]
+
+    def run_task(self, fw_spec):
+        for i, struct in enumerate(self["structures"]):
+            path = '{:02d}'.format(i)
+            Poscar(struct).write_file(os.path.join(path,"POSCAR"))
+            # TODO: does path need to be absolute?
 
 class NEBFW(Firework):
     """For running an NEB calculation starting from a Henkelman and Jónsson setup."""
@@ -74,13 +90,9 @@ class NEBFW(Firework):
         vasp_input_set = MPStaticSet(structures[0], override_default_vasp_params=uis)
         t.append(WriteVaspFromIOSet(structures[0]), vasp_input_set=vasp_input_set)
         # create directories 00, 01, .. for the n_images and write POSCARs
-        calc_dirs = []
-        for i, struct in enumerate(structures):
-            path = '{:02d}'.format(i)
-            calc_dirs.append(path)
-            # TODO: how to add folder path to the write input task
-            t.append(WriteVaspFromPMGObjects(poscar=Poscar(struct)))
+        # TODO: does this need all the structures (for all images or a slice?)
+        t.append(SetupNEB(structures))
         t.append(RunVaspDirect(vasp_cmd=vasp_cmd))
-        t.append(NEBTODbTask(db_file=db_file, additional_fields={"task_label": name, "n_images": n_images}, calc_dirs=calc_dirs))
+        t.append(NEBTODbTask(db_file=db_file, additional_fields={"task_label": name, "n_images": n_images}))
         super(NEBFW, self).__init__(t, parents=parents, name="{}-{}".format(
             start_structure.composition.reduced_formula, name), **kwargs)
