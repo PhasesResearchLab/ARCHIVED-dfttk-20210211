@@ -6,13 +6,14 @@ the style sholuld all follow atomate.
 """
 
 import os
-from FireWorks import Firework, FiretaskBase
+from FireWorks import Firework, FiretaskBase, explicit_serialize
 from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.vasp.firetasks.run_calc import RunVaspDirect
 from pymatgen.io.vasp.inputs import Poscar
 from pymatgen.io.vasp.sets import MPStaticSet
 from pymatgen.analysis.transition_state import NEBAnalysis
 
+@explicit_serialize
 class NEBTODbTask(FiretaskBase):
     """Uses NEBAnalysis from pymatgen to parse the outputs from an NEB calculation to a DB
 
@@ -57,7 +58,7 @@ class SetupNEB(FiretaskBase):
             # TODO: does path need to be absolute?
 
 class NEBFW(Firework):
-    """For running an NEB calculation starting from a Henkelman and Jónsson setup."""
+    """For running an NEB calculation starting from a Henkelman and Jónsson VTST setup."""
     def __init__(self, start_structure, end_structure, n_images=5, name="nudged elastic band", use_parent_structures=False, parents=None, vasp_cmd="vasp", db_file=None, **kwargs):
         """
         Args:
