@@ -14,7 +14,7 @@ use_api_interface = True # set to True if you want to use the Materials Project 
 mp_structure_id = 'mp-134' # enter the structure ID. Example: Al is 'mp-134'. See PRLWorkflows.utils for other options to get Structures.
 use_phonopy = True
 use_debye = False
-is_metal = True # TODO: needed with custodian?
+is_conductor = True # TODO: needed with custodian?
 
 # Optional configuration
 launchpad_file_path = None # absolute path to LaunchPad. If None, will load from FW_CONFIG_FILE variable
@@ -67,7 +67,7 @@ if len(qhas) < 1:
 for qha in qhas:
     c["qha_type"] = qha
     workflow = wf_gibbs_free_energy(struct, c)
-    if is_metal:
+    if is_conductor:
         workflow = add_modify_incar(workflow, modify_incar_params={"incar_update":{"SIGMA":0.2, "ISMEAR":1}})
     if custom_incar_settings_opt:
         workflow = add_modify_incar(workflow, modify_incar_params={"incar_update":custom_incar_settings_opt}, fw_name_constraint='optimization')

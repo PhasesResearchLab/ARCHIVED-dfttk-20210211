@@ -11,6 +11,7 @@ from PRLWorkflows.utils import mp_structures_from_ids
 # Required configuration
 use_api_interface = True # set to True if you want to use the Materials Project API, False will load the POSCAR in the local dir
 mp_structure_id = 'mp-134' # enter the structure ID. Example: Al is 'mp-134'. See PRLWorkflows.utils for other options to get Structures.
+is_conductor = True # TODO: needed with custodian?
 
 # Optional configuration
 launchpad_file_path = None # absolute path to LaunchPad. If None, will load from FW_CONFIG_FILE variable
@@ -37,4 +38,6 @@ if custom_incar_settings:
     c["USER_INCAR_SETTINGS"]={"incar_update":custom_incar_settings}
 workflow = wf_structure_optimization(struct)
 workflow = add_modify_incar(workflow) # get settings from the my_fworker.yaml file
+if is_conductor:
+        workflow = add_modify_incar(workflow, modify_incar_params={"incar_update":{"SIGMA":0.2, "ISMEAR":1}})
 launchpad.add_wf(workflow)
