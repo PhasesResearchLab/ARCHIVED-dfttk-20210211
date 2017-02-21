@@ -29,3 +29,8 @@ Contributing
 See CONTRIBUTING.rst_
 
 .. _CONTRIBUTING.rst: CONTRIBUTING.rst
+
+License
+-------
+
+PRLWorkflows is MIT licensed, so you can legally share, modify and reuse code as you like. In the legal sense, this code is entirely free. With that in mind, please consider that this is a private repository and that code here may not be suitable for public distribution. You should consult with the authors of any code you are intending to publicly release before you do so.
