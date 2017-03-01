@@ -1,7 +1,7 @@
 import numpy as np
 from pymatgen import MPRester
 from atomate.vasp.workflows.base.deformations import get_wf_deformations
-from Fireworks import LaunchPad
+from fireworks import LaunchPad
 
 API_KEY = None # If None, will use the one from your ~/.pmgrc.yaml. Otherwise string of API_KEY
 LAUNCHPAD_FILE = None # If None, will try to autoload from FW_CONFIG_FILE environment variable. Otherwise string of file path
