@@ -36,9 +36,8 @@ c_transformations = [np.array([[1,0,0],[0,1,0],[0,0,x+1]]) for x in np.linspace(
 # construct the workflow
 struct = mpr.get_structure_by_material_id(MP_ID)
 deformations = np.append(a_transformations, c_transformations, axis=0) # if cubic, don't need this. Just pass cubic_transformations
-name_formula = struct.composition.reduced_formula
 name_spg = SpacegroupAnalyzer(struct).get_space_group_symbol()
 
-wf = get_wf_deformations(struct, deformations, name="{}-{}-deformation".format(name_formula, name_spg))
+wf = get_wf_deformations(struct, deformations, name="{} deformation".format(name_spg))
 
 lpad.add_wf(wf)
