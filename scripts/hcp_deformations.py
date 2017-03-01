@@ -1,6 +1,6 @@
 import numpy as np
 from pymatgen import MPRester
-from pymatgen.symmetry.analzyer import SpacegroupAnalyzer
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from atomate.vasp.workflows.base.deformations import get_wf_deformations
 from fireworks import LaunchPad
 
