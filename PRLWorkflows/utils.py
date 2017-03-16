@@ -4,16 +4,16 @@ Mostly for getting and manipulating structures. With all of the function definit
 these are more verbose """
 
 from pymatgen import MPRester
+from fireworks import LaunchPad
 from atomate.utils.utils import update_wf
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
+
 
 def mp_structures_from_ids(mp_ids, API_KEY=None):
     """Returns a list of structures from MP ids
 
     Args:
         mp_ids ([str]): list of Materials Project ids in the form of 'mp-###'
-
-    Kwargs:
         API_KEY (str): your Materials Project API_KEY. Will try to use environment key if None.
 
     Returns:
@@ -25,13 +25,12 @@ def mp_structures_from_ids(mp_ids, API_KEY=None):
             structs.append(mpr.get_structure_by_material_id(mp_id))
     return structs
 
+
 def mp_structures_from_system(system, API_KEY=None):
     """Supply a chemical system (e.g. Fe-Cr) and get all of the structures back
 
     Args:
         system (str): system name (e.g. Fe-Cr)
-
-    Kwargs:
         API_KEY (str): your Materials Project API_KEY. Will try to use environment key if None.
 
     Returns:
@@ -41,13 +40,12 @@ def mp_structures_from_system(system, API_KEY=None):
             structs = mpr.get_structures(system)
     return structs
 
+
 def mp_structures_and_energies_from_system(system, API_KEY=None):
     """Supply a chemical system (e.g. Fe-Cr) and get dicts of the structures and properties back
 
     Args:
         system (str): system name (e.g. Fe-Cr), but could also be mp-ids or formula
-
-    Kwargs:
         API_KEY (str): your Materials Project API_KEY. Will try to use environment key if None.
 
     Returns:
@@ -57,6 +55,7 @@ def mp_structures_and_energies_from_system(system, API_KEY=None):
             entries = mpr.get_data(system)
     return entries
 
+
 def mp_sorted_structures_from_system(system, filter_energy=0.2, API_KEY=None):
     """Supply a chemical system (e.g. Fe-Cr) and get back Structures sorted by energy above hull
 
@@ -64,8 +63,6 @@ def mp_sorted_structures_from_system(system, filter_energy=0.2, API_KEY=None):
 
     Args:
         system (str): system name (e.g. Fe-Cr), but could also be mp-ids or formula
-
-    Kwargs:
         filter_energy (float): Maximum energy above hull allowed in eV
         API_KEY (str): your Materials Project API_KEY. Will try to use environment key if None.
 
@@ -80,6 +77,34 @@ def mp_sorted_structures_from_system(system, filter_energy=0.2, API_KEY=None):
     sorted_structs = mp_structures_from_ids(sorted_mp_ids)
 
     return sorted_structs
+
+
+def get_launchpad(launchpad_file=None):
+    """
+    Returns a LaunchPad object. If the launchpad_file is None, then try to auto load from environment
+
+    Args:
+        launchpad_file (File-like): A file-like or file path to the LaunchPad file.
+
+    Returns:
+        LaunchPad
+    """
+    if launchpad_file:
+        if isinstance(launchpad_file, file):
+            # a file object was found
+            ext = launchpad_file.name.split('.')[-1]
+            if ext == 'yaml':
+                launchpad = LaunchPad.from_format(launchpad_file.read(), f_format='yaml')
+            else:
+                # assume json
+                launchpad = LaunchPad.from_format(launchpad_file.read())
+        else:
+            # assume launchpad_file is a path
+            launchpad = LaunchPad.from_file(launchpad_file)
+    else:
+        launchpad = LaunchPad.auto_load()
+    return  launchpad
+
 
 def update_fws_spec(wf, spec_dict, fw_name_constraint=None):
     """

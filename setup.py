@@ -3,9 +3,12 @@ import os
 
 module_dir = os.path.dirname(os.path.abspath(__file__))
 
+
 def readme():
-    with open(os.path.join(module_dir,'README.rst')) as f:
+    with open(os.path.join(module_dir, 'README.rst')) as f:
         return f.read()
+
+
 setup(
     name='PRLWorkflows',
     packages=['PRLWorkflows'],
