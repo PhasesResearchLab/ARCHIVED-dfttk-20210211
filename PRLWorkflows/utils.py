@@ -4,7 +4,7 @@ Mostly for getting and manipulating structures. With all of the function definit
 these are more verbose """
 
 from pymatgen import MPRester
-
+from atomate.utils.utils import update_wf
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
 
 def mp_structures_from_ids(mp_ids, API_KEY=None):
@@ -80,3 +80,21 @@ def mp_sorted_structures_from_system(system, filter_energy=0.2, API_KEY=None):
     sorted_structs = mp_structures_from_ids(sorted_mp_ids)
 
     return sorted_structs
+
+def update_fws_spec(wf, spec_dict, fw_name_constraint=None):
+    """
+    Update the fireworks matching the name constraint with the passed spec_dict. Can be used for
+    generically updating the spec as long as update can be expressed as a dictionary.
+
+    Args:
+        wf (Workflow): The original workflow object
+        spec_dict (dict): the keys and values to update in the spec, e.g. {'_queueadapter': {'walltime': '24:00:00'}}
+        fw_name_constraint (str): a constraint on the FW name
+
+    Returns:
+        Workflow
+    """
+    for fw in wf.fws:
+        if fw_name_constraint is None or fw_name_constraint in fw.name:
+            fw.spec.update(spec_dict)
+    return update_wf(wf)
