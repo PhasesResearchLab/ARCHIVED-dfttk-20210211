@@ -33,4 +33,5 @@ See CONTRIBUTING.rst_
 License
 -------
 
-prlworkflows is MIT licensed.
+prlworkflows is MIT licensed. See LICENSE_
+.. _LICENSE: LICENSE
