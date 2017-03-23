@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from atomate.vasp.workflows.presets.core import wf_structure_optimization
 from atomate.vasp.powerups import add_modify_incar
-from PRLWorkflows.utils import mp_structures_from_ids, get_launchpad
+from prlworkflows.utils import mp_structures_from_ids, get_launchpad
 
 ################################################################################
 #                                CONFIGURATION                                 #                      
@@ -9,7 +9,7 @@ from PRLWorkflows.utils import mp_structures_from_ids, get_launchpad
 
 # Required configuration
 use_api_interface = True  # set to True if you want to use the Materials Project API, False will load the POSCAR in the local dir
-mp_structure_id = 'mp-134'  # enter the structure ID. Example: Al is 'mp-134'. See PRLWorkflows.utils for other options to get Structures.
+mp_structure_id = 'mp-134'  # enter the structure ID. Example: Al is 'mp-134'. See prlworkflows.utils for other options to get Structures.
 is_conductor = True  # TODO: needed with custodian?
 
 # Optional configuration
