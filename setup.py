@@ -10,13 +10,13 @@ def readme():
 
 
 setup(
-    name='PRLWorkflows',
-    packages=['PRLWorkflows'],
+    name='prlworkflows',
+    packages=['prlworkflows'],
     description='atomate workflows and scripts for the Phases Research Lab',
     long_description=readme(),
     version='0.0.1',
     install_requires=['atomate'],
     author='Brandon Bocklund',
     author_email='brandonbocklund@gmail.com',
-    url='https://gitlab.com/bocklund/prl-workflows',
+    url='https://gitlab.com/bocklund/prlworkflows',
     )
