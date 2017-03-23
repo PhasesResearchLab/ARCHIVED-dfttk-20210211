@@ -7,6 +7,7 @@ This repo contains the custom workflows developed by the Phases Research Lab tha
 The following workflows are currently implemented:
 
 or under development:
+
 - An implementation of the calculation of the formation of unstable phases with NEB based on A. van de Walle et. al., Nat. Com. 6 (2015)
 
 You can also find some scripts for basic atomate calculations in the `scripts` folder. Simply configure the settings as you want them run the script using Python on a system that is configured to connect to your LaunchPad. The scripts are designed to be flexible enough to run to scaffold basic calculations you might run. The `examples` folder contains real examples of workflows that have been used.
