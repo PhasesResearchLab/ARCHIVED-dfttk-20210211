@@ -5,7 +5,6 @@ these are more verbose """
 
 from pymatgen import MPRester
 from fireworks import LaunchPad
-from atomate.utils.utils import update_wf
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
 
 
@@ -122,4 +121,4 @@ def update_fws_spec(wf, spec_dict, fw_name_constraint=None):
     for fw in wf.fws:
         if fw_name_constraint is None or fw_name_constraint in fw.name:
             fw.spec.update(spec_dict)
-    return update_wf(wf)
+    return wf
