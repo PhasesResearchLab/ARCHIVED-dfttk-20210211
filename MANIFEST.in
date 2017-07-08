@@ -1,0 +1,2 @@
+include versioneer.py
+include prlworkflows/_version.py
