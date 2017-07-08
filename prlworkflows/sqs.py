@@ -8,23 +8,30 @@ These species in pymatgen Structures are named to `Xab`, which corresponds to at
 from pymatgen import Structure
 
 
-def substitute_sqs(structure, subl_model):
-    """Takes a single abstract SQS and makes a concrete Structure.
-
-    Parameters
-    ----------
-    structure : Structure
-        Abstract SQS.
-    subl_model : [[str]]
-        List of strings of species names. **Note that order does matter!**
-        [["Al", "Fe"]] and [["Fe", "Al"]] will produce different results!
-
-    Returns
-    -------
-    Structure
-        A concrete SQS structure with the
+# TODO: override the upstream constructors to call super and then add the sublattice configuration
+# TODO: override the as_dict method to add the extra metadata, if necessary.
+class SQS(Structure):
+    """A pymatgen Structure with special features for SQS.
     """
-    pass
+
+    def __init__(self):
+        # TODO: add support for adding sublattice model metadata (model, site ratios, symmetry, version info)
+        # TODO: check for any DummySpecies and set is_abstract based on the result
+        pass
+
+    def make_concrete(self, subl_model):
+        """Modify self to be a concrete SQS based on the sublattice model.
+
+        Parameters
+        ----------
+        subl_model : [[str]]
+            List of strings of species names. Must exactly match the shape of self.sublattice_model.
+            **Note that order does matter!** [["Al", "Fe"]] and [["Fe", "Al"]] will produce different results!
+
+        """
+        if not self.is_abstract:
+            raise ValueError('{} cannot be made concrete because it already is concrete.'.format(self))
+        # TODO: remove oxidation from the labels, if present
 
 
 def enumerate_sqs(structure, subl_model, endmembers=True):
@@ -33,8 +40,8 @@ def enumerate_sqs(structure, subl_model, endmembers=True):
 
     Parameters
     ----------
-    structure : Structure
-        Abstract SQS.
+    structure : SQS
+        SQS object. Must be abstract.
     subl_model : [[str]]
         List of strings of species names, in the style of ESPEI `input.json`. This sublattice model
         can be of higher dimension than the SQS, e.g. a [["Al", "Fe", "Ni"]] for a fcc 75/25 binary SQS
@@ -48,7 +55,7 @@ def enumerate_sqs(structure, subl_model, endmembers=True):
 
     Returns
     -------
-    [Structure]
-        List of all Structure objects that can be created from the sublattice model
+    [SQS]
+        List of all comcrete SQS objects that can be created from the sublattice model.
     """
     pass

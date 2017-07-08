@@ -20,23 +20,10 @@ To use the database, the user calls the `structures_from_database` helper functi
 of all the SQS that match the endmember symmetry, sublattice model (and site ratios) that define a
 phase. This is intentionally designed to match the syntax used to describe phases in ESPEI. Each of
 the resulting Structure objects can be made concrete using functions in `prlworkflows.sqs`.
-
-The schema of the database entry is:
-{
-    "structure": pymatgen.Structure.as_dict(),
-    "symmetry": pymatgen.Structure.
-    "sublattice_model": [["Species"]],
-    "sublattice_site_ratios: [[Float]],
-    "version": {
-        "schema": "schema_version",
-        "atat": "atat_version",
-        "pymatgen": "pymatgen_version"
-}
-
 """
 
-from pymatgen import Structure, __version__ as pmg_version
 from tinydb import TinyDB
+from prlworkflows.sqs import SQS
 
 
 def latt_in_to_cif(atat_lattice_in, rename=False):
@@ -78,7 +65,7 @@ def SQSDatabase(path):
     pass
 
 
-def structure_to_database(db, structure, atat_version=None):
+def structure_to_database(db, structure):
     """Insert a Structure object with added metadata into the passed db.
 
     See the module definition for the database schema.
@@ -87,11 +74,9 @@ def structure_to_database(db, structure, atat_version=None):
     ----------
     db : TinyDB
         TinyDB database of the SQS database
-    structure : Structure
-        Abstract SQS with mixing sublattice species named in the format `Xab` for a mixing species
+    structure : SQS
+        Abstract SQS object with mixing sublattice species named in the format `Xab` for a mixing species
         `B` on sublattice `a`.
-    atat_version : str
-        ATAT version that the structure was packaged or generated with. Optional.
     """
     pass
 
@@ -116,7 +101,7 @@ def structures_from_database(db, symmetry, subl_model, subl_site_ratios):
 
     Returns
     -------
-    [Structure]
+    [SQS]
         Abstract SQSs that match the symmetry and sublattice model.
     """
     pass
