@@ -7,7 +7,7 @@ sublattice models and symmetry from user-input.
 """
 
 from prlworkflows.sqs import SQS
-from prlworkflows.sqs_db import latt_in_to_cif
+from prlworkflows.sqs_db import lat_in_to_sqs
 
 
 ATAT_FCC_L12_LATTICE_IN = """1.000000 0.000000 0.000000
@@ -50,17 +50,16 @@ ATAT_FCC_L12_LATTICE_IN = """1.000000 0.000000 0.000000
 -1.500000 -1.500000 -2.000000 c_A
 """
 
-ATAT_FCC_L12_CIF = """
-"""
 
-ATAT_FCC_L12_CIF_RENAMED = """
-"""
-
-
-def test_atat_sqs_is_correctly_serialized_to_cif():
-    """lattice.in files in the ATAT format should be converted to CIF format, optionally with element renaming."""
-    assert ATAT_FCC_L12_CIF == latt_in_to_cif(ATAT_FCC_L12_LATTICE_IN)
-    assert ATAT_FCC_L12_CIF_RENAMED == latt_in_to_cif(ATAT_FCC_L12_LATTICE_IN, rename=True)
+def test_atat_bestsqs_is_correctly_parsed_to_sqs():
+    """lattice.in files in the ATAT format should be converted to SQS correctly."""
+    structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    specie_types = {specie.symbol for specie in structure.types_of_specie}
+    assert specie_types == {'Xaa', 'Xab', 'Xca'}
+    assert structure.sublattice_model == [['a', 'b'], ['a']]
+    assert structure.sublattice_site_ratios == [[4,4], [24]]
+    assert structure._sublattice_names == ['a', 'c']
+    assert structure.is_abstract
 
 
 def test_sqs_obj_correctly_serialized():

@@ -23,30 +23,84 @@ the resulting Structure objects can be made concrete using functions in `prlwork
 """
 
 from tinydb import TinyDB
+from pyparsing import Regex, Word, alphanums, OneOrMore, LineEnd, Suppress, Group
+from pymatgen import Lattice
+
 from prlworkflows.sqs import SQS
 
+def _parse_atat_lattice(lattice_in):
+    """Parse an ATAT-style `lat.in` string.
 
-def latt_in_to_cif(atat_lattice_in, rename=False):
+    The parsed string will be in three groups: (Coordinate system) (lattice) (atoms)
+    where the atom group is split up into subgroups, each describing the position and atom name
     """
-    Convert a string-like ATAT-style lattice.in to a CIF string.
+    float_number = Regex(r'[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?').setParseAction(lambda t: [float(t[0])])
+    vector = Group(float_number + float_number + float_number)
+    angles = vector
+    vector_line = vector + Suppress(LineEnd())
+    coord_sys = Group((vector_line + vector_line + vector_line) | (vector + angles + Suppress(LineEnd())))
+    lattice = Group(vector + vector + vector)
+    atom = Group(vector + Group(OneOrMore(Word(alphanums + '_'))))
+    atat_lattice_grammer = coord_sys + lattice + Group(OneOrMore(atom))
+    # parse the input string and convert it to a POSCAR string
+    return atat_lattice_grammer.parseString(lattice_in)
 
-    Note
-    ----
-    This method requires that ATAT is installed and str2cif is in your path.
+def lat_in_to_sqs(atat_lattice_in, rename=True):
+    """
+    Convert a string-like ATAT-style lattice.in to an abstract SQS.
 
     Parameters
     ----------
     atat_lattice_in : str
         String-like of a lattice.in in the ATAT format.
     rename : bool
-        If True, SQS format element names will be renamed, e.g. `a_B` -> `Xab`. Default is False.
+        If True, SQS format element names will be renamed, e.g. `a_B` -> `Xab`. Default is True.
 
     Returns
     -------
-    str
-        String of the CIF version of the Structure.
+    SQS
+        Abstract SQS.
     """
-    pass
+    # parse the data
+    parsed_data = _parse_atat_lattice(atat_lattice_in)
+    atat_coord_system = parsed_data[0]
+    atat_lattice = parsed_data[1]
+    atat_atoms = parsed_data[2]
+    # create the lattice
+    if len(atat_coord_system) == 3:
+        # we have a coordinate system matrix
+        coord_system = Lattice(list(atat_coord_system)).matrix
+    else:
+        # we have length and angles
+        coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
+    direct_lattice = Lattice(list(atat_lattice))
+    lattice = coord_system.dot(direct_lattice.matrix)
+    # create the list of atoms, converted to the right coordinate system
+    species_list = []
+    species_positions = []
+    subl_model = {} # format {'subl_name': 'atoms_found_in_subl, e.g. "aaabbbb"'}
+    for position, atoms in atat_atoms:
+        # atoms can be a list of atoms, e.g. for not abstract SQS
+        if len(atoms) > 1:
+            raise NotImplementedError('Cannot parse atom list {} because the sublattice is unclear'.format(atoms))
+        atom = atoms[0]
+        if rename:
+            # change from `a_B` style to `Xab`
+            atom = 'X'+atom.replace('_', '').lower()
+        # add the abstract atom to the sublattice model
+        subl = list(atom)[1]
+        subl_atom = list(atom)[2]
+        subl_model[subl] = subl_model.get(subl, '') + subl_atom
+        # add the species and position to the lists
+        species_list.append(atom)
+        species_positions.append(list(position))
+    # create the structure
+    sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True)
+    sqs.modify_lattice(Lattice(lattice))
+    sqs.sublattice_model = [[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
+    sqs.sublattice_site_ratios = [[subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
+    sqs._sublattice_names = [s for s in sorted(subl_model.keys())]
+    return sqs
 
 
 def SQSDatabase(path):

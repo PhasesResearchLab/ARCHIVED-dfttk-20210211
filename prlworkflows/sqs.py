@@ -14,10 +14,17 @@ class SQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         # TODO: add support for adding sublattice model metadata (model, site ratios, symmetry, version info)
         # TODO: check for any DummySpecies and set is_abstract based on the result
-        pass
+        super(SQS, self).__init__(*args, **kwargs)
+        self.sublattice_model = None
+        self._sublattice_names = None
+        self.sublattice_site_ratios = None
+
+    @property
+    def is_abstract(self):
+        return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
 
     def make_concrete(self, subl_model):
         """Modify self to be a concrete SQS based on the sublattice model.
