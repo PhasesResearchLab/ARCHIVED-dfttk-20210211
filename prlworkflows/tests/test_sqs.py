@@ -60,7 +60,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xca'}
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a']])
-    assert np.all(structure.sublattice_site_ratios == [[4,4], [24]])
+    assert np.all(structure.sublattice_site_ratios == [8, 24])
     assert np.all(structure._sublattice_names == ['a', 'c'])
     assert structure.is_abstract
 

@@ -99,7 +99,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True)
     sqs.modify_lattice(Lattice(lattice))
     sqs.sublattice_model = np.array([[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
-    sqs.sublattice_site_ratios = np.array([[subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
+    sqs.sublattice_site_ratios = np.array([sum([subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))]) for s in sorted(subl_model.keys())])
     sqs._sublattice_names = np.array([s for s in sorted(subl_model.keys())])
     return sqs
 
