@@ -5,6 +5,7 @@ The SQS are regular pymatgen Structures with the species named according to subl
 These species in pymatgen Structures are named to `Xab`, which corresponds to atom `B` in sublattice `a`.
 """
 
+import numpy as np
 from pymatgen import Structure
 
 
@@ -15,13 +16,28 @@ class SQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, sublattice_model=None, subblattice_names=None, sublattice_site_ratios=None, **kwargs):
+        """Create a SQS object
+
+        Parameters
+        ----------
+        args :
+            args to pass to Structure
+        sublattice_model : np.ndarray
+            Abstract sublattice model in the ESPEI style, e.g. `[['a', 'b'], ['a']]`.
+        subblattice_names : np.ndarray
+            Names of the sublattices, or the second character in the species names, e.g. `['a', 'c']`.
+        sublattice_site_ratios : np.ndarray
+            Site ratios of the sublattices, e.g. `[8.0, 24.0]`
+        kwargs :
+            kwargs to pass to Structure
+        """
         # TODO: add support for adding sublattice model metadata (model, site ratios, symmetry, version info)
         # TODO: check for any DummySpecies and set is_abstract based on the result
         super(SQS, self).__init__(*args, **kwargs)
-        self.sublattice_model = None
-        self._sublattice_names = None
-        self.sublattice_site_ratios = None
+        self.sublattice_model = sublattice_model
+        self._sublattice_names = subblattice_names
+        self.sublattice_site_ratios = sublattice_site_ratios
 
     @property
     def is_abstract(self):
