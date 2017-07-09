@@ -46,7 +46,7 @@ class SQS(Structure):
     def is_abstract(self):
         return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
 
-    def make_concrete(self, subl_model):
+    def make_concrete(self, subl_model, scale_volume=True):
         """Modify self to be a concrete SQS based on the sublattice model.
 
         Parameters
@@ -54,7 +54,8 @@ class SQS(Structure):
         subl_model : [[str]]
             List of strings of species names. Must exactly match the shape of self.sublattice_model.
             **Note that order does matter!** [["Al", "Fe"]] and [["Fe", "Al"]] will produce different results!
-
+        scale_volume : bool
+            If True, scales the volume of the cell so the ions have at least their minimum atomic radii between them.
         """
         def _subl_error():
             raise ValueError('Concrete sublattice model {} does not match size of abstract sublattice model {}'.format(subl_model, self.sublattice_model))
@@ -72,9 +73,20 @@ class SQS(Structure):
                 specie = 'X' + subl_name + abstract_specie
                 replacement_dict[specie] = concrete_specie
         self.replace_species(replacement_dict)
+        if scale_volume:
+            idx = np.nonzero(self.distance_matrix)  # exclude distance from self
+            # construct a minimal distance matrix based on average ionic radii
+            radius_matrix = np.zeros((len(self.sites), len(self.sites)))
+            for i in range(len(self.sites)):
+                for j in range(len(self.sites)):
+                    radius_matrix[i, j] = (
+                        self.sites[i].specie.data['Atomic radius'] + self.sites[j].specie.data['Atomic radius'])
+            # find the scale factor and scale the lattice
+            sf = np.max(radius_matrix[idx] / self.distance_matrix[idx]) ** 3
+            self.scale_lattice(self.volume * sf)
 
 
-def enumerate_sqs(structure, subl_model, endmembers=True):
+def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
     """
     Return a list of all of the concrete Structure objects from an abstract Structure and concrete sublattice model.
 
@@ -90,8 +102,10 @@ def enumerate_sqs(structure, subl_model, endmembers=True):
         Fe0.75Al0.25, Fe0.75Ni0.25
         Ni0.75Al0.25, Ni0.75Fe0.25
         *Note that the ordering of species the sublattice model does not matter!*
-    endmembers: bool
+    endmembers : bool
         Include endmembers in the enumerated structures if True. Defaults to True.
+    scale_volume : bool
+        If True, scales the volume of the cell so the ions have at least their minimum atomic radii between them.
 
     Returns
     -------
@@ -111,5 +125,10 @@ def enumerate_sqs(structure, subl_model, endmembers=True):
             subls = itertools.permutations(subl, r=len(abstract_subl))
         possible_subls.append(subls)
     unique_subl_models = itertools.product(*possible_subls)
-    # return a list of concrete structures with the generated sublattice models
-    return [copy.deepcopy(structure).make_concrete(model) for model in unique_subl_models]
+    # create a list of concrete structures with the generated sublattice models
+    structs = []
+    for model in unique_subl_models:
+        s = copy.deepcopy(structure)
+        s.make_concrete(model, scale_volume)
+        structs.append(s)
+    return structs

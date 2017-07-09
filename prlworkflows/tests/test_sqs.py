@@ -150,6 +150,18 @@ def test_abstract_sqs_is_properly_substituted_with_sublattice_model():
         structure.make_concrete([['Fe', 'Fe'], ['Fe']])
 
 
+def test_abstract_sqs_scales_volume_when_made_concrete():
+    """SQS should scale in volume by default, but optionally not when made concrete"""
+
+    structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    structure.make_concrete([['Fe', 'Ni'], ['Al']])
+    assert np.isclose(structure.volume, 421.08774505083824)
+
+    structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    structure.make_concrete([['Fe', 'Ni'], ['Al']], scale_volume=False)
+    assert np.isclose(structure.volume, 8.0)
+
+
 def test_sqs_is_properly_enumerated_for_a_higher_order_sublattice_model():
     """Tests that a sublattice model of higher order than an SQS properly enumerated"""
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
@@ -169,6 +181,8 @@ def test_sqs_is_properly_enumerated_for_a_multiple_solution_sublattice_model():
     structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
     structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=True)
     assert len(structures) == 16
+    assert all([isinstance(s, SQS) for s in structures])
+    assert all([not s.is_abstract for s in structures])
 
 
 def test_enumerating_sqs_with_lower_order_subl_raises():
