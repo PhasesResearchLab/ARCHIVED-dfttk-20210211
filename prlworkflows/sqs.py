@@ -10,6 +10,7 @@ from pymatgen import Structure
 
 # TODO: override the upstream constructors to call super and then add the sublattice configuration
 # TODO: override the as_dict method to add the extra metadata, if necessary.
+# TODO: implement making the concrete structure abstract again
 class SQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
@@ -36,9 +37,22 @@ class SQS(Structure):
             **Note that order does matter!** [["Al", "Fe"]] and [["Fe", "Al"]] will produce different results!
 
         """
+        def _subl_error():
+            raise ValueError('Concrete sublattice model {} does not match size of abstract sublattice model {}'.format(subl_model, self.sublattice_model))
         if not self.is_abstract:
-            raise ValueError('{} cannot be made concrete because it already is concrete.'.format(self))
-        # TODO: remove oxidation from the labels, if present
+            raise ValueError('SQS cannot be made concrete because it already is concrete with species.'.format({s.symbol for s in self.types_of_specie}))
+        if len(subl_model) != len(self.sublattice_model):
+            _subl_error()
+        # build the replacement dictionary
+        # we have to look up the sublattice names to build the replacement species names
+        replacement_dict = {}
+        for abstract_subl, concrete_subl, subl_name in zip(self.sublattice_model, subl_model, self._sublattice_names):
+            if len(abstract_subl) != len(concrete_subl):
+                _subl_error()
+            for abstract_specie, concrete_specie in zip(abstract_subl, concrete_subl):
+                specie = 'X' + subl_name + abstract_specie
+                replacement_dict[specie] = concrete_specie
+        self.replace_species(replacement_dict)
 
 
 def enumerate_sqs(structure, subl_model, endmembers=True):
