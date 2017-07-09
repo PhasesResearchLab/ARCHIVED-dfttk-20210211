@@ -24,7 +24,7 @@ the resulting Structure objects can be made concrete using functions in `prlwork
 
 import numpy as np
 from tinydb import TinyDB
-from pyparsing import Regex, Word, alphanums, OneOrMore, LineEnd, Suppress, Group
+from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
 from pymatgen import Lattice
 
 from prlworkflows.sqs import SQS
@@ -41,7 +41,7 @@ def _parse_atat_lattice(lattice_in):
     vector_line = vector + Suppress(LineEnd())
     coord_sys = Group((vector_line + vector_line + vector_line) | (vector + angles + Suppress(LineEnd())))
     lattice = Group(vector + vector + vector)
-    atom = Group(vector + Group(OneOrMore(Word(alphanums + '_'))))
+    atom = Group(vector + Group(OneOrMore(Word(alphas + '_'))))
     atat_lattice_grammer = coord_sys + lattice + Group(OneOrMore(atom))
     # parse the input string and convert it to a POSCAR string
     return atat_lattice_grammer.parseString(lattice_in)
@@ -83,7 +83,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     for position, atoms in atat_atoms:
         # atoms can be a list of atoms, e.g. for not abstract SQS
         if len(atoms) > 1:
-            raise NotImplementedError('Cannot parse atom list {} because the sublattice is unclear'.format(atoms))
+            raise NotImplementedError('Cannot parse atom list {} because the sublattice is unclear.\nParsed data: {}'.format(atoms, atat_atoms))
         atom = atoms[0]
         if rename:
             # change from `a_B` style to `Xab`

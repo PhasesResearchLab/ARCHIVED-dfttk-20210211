@@ -5,6 +5,9 @@ The SQS are regular pymatgen Structures with the species named according to subl
 These species in pymatgen Structures are named to `Xab`, which corresponds to atom `B` in sublattice `a`.
 """
 
+import itertools
+import copy
+
 import numpy as np
 from pymatgen import Structure
 
@@ -16,7 +19,7 @@ class SQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
 
-    def __init__(self, *args, sublattice_model=None, subblattice_names=None, sublattice_site_ratios=None, **kwargs):
+    def __init__(self, *args, sublattice_model=None, sublattice_names=None, sublattice_site_ratios=None, **kwargs):
         """Create a SQS object
 
         Parameters
@@ -25,7 +28,7 @@ class SQS(Structure):
             args to pass to Structure
         sublattice_model : np.ndarray
             Abstract sublattice model in the ESPEI style, e.g. `[['a', 'b'], ['a']]`.
-        subblattice_names : np.ndarray
+        sublattice_names : np.ndarray
             Names of the sublattices, or the second character in the species names, e.g. `['a', 'c']`.
         sublattice_site_ratios : np.ndarray
             Site ratios of the sublattices, e.g. `[8.0, 24.0]`
@@ -36,7 +39,7 @@ class SQS(Structure):
         # TODO: check for any DummySpecies and set is_abstract based on the result
         super(SQS, self).__init__(*args, **kwargs)
         self.sublattice_model = sublattice_model
-        self._sublattice_names = subblattice_names
+        self._sublattice_names = sublattice_names
         self.sublattice_site_ratios = sublattice_site_ratios
 
     @property
@@ -93,6 +96,20 @@ def enumerate_sqs(structure, subl_model, endmembers=True):
     Returns
     -------
     [SQS]
-        List of all comcrete SQS objects that can be created from the sublattice model.
+        List of all concrete SQS objects that can be created from the sublattice model.
     """
-    pass
+    # error checking
+    if len(subl_model) != len(structure.sublattice_model):
+        raise ValueError('Passed sublattice model ({}) does not agree with the passed structure ({})'.format(subl_model, structure.sublattice_model))
+    if np.any([len(subl) for subl in subl_model] < [len(subl) for subl in structure.sublattice_model]):
+        raise ValueError('The passed sublattice model ({}) is of lower order than the passed structure supports ({})'.format(subl_model, structure.sublattice_model))
+    possible_subls = []
+    for subl, abstract_subl in zip(subl_model, structure.sublattice_model):
+        if endmembers:
+            subls = itertools.product(subl, repeat=len(abstract_subl))
+        else:
+            subls = itertools.permutations(subl, r=len(abstract_subl))
+        possible_subls.append(subls)
+    unique_subl_models = itertools.product(*possible_subls)
+    # return a list of concrete structures with the generated sublattice models
+    return [copy.deepcopy(structure).make_concrete(model) for model in unique_subl_models]

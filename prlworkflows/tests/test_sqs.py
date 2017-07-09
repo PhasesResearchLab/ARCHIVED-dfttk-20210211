@@ -9,7 +9,7 @@ sublattice models and symmetry from user-input.
 import numpy as np
 import pytest
 
-from prlworkflows.sqs import SQS
+from prlworkflows.sqs import SQS, enumerate_sqs
 from prlworkflows.sqs_db import lat_in_to_sqs
 
 
@@ -50,10 +50,49 @@ ATAT_FCC_L12_LATTICE_IN = """1.000000 0.000000 0.000000
 -2.500000 -1.500000 -1.000000 c_A
 -1.500000 -1.500000 -1.000000 c_A
 -0.500000 -0.500000 -2.000000 c_A
--1.500000 -1.500000 -2.000000 c_A
-"""
+-1.500000 -1.500000 -2.000000 c_A"""
+
+ATAT_ROCKSALT_B1_LATTICE_IN = """1.000000 0.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 0.000000 1.000000
+2.000000 1.000000 1.000000
+-2.000000 1.000000 1.000000
+-0.000000 -0.500000 0.500000
+-0.500000 1.500000 2.000000 a_A
+-0.000000 1.000000 2.000000 a_A
+-0.000000 1.500000 2.500000 a_A
+0.500000 1.000000 1.500000 a_B
+0.500000 1.500000 2.000000 a_B
+-1.500000 1.000000 1.500000 a_A
+1.000000 0.500000 1.500000 a_A
+1.000000 1.000000 2.000000 a_A
+-1.000000 0.500000 1.500000 a_B
+-1.000000 1.000000 2.000000 a_B
+1.500000 1.000000 1.500000 a_B
+-0.500000 0.500000 1.000000 a_B
+-0.500000 1.000000 1.500000 a_A
+-0.000000 -0.000000 1.000000 a_B
+-0.000000 0.500000 1.500000 a_B
+0.500000 0.500000 1.000000 a_A
+-1.000000 1.000000 1.500000 b_B
+-0.500000 0.500000 1.500000 b_A
+-0.500000 1.000000 2.000000 b_A
+0.000000 0.500000 1.000000 b_A
+0.000000 1.000000 1.500000 b_B
+0.000000 1.500000 2.000000 b_B
+0.500000 -0.000000 1.000000 b_B
+0.500000 0.500000 1.500000 b_A
+0.500000 1.000000 2.000000 b_A
+-1.500000 0.500000 1.500000 b_B
+1.000000 0.500000 1.000000 b_A
+1.000000 1.000000 1.500000 b_A
+-1.000000 0.500000 1.000000 b_B
+1.500000 0.500000 1.500000 b_B
+-0.500000 -0.000000 1.000000 b_B
+-0.000000 -0.000000 0.500000 b_A"""
 
 
+# noinspection PyProtectedMember,PyProtectedMember
 def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     """lattice.in files in the ATAT format should be converted to SQS correctly."""
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
@@ -62,6 +101,14 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a']])
     assert np.all(structure.sublattice_site_ratios == [8, 24])
     assert np.all(structure._sublattice_names == ['a', 'c'])
+    assert structure.is_abstract
+
+    structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
+    specie_types = {specie.symbol for specie in structure.types_of_specie}
+    assert specie_types == {'Xaa', 'Xab', 'Xba', 'Xbb'}
+    assert np.all(structure.sublattice_model == [['a', 'b'], ['a', 'b']])
+    assert np.all(structure.sublattice_site_ratios == [16, 16])
+    assert np.all(structure._sublattice_names == ['a', 'b'])
     assert structure.is_abstract
 
 
@@ -105,9 +152,27 @@ def test_abstract_sqs_is_properly_substituted_with_sublattice_model():
 
 def test_sqs_is_properly_enumerated_for_a_higher_order_sublattice_model():
     """Tests that a sublattice model of higher order than an SQS properly enumerated"""
-    raise NotImplementedError
+    structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=False)
+    assert len(structures) == 4
 
+    structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=True)
+    assert len(structures) == 16
 
 def test_sqs_is_properly_enumerated_for_a_multiple_solution_sublattice_model():
     """Tests that a sublattice model with multiple solution sublattices is properly enumerated"""
-    raise NotImplementedError
+    structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=False)
+    assert len(structures) == 4
+
+    structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=True)
+    assert len(structures) == 16
+
+
+def test_enumerating_sqs_with_lower_order_subl_raises():
+    """If a lower order sublattice model is passed be enumerated in an SQS, it should raise."""
+    structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    with pytest.raises(ValueError):
+        enumerate_sqs(structure, [['Fe'], ['Al']])
