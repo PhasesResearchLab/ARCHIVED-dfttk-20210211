@@ -6,6 +6,7 @@ pymatgen Structures and matching those Structure objects to ESPEI-style
 sublattice models and symmetry from user-input.
 """
 
+import numpy as np
 import pytest
 
 from prlworkflows.sqs import SQS
@@ -58,9 +59,9 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xca'}
-    assert structure.sublattice_model == [['a', 'b'], ['a']]
-    assert structure.sublattice_site_ratios == [[4,4], [24]]
-    assert structure._sublattice_names == ['a', 'c']
+    assert np.all(structure.sublattice_model == [['a', 'b'], ['a']])
+    assert np.all(structure.sublattice_site_ratios == [[4,4], [24]])
+    assert np.all(structure._sublattice_names == ['a', 'c'])
     assert structure.is_abstract
 
 

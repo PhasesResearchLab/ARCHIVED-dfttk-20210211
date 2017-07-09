@@ -22,6 +22,7 @@ phase. This is intentionally designed to match the syntax used to describe phase
 the resulting Structure objects can be made concrete using functions in `prlworkflows.sqs`.
 """
 
+import numpy as np
 from tinydb import TinyDB
 from pyparsing import Regex, Word, alphanums, OneOrMore, LineEnd, Suppress, Group
 from pymatgen import Lattice
@@ -97,9 +98,9 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     # create the structure
     sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True)
     sqs.modify_lattice(Lattice(lattice))
-    sqs.sublattice_model = [[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
-    sqs.sublattice_site_ratios = [[subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
-    sqs._sublattice_names = [s for s in sorted(subl_model.keys())]
+    sqs.sublattice_model = np.array([[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
+    sqs.sublattice_site_ratios = np.array([[subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
+    sqs._sublattice_names = np.array([s for s in sorted(subl_model.keys())])
     return sqs
 
 
