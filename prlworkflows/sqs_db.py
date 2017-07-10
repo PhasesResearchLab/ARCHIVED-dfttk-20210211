@@ -22,12 +22,16 @@ phase. This is intentionally designed to match the syntax used to describe phase
 the resulting Structure objects can be made concrete using functions in `prlworkflows.sqs`.
 """
 
+import json
+
 import numpy as np
 from tinydb import TinyDB
+from tinydb.storages import MemoryStorage
 from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
 from pymatgen import Lattice
 
 from prlworkflows.sqs import SQS
+from prlworkflows.utils import recursive_glob
 
 def _parse_atat_lattice(lattice_in):
     """Parse an ATAT-style `lat.in` string.
@@ -117,7 +121,15 @@ def SQSDatabase(path):
     TinyDB
         Database of abstract SQS.
     """
-    pass
+    db = TinyDB(storage=MemoryStorage)
+    dataset_filenames = recursive_glob(path, '*.json')
+    for fname in dataset_filenames:
+        with open(fname) as file_:
+            try:
+                db.insert(json.load(file_))
+            except ValueError as e:
+                raise ValueError('JSON Error in {}: {}'.format(fname, e))
+    return db
 
 
 def structure_to_database(db, structure):

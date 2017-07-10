@@ -3,6 +3,9 @@
 Mostly for getting and manipulating structures. With all of the function definitions and docstrings,
 these are more verbose """
 
+import fnmatch
+import os
+
 from pymatgen import MPRester
 from fireworks import LaunchPad
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
@@ -122,3 +125,23 @@ def update_fws_spec(wf, spec_dict, fw_name_constraint=None):
         if fw_name_constraint is None or fw_name_constraint in fw.name:
             fw.spec.update(spec_dict)
     return wf
+
+
+def recursive_glob(start, pattern):
+    """
+    Recursively glob for the given pattern from the start directory.
+
+    Taken from ESPEI.
+
+    Args:
+        start (str): Path of the directory to walk while for file globbing
+        pattern (str): Filename pattern to match in the glob
+
+    Returns:
+        [str]: List of matched filenames
+    """
+    matches = []
+    for root, dirnames, filenames in os.walk(start):
+        for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return sorted(matches)
