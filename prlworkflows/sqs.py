@@ -12,14 +12,12 @@ import numpy as np
 from pymatgen import Structure
 
 
-# TODO: override the upstream constructors to call super and then add the sublattice configuration
-# TODO: override the as_dict method to add the extra metadata, if necessary.
 # TODO: implement making the concrete structure abstract again
 class SQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
 
-    def __init__(self, *args, sublattice_model=None, sublattice_names=None, sublattice_site_ratios=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """Create a SQS object
 
         Parameters
@@ -35,12 +33,10 @@ class SQS(Structure):
         kwargs :
             kwargs to pass to Structure
         """
-        # TODO: add support for adding sublattice model metadata (model, site ratios, symmetry, version info)
-        # TODO: check for any DummySpecies and set is_abstract based on the result
+        self.sublattice_model = kwargs.pop('sublattice_model', None)
+        self._sublattice_names = kwargs.pop('sublattice_names', None)
+        self.sublattice_site_ratios = kwargs.pop('sublattice_site_ratios', None)
         super(SQS, self).__init__(*args, **kwargs)
-        self.sublattice_model = sublattice_model
-        self._sublattice_names = sublattice_names
-        self.sublattice_site_ratios = sublattice_site_ratios
 
     @property
     def is_abstract(self):
@@ -84,6 +80,21 @@ class SQS(Structure):
             # find the scale factor and scale the lattice
             sf = np.max(radius_matrix[idx] / self.distance_matrix[idx]) ** 3
             self.scale_lattice(self.volume * sf)
+
+    def as_dict(self, verbosity=1, fmt=None, **kwargs):
+        d = super(SQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
+        d['sublattice_model'] = self.sublattice_model
+        d['sublattice_names'] = self._sublattice_names
+        d['sublattice_site_ratios'] = self.sublattice_site_ratios
+        return d
+
+    @classmethod
+    def from_dict(cls, d, fmt=None):
+        sqs = super(SQS, cls).from_dict(d, fmt=fmt)
+        sqs.sublattice_model = d.get('sublattice_model')
+        sqs._sublattice_names = d.get('sublattice_names')
+        sqs.sublattice_site_ratios = d.get('sublattice_site_ratios')
+        return sqs
 
 
 def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):

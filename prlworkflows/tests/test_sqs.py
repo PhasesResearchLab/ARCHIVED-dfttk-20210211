@@ -8,6 +8,7 @@ sublattice models and symmetry from user-input.
 
 import numpy as np
 import pytest
+from pymatgen import Lattice
 
 from prlworkflows.sqs import SQS, enumerate_sqs
 from prlworkflows.sqs_db import lat_in_to_sqs
@@ -113,8 +114,33 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
 
 
 def test_sqs_obj_correctly_serialized():
-    """Tests that the as_dict method of the SQS object correctly includes metadata"""
-    raise NotImplementedError
+    """Tests that the as_dict method of the SQS object correctly includes metadata and is able to be seralized/unserialized."""
+    sqs = SQS(Lattice.cubic(5), ['Xaa', 'Xab'], [[0,0,0],[0.5,0.5,0.5]],
+              sublattice_model=[['a', 'b']],
+              sublattice_names=['a'],
+              sublattice_site_ratios=[1])
+    assert sqs.is_abstract
+
+    # first seralization
+    s1 = SQS.from_dict(sqs.as_dict())
+    assert sqs == s1
+    assert s1.is_abstract
+    assert s1.sublattice_model == [['a', 'b']]
+    assert s1._sublattice_names == ['a']
+    assert s1.sublattice_site_ratios == [1]
+
+    # second serialization
+    s2 = SQS.from_dict(sqs.as_dict())
+    assert sqs == s2
+    assert s2.is_abstract
+    assert s2.sublattice_model == [['a', 'b']]
+    assert s2._sublattice_names == ['a']
+    assert s2.sublattice_site_ratios == [1]
+
+    # test that we can make it concrete
+    s2.make_concrete([['Fe', 'Ni']])
+    assert {s.symbol for s in s2.types_of_specie} == {'Fe', 'Ni'}
+
 
 
 def test_higher_order_sqs_list_from_database():
