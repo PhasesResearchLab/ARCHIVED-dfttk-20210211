@@ -56,7 +56,7 @@ class SQS(Structure):
         def _subl_error():
             raise ValueError('Concrete sublattice model {} does not match size of abstract sublattice model {}'.format(subl_model, self.sublattice_model))
         if not self.is_abstract:
-            raise ValueError('SQS cannot be made concrete because it already is concrete with species.'.format({s.symbol for s in self.types_of_specie}))
+            raise ValueError('SQS cannot be made concrete because it already is concrete with species {}.'.format({s.symbol for s in self.types_of_specie}))
         if len(subl_model) != len(self.sublattice_model):
             _subl_error()
         # build the replacement dictionary
