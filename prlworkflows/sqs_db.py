@@ -66,6 +66,9 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     SQS
         Abstract SQS.
     """
+    # TODO: handle numeric species, e.g. 'g1'.
+    # Problems: parser has trouble with matching next line and we have to rename it so pymatgen
+    # doesn't think it's a charge.
     # parse the data
     parsed_data = _parse_atat_lattice(atat_lattice_in)
     atat_coord_system = parsed_data[0]
@@ -100,11 +103,13 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         species_list.append(atom)
         species_positions.append(list(position))
     # create the structure
-    sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True)
+    sublattice_model = np.array([[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
+    sublattice_names = np.array([s for s in sorted(subl_model.keys())])
+    sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
+              sublattice_model=sublattice_model,
+              sublattice_names=sublattice_names)
     sqs.modify_lattice(Lattice(lattice))
-    sqs.sublattice_model = np.array([[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
-    sqs.sublattice_site_ratios = np.array([sum([subl_model[s].count(e) for e in sorted(list(set(subl_model[s])))]) for s in sorted(subl_model.keys())])
-    sqs._sublattice_names = np.array([s for s in sorted(subl_model.keys())])
+
     return sqs
 
 
@@ -132,23 +137,7 @@ def SQSDatabase(path):
     return db
 
 
-def structure_to_database(db, structure):
-    """Insert a Structure object with added metadata into the passed db.
-
-    See the module definition for the database schema.
-
-    Parameters
-    ----------
-    db : TinyDB
-        TinyDB database of the SQS database
-    structure : SQS
-        Abstract SQS object with mixing sublattice species named in the format `Xab` for a mixing species
-        `B` on sublattice `a`.
-    """
-    pass
-
-
-def structures_from_database(db, symmetry, subl_model, subl_site_ratios):
+def structures_from_database(db, subl_model, subl_site_ratios):
     """Returns a list of Structure objects from the db that match the criteria.
 
     The returned list format supports matching SQS to phases that have multiple solution sublattices

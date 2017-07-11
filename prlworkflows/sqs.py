@@ -5,6 +5,8 @@ The SQS are regular pymatgen Structures with the species named according to subl
 These species in pymatgen Structures are named to `Xab`, which corresponds to atom `B` in sublattice `a`.
 """
 
+from __future__ import division
+
 import itertools
 import copy
 
@@ -24,23 +26,30 @@ class SQS(Structure):
         ----------
         args :
             args to pass to Structure
-        sublattice_model : np.ndarray
+        sublattice_model : [[str]]
             Abstract sublattice model in the ESPEI style, e.g. `[['a', 'b'], ['a']]`.
-        sublattice_names : np.ndarray
+        sublattice_names : [[str]]
             Names of the sublattices, or the second character in the species names, e.g. `['a', 'c']`.
-        sublattice_site_ratios : np.ndarray
-            Site ratios of the sublattices, e.g. `[8.0, 24.0]`
         kwargs :
             kwargs to pass to Structure
         """
         self.sublattice_model = kwargs.pop('sublattice_model', None)
         self._sublattice_names = kwargs.pop('sublattice_names', None)
-        self.sublattice_site_ratios = kwargs.pop('sublattice_site_ratios', None)
         super(SQS, self).__init__(*args, **kwargs)
 
     @property
     def is_abstract(self):
         return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
+
+    @property
+    def sublattice_site_ratios(self):
+        """Return normalized sublattice site ratio. E.g. [[0.25, 0.25], [0.1666, 0.1666, 0.1666]]
+        """
+        subl_model = self.sublattice_model
+        subl_names = self._sublattice_names
+        comp_dict = self.composition.as_dict()
+        site_ratios = [[comp_dict['X'+name+e+'0+']/self.num_sites for e in subl] for subl, name in zip(subl_model, subl_names)]
+        return site_ratios
 
     def make_concrete(self, subl_model, scale_volume=True):
         """Modify self to be a concrete SQS based on the sublattice model.
@@ -86,6 +95,8 @@ class SQS(Structure):
         d['sublattice_model'] = self.sublattice_model
         d['sublattice_names'] = self._sublattice_names
         d['sublattice_site_ratios'] = self.sublattice_site_ratios
+        # TODO: set symmetry by endmember symmetry
+        # d['symmetry']
         return d
 
     @classmethod
@@ -93,7 +104,6 @@ class SQS(Structure):
         sqs = super(SQS, cls).from_dict(d, fmt=fmt)
         sqs.sublattice_model = d.get('sublattice_model')
         sqs._sublattice_names = d.get('sublattice_names')
-        sqs.sublattice_site_ratios = d.get('sublattice_site_ratios')
         return sqs
 
 

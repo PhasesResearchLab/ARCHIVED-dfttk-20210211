@@ -100,7 +100,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xca'}
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a']])
-    assert np.all(structure.sublattice_site_ratios == [8, 24])
+    assert structure.sublattice_site_ratios == [[0.125, 0.125], [0.75]]
     assert np.all(structure._sublattice_names == ['a', 'c'])
     assert structure.is_abstract
 
@@ -108,7 +108,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xba', 'Xbb'}
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a', 'b']])
-    assert np.all(structure.sublattice_site_ratios == [16, 16])
+    assert structure.sublattice_site_ratios == [[0.25, 0.25], [0.25, 0.25]]
     assert np.all(structure._sublattice_names == ['a', 'b'])
     assert structure.is_abstract
 
@@ -117,8 +117,8 @@ def test_sqs_obj_correctly_serialized():
     """Tests that the as_dict method of the SQS object correctly includes metadata and is able to be seralized/unserialized."""
     sqs = SQS(Lattice.cubic(5), ['Xaa', 'Xab'], [[0,0,0],[0.5,0.5,0.5]],
               sublattice_model=[['a', 'b']],
-              sublattice_names=['a'],
-              sublattice_site_ratios=[1])
+              sublattice_names=['a'])
+
     assert sqs.is_abstract
 
     # first seralization
@@ -127,7 +127,7 @@ def test_sqs_obj_correctly_serialized():
     assert s1.is_abstract
     assert s1.sublattice_model == [['a', 'b']]
     assert s1._sublattice_names == ['a']
-    assert s1.sublattice_site_ratios == [1]
+    assert s1.sublattice_site_ratios == [[0.5, 0.5]]
 
     # second serialization
     s2 = SQS.from_dict(sqs.as_dict())
@@ -135,7 +135,7 @@ def test_sqs_obj_correctly_serialized():
     assert s2.is_abstract
     assert s2.sublattice_model == [['a', 'b']]
     assert s2._sublattice_names == ['a']
-    assert s2.sublattice_site_ratios == [1]
+    assert s2.sublattice_site_ratios == [[0.5, 0.5]]
 
     # test that we can make it concrete
     s2.make_concrete([['Fe', 'Ni']])
