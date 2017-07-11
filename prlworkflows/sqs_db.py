@@ -103,8 +103,8 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         species_list.append(atom)
         species_positions.append(list(position))
     # create the structure
-    sublattice_model = np.array([[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())])
-    sublattice_names = np.array([s for s in sorted(subl_model.keys())])
+    sublattice_model = [[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
+    sublattice_names = [s for s in sorted(subl_model.keys())]
     sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
               sublattice_model=sublattice_model,
               sublattice_names=sublattice_names)
