@@ -42,13 +42,23 @@ class SQS(Structure):
         return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
 
     @property
-    def sublattice_site_ratios(self):
+    def normalized_sublattice_site_ratios(self):
         """Return normalized sublattice site ratio. E.g. [[0.25, 0.25], [0.1666, 0.1666, 0.1666]]
         """
         subl_model = self.sublattice_model
         subl_names = self._sublattice_names
         comp_dict = self.composition.as_dict()
         site_ratios = [[comp_dict['X'+name+e+'0+']/self.num_sites for e in subl] for subl, name in zip(subl_model, subl_names)]
+        return site_ratios
+
+    @property
+    def sublattice_site_ratios(self):
+        """Return normalized sublattice site ratio. E.g. [[0.25, 0.25], [0.1666, 0.1666, 0.1666]]
+        """
+        subl_model = self.sublattice_model
+        subl_names = self._sublattice_names
+        comp_dict = {k: int(v) for k, v in self.composition.reduced_composition.as_dict().items()}
+        site_ratios = [[comp_dict['X'+name+e+'0+'] for e in subl] for subl, name in zip(subl_model, subl_names)]
         return site_ratios
 
     def make_concrete(self, subl_model, scale_volume=True):
