@@ -88,7 +88,7 @@ class SQS(Structure):
                 specie = 'X' + subl_name + abstract_specie
                 replacement_dict[specie] = concrete_specie
         self.replace_species(replacement_dict)
-        if scale_volume:
+        if scale_volume and not self.is_abstract:
             idx = np.nonzero(self.distance_matrix)  # exclude distance from self
             # construct a minimal distance matrix based on average ionic radii
             radius_matrix = np.zeros((len(self.sites), len(self.sites)))
@@ -100,13 +100,34 @@ class SQS(Structure):
             sf = np.max(radius_matrix[idx] / self.distance_matrix[idx]) ** 3
             self.scale_lattice(self.volume * sf)
 
+    def get_endmember_space_group_info(self, symprec=1e-2, angle_tolerance=5.0):
+        """
+        Return endmember space group info..
+
+        Args:
+            symprec (float): Same definition as in SpacegroupAnalyzer.
+                Defaults to 1e-2.
+            angle_tolerance (float): Same definition as in SpacegroupAnalyzer.
+                Defaults to 5 degrees.
+
+        Returns:
+            spacegroup_symbol, international_number
+        """
+        endmember_subl = [['X' + subl_name for _ in subl] for subl, subl_name in
+                     zip(self.sublattice_model, self._sublattice_names)]
+        self_copy = copy.deepcopy(self)
+        self_copy.make_concrete(endmember_subl)
+        endmember_space_group_info = self_copy.get_space_group_info(symprec=symprec, angle_tolerance=angle_tolerance)
+        del self_copy
+        return endmember_space_group_info
+
     def as_dict(self, verbosity=1, fmt=None, **kwargs):
         d = super(SQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
         d['sublattice_model'] = self.sublattice_model
         d['sublattice_names'] = self._sublattice_names
         d['sublattice_site_ratios'] = self.sublattice_site_ratios
-        # TODO: set symmetry by endmember symmetry
-        # d['symmetry']
+        endmember_symmetry = self.get_endmember_space_group_info()
+        d['symmetry'] = {'symbol': endmember_symmetry[0], 'number': endmember_symmetry[1]}
         return d
 
     @classmethod

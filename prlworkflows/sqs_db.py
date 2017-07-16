@@ -94,13 +94,16 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         atom = atoms[0]
         if rename:
             # change from `a_B` style to `Xab`
-            atom = 'X'+atom.replace('_', '').lower()
+
+            atom = atom.lower().split('_')
+        else:
+            raise NotImplementedError('Cannot rename because the atom name and sublattice name may be ambigous.')
         # add the abstract atom to the sublattice model
-        subl = list(atom)[1]
-        subl_atom = list(atom)[2]
-        subl_model[subl] = subl_model.get(subl, '') + subl_atom
+        subl = atom[0]
+        subl_atom = atom[1]
+        subl_model[subl] = subl_model.get(subl, set()).union({subl_atom})
         # add the species and position to the lists
-        species_list.append(atom)
+        species_list.append('X'+subl+subl_atom)
         species_positions.append(list(position))
     # create the structure
     sublattice_model = [[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]

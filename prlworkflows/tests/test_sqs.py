@@ -92,6 +92,36 @@ ATAT_ROCKSALT_B1_LATTICE_IN = """1.000000 0.000000 0.000000
 -0.500000 -0.000000 1.000000 b_B
 -0.000000 -0.000000 0.500000 b_A"""
 
+ATAT_GA3PT5_LATTICE_IN = """2.000000 0.000000 0.000000
+0.000000 2.000000 0.000000
+0.000000 0.000000 1.000000
+0.500000 -0.500000 0.000000
+0.500000 0.500000 0.000000
+0.000000 0.000000 1.000000
+0.000000 0.000000 0.000000 aej_A
+0.250000 0.250000 0.000000 aej_A
+0.750000 0.250000 0.000000 aej_A
+0.000000 0.250000 0.500000 aej_A
+-0.000000 -0.250000 0.500000 aej_A
+0.500000 0.000000 0.000000 bh_A
+0.250000 0.000000 0.500000 bh_A
+-0.250000 0.000000 0.500000 bh_A"""
+
+ATAT_GA3PT5_LATTICE_IN_MUTLI_ATOM = """2.000000 0.000000 0.000000
+0.000000 2.000000 0.000000
+0.000000 0.000000 1.000000
+0.500000 -0.500000 0.000000
+0.500000 0.500000 0.000000
+0.000000 0.000000 1.000000
+0.000000 0.000000 0.000000 aej_Af
+0.250000 0.250000 0.000000 aej_Af
+0.750000 0.250000 0.000000 aej_Af
+0.000000 0.250000 0.500000 aej_Af
+-0.000000 -0.250000 0.500000 aej_Af
+0.500000 0.000000 0.000000 bh_Aqwerty
+0.250000 0.000000 0.500000 bh_Aqwerty
+-0.250000 0.000000 0.500000 bh_Aqwerty"""
+
 
 # noinspection PyProtectedMember,PyProtectedMember
 def test_atat_bestsqs_is_correctly_parsed_to_sqs():
@@ -113,6 +143,32 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     assert structure.sublattice_site_ratios == [[1, 1], [1, 1]]
     assert np.all(structure._sublattice_names == ['a', 'b'])
     assert structure.is_abstract
+
+
+def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_sublattice():
+    """lattice.in files in the ATAT format should be converted to SQS correctly."""
+    structure = lat_in_to_sqs(ATAT_GA3PT5_LATTICE_IN)
+    specie_types = {specie.symbol for specie in structure.types_of_specie}
+    assert specie_types == {'Xaeja', 'Xbha'}
+    assert np.all(structure.sublattice_model == [['a'], ['a']])
+    assert structure.normalized_sublattice_site_ratios == [[0.625], [0.375]]
+    assert structure.sublattice_site_ratios == [[5], [3]]
+    assert np.all(structure._sublattice_names == ['aej', 'bh'])
+    assert structure.is_abstract
+    structure.make_concrete([['Fe'], ['Ni']])
+
+
+def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_atom():
+    """lattice.in files in the ATAT format should be converted to SQS correctly."""
+    structure = lat_in_to_sqs(ATAT_GA3PT5_LATTICE_IN_MUTLI_ATOM)
+    specie_types = {specie.symbol for specie in structure.types_of_specie}
+    assert specie_types == {'Xaejaf', 'Xbhaqwerty'}
+    assert np.all(structure.sublattice_model == [['af'], ['aqwerty']])
+    assert structure.normalized_sublattice_site_ratios == [[0.625], [0.375]]
+    assert structure.sublattice_site_ratios == [[5], [3]]
+    assert np.all(structure._sublattice_names == ['aej', 'bh'])
+    assert structure.is_abstract
+    structure.make_concrete([['Fe'], ['Ni']])
 
 
 def test_sqs_obj_correctly_serialized():
@@ -218,3 +274,12 @@ def test_enumerating_sqs_with_lower_order_subl_raises():
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
     with pytest.raises(ValueError):
         enumerate_sqs(structure, [['Fe'], ['Al']])
+
+
+def test_sqs_finds_correct_endmember_symmetry():
+    """SQS shouldd correctly find endmember symmetry."""
+    fcc_l12 = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
+    assert fcc_l12.get_endmember_space_group_info()[0] == 'Pm-3m'
+
+    rocksalt_b1 = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
+    assert rocksalt_b1.get_endmember_space_group_info()[0] == 'Fm-3m'
