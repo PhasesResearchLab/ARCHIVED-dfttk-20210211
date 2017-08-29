@@ -35,16 +35,21 @@ class SQS(Structure):
         """
         self.sublattice_model = kwargs.pop('sublattice_model', None)
         self._sublattice_names = kwargs.pop('sublattice_names', None)
+        self.concrete_sublattice_model = None
         super(SQS, self).__init__(*args, **kwargs)
 
     @property
     def espei_sublattice_model(self):
         """
-        Return ESPEI-formatted sublattice model [['a', 'b'], 'a']
+        Return ESPEI-formatted sublattice model [['a', 'b'], 'a'] for the concrete case
         """
+        if self.concrete_sublattice_model:
+            subl_model = self.concrete_sublattice_model
+        else:
+            subl_model = self.sublattice_model
         # short function to convert [['A', 'B'], ['A']] to [['A', 'B'], 'A'] as in ESPEI format
-        canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
-        return [canonicalize_sublattice(sl) for sl in self.sublattice_model]
+        canonicalize_sublattice = lambda sl: sl[0] if len(set(sl)) == 1 else sl
+        return [canonicalize_sublattice(sl) for sl in subl_model]
 
     @property
     def is_abstract(self):
@@ -108,6 +113,7 @@ class SQS(Structure):
             # find the scale factor and scale the lattice
             sf = np.max(radius_matrix[idx] / self.distance_matrix[idx]) ** 3
             self.scale_lattice(self.volume * sf)
+        self.concrete_sublattice_model = subl_model
 
     def get_endmember_space_group_info(self, symprec=1e-2, angle_tolerance=5.0):
         """
@@ -133,6 +139,7 @@ class SQS(Structure):
     def as_dict(self, verbosity=1, fmt=None, **kwargs):
         d = super(SQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
         d['sublattice_model'] = self.sublattice_model
+        d['concrete_sublattice_model'] = self.concrete_sublattice_model
         d['sublattice_names'] = self._sublattice_names
         d['sublattice_site_ratios'] = self.sublattice_site_ratios
         endmember_symmetry = self.get_endmember_space_group_info()
@@ -144,6 +151,7 @@ class SQS(Structure):
         sqs = super(SQS, cls).from_dict(d, fmt=fmt)
         sqs.sublattice_model = d.get('sublattice_model')
         sqs._sublattice_names = d.get('sublattice_names')
+        sqs.concrete_sublattice_model = d.get('concrete_sublattice_model')
         return sqs
 
 

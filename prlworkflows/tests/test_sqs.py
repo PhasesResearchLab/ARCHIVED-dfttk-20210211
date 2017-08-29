@@ -159,6 +159,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_sublattice(
     assert np.all(structure._sublattice_names == ['aej', 'bh'])
     assert structure.is_abstract
     structure.make_concrete([['Fe'], ['Ni']])
+    assert np.all(structure.concrete_sublattice_model == [['Fe'], ['Ni']])
 
 
 def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_atom():
@@ -173,6 +174,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_atom():
     assert np.all(structure._sublattice_names == ['aej', 'bh'])
     assert structure.is_abstract
     structure.make_concrete([['Fe'], ['Ni']])
+    assert np.all(structure.concrete_sublattice_model == [['Fe'], ['Ni']])
 
 
 def test_sqs_obj_correctly_serialized():
@@ -232,6 +234,8 @@ def test_abstract_sqs_is_properly_substituted_with_sublattice_model():
 
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
     structure.make_concrete([['Al', 'Al'], ['Al']])
+    assert np.all(structure.concrete_sublattice_model == [['Al', 'Al'], ['Al']])
+    assert np.all(structure.espei_sublattice_model == ['Al', 'Al'])
     assert {s.symbol for s in structure.types_of_specie} == {'Al'}
     assert structure.is_abstract is False
     with pytest.raises(ValueError):
