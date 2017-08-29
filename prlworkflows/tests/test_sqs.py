@@ -200,7 +200,7 @@ def test_sqs_obj_correctly_serialized():
     assert {s.symbol for s in s2.types_of_specie} == {'Fe', 'Ni'}
 
 
-
+@pytest.mark.skip
 def test_higher_order_sqs_list_from_database():
     """List of SQS objects that match the criteria should be extracted from the database.
 
@@ -208,7 +208,7 @@ def test_higher_order_sqs_list_from_database():
     """
     raise NotImplementedError
 
-
+@pytest.mark.skip
 def test_multiple_sqs_list_from_database():
     """List of SQS objects that match the criteria should be extracted from the database.
 
