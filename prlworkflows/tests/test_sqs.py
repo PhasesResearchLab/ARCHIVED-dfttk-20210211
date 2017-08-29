@@ -130,6 +130,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xca'}
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a']])
+    assert np.all(structure.espei_sublattice_model == [['a', 'b'], 'a'])
     assert structure.normalized_sublattice_site_ratios == [[0.125, 0.125], [0.75]]
     assert structure.sublattice_site_ratios == [[1, 1], [6]]
     assert np.all(structure._sublattice_names == ['a', 'c'])
@@ -139,6 +140,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaa', 'Xab', 'Xba', 'Xbb'}
     assert np.all(structure.sublattice_model == [['a', 'b'], ['a', 'b']])
+    assert np.all(structure.espei_sublattice_model == [['a', 'b'], ['a', 'b']])
     assert structure.normalized_sublattice_site_ratios == [[0.25, 0.25], [0.25, 0.25]]
     assert structure.sublattice_site_ratios == [[1, 1], [1, 1]]
     assert np.all(structure._sublattice_names == ['a', 'b'])
@@ -151,6 +153,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_sublattice(
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaeja', 'Xbha'}
     assert np.all(structure.sublattice_model == [['a'], ['a']])
+    assert np.all(structure.espei_sublattice_model == ['a', 'a'])
     assert structure.normalized_sublattice_site_ratios == [[0.625], [0.375]]
     assert structure.sublattice_site_ratios == [[5], [3]]
     assert np.all(structure._sublattice_names == ['aej', 'bh'])
@@ -164,6 +167,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_atom():
     specie_types = {specie.symbol for specie in structure.types_of_specie}
     assert specie_types == {'Xaejaf', 'Xbhaqwerty'}
     assert np.all(structure.sublattice_model == [['af'], ['aqwerty']])
+    assert np.all(structure.espei_sublattice_model == ['af', 'aqwerty'])
     assert structure.normalized_sublattice_site_ratios == [[0.625], [0.375]]
     assert structure.sublattice_site_ratios == [[5], [3]]
     assert np.all(structure._sublattice_names == ['aej', 'bh'])

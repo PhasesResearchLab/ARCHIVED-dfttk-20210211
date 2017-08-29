@@ -38,6 +38,15 @@ class SQS(Structure):
         super(SQS, self).__init__(*args, **kwargs)
 
     @property
+    def espei_sublattice_model(self):
+        """
+        Return ESPEI-formatted sublattice model [['a', 'b'], 'a']
+        """
+        # short function to convert [['A', 'B'], ['A']] to [['A', 'B'], 'A'] as in ESPEI format
+        canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
+        return [canonicalize_sublattice(sl) for sl in self.sublattice_model]
+
+    @property
     def is_abstract(self):
         return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
 
