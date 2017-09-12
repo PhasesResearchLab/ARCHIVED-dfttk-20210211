@@ -223,6 +223,56 @@ class SQS(Structure):
         sqs.sublattice_site_ratios = d.get('sublattice_site_ratios')
         return sqs
 
+    @staticmethod
+    def reindex_sublattice(new_indices, subl_model, subl_occupancies, subl_site_ratios):
+        """
+        Re-index the passed sublattice model, occupancies and site ratios according to the new index.
+
+        Parameters
+        ----------
+        new_indices : [int]
+            List of indicies corresponding to sublattices. There should be no duplicates. Specifically,
+            sorted(new_indices) == list(range(len(subl_model))
+        subl_model : [[str]]
+            Sublattice configuration  e.g. `[['Fe', 'Ni'], ['Fe']]`.
+        subl_occupancies : [[float]]
+            Fraction of the sublattice each element in the configuration  has e.g. `[[0.3333, 0.6666], [1]]`.
+        subl_site_ratios : [float]
+            Ratios of sublattice multiplicity  e.g. `[3, 1]`.
+
+        Returns
+        -------
+        tuple
+            Tuple of (sublattice model, occupancies, site ratios) that have been re-indexed
+
+        Examples
+        --------
+
+        >>> SQS.reindex_sublattice([1, 0], [['Al', 'Ni'], ['Al']], [[0.333, 0.666], [1]], [3, 1])
+        ([['Al'], ['Al', 'Ni']], [[1], [0.333, 0.666]], [1, 3])
+        """
+        if sorted(new_indices) != list(range(len(subl_model))):
+            raise ValueError('Passed re-indexing indicies ({}) do not match the sublattice model indices ({}).'.format(new_indices, list(range(len(subl_model)))))
+        new_subl_model = [subl_model[i] for i in new_indices]
+        new_subl_occupancies = [subl_occupancies[i] for i in new_indices]
+        new_subl_site_ratios = [subl_site_ratios[i] for i in new_indices]
+        return (new_subl_model, new_subl_occupancies, new_subl_site_ratios)
+
+
+    def reindex(self, new_indices):
+        """
+        Re-index the instance sublattice model, occupancies and site ratios according to the new index.
+
+        Parameters
+        ----------
+        new_indices : [int]
+            List of indicies corresponding to sublattices. There should be no duplicates. Specifically,
+            sorted(new_indices) == list(range(len(subl_model))
+
+        """
+        self.sublattice_configuration, self.sublattice_occupancies, self.sublattice_site_ratios = \
+            SQS.reindex_sublattice(new_indices, self.sublattice_configuration, self.sublattice_occupancies, self.sublattice_site_ratios)
+
 
 def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
     """
