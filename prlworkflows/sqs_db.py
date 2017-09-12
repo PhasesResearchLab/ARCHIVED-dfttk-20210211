@@ -116,13 +116,14 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     return sqs
 
 
-def SQSDatabase(path):
+def SQSDatabase(path, name_constraint=''):
     """
     Convienence function to create a TinyDB for the SQS database found at `path`.
 
     Parameters
     ----------
     path : path-like of the folder containing the SQS database.
+    name_constraint : Any name constraint to add into the recursive glob. Not case sensitive. Exact substring.
 
     Returns
     -------
@@ -131,6 +132,7 @@ def SQSDatabase(path):
     """
     db = TinyDB(storage=MemoryStorage)
     dataset_filenames = recursive_glob(path, '*.json')
+    dataset_filenames = [fname for fname in dataset_filenames if name_constraint.upper() in fname.upper()]
     for fname in dataset_filenames:
         with open(fname) as file_:
             try:
