@@ -274,7 +274,7 @@ class SQS(Structure):
             SQS.reindex_sublattice(new_indices, self.sublattice_configuration, self.sublattice_occupancies, self.sublattice_site_ratios)
 
 
-def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
+def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True, skip_on_failure=False):
     """
     Return a list of all of the concrete Structure objects from an abstract Structure and concrete sublattice model.
 
@@ -294,6 +294,8 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
         Include endmembers in the enumerated structures if True. Defaults to True.
     scale_volume : bool
         If True, scales the volume of the cell so the ions have at least their minimum atomic radii between them.
+    skip_on_failure : bool
+        If True, will skip if the sublattice model is lower order and return [] instead of raising
 
     Returns
     -------
@@ -304,6 +306,8 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
     if len(subl_model) != len(structure.sublattice_model):
         raise ValueError('Passed sublattice model ({}) does not agree with the passed structure ({})'.format(subl_model, structure.sublattice_model))
     if np.any([len(subl) for subl in subl_model] < [len(subl) for subl in structure.sublattice_model]):
+        if skip_on_failure:
+            return []
         raise ValueError('The passed sublattice model ({}) is of lower order than the passed structure supports ({})'.format(subl_model, structure.sublattice_model))
     possible_subls = []
     for subl, abstract_subl in zip(subl_model, structure.sublattice_model):
@@ -312,6 +316,12 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
         else:
             subls = itertools.permutations(subl, r=len(abstract_subl))
         possible_subls.append(subls)
+    # TODO: possibly want combinations rather than permutations because [['Cu', 'Mg']] might == [['Mg', 'Cu']]
     unique_subl_models = itertools.product(*possible_subls)
     # create a list of concrete structures with the generated sublattice models
-    return [structure.get_concrete_sqs(model, scale_volume) for model in unique_subl_models]
+    try:
+        s = [structure.get_concrete_sqs(model, scale_volume) for model in unique_subl_models]
+    except:
+        print(structure)
+        raise
+    return s
