@@ -208,6 +208,21 @@ class SQS(Structure):
         canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
         return [canonicalize_sublattice(sl) for sl in self.sublattice_occupancies]
 
+    def as_dict(self, verbosity=1, fmt=None, **kwargs):
+        d = super(SQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
+        d['sublattice_configuration'] = self.sublattice_configuration
+        d['sublattice_occupancies'] = self.sublattice_occupancies
+        d['sublattice_site_ratios'] = self.sublattice_site_ratios
+        return d
+
+    @classmethod
+    def from_dict(cls, d, fmt=None):
+        sqs = super(SQS, cls).from_dict(d, fmt=fmt)
+        sqs.sublattice_configuration = d.get('sublattice_configuration')
+        sqs.sublattice_occupancies = d.get('sublattice_occupancies')
+        sqs.sublattice_site_ratios = d.get('sublattice_site_ratios')
+        return sqs
+
 
 def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
     """
