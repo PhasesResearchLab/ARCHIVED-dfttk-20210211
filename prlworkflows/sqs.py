@@ -215,7 +215,7 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
 
     Parameters
     ----------
-    structure : SQS
+    structure : AbstractSQS
         SQS object. Must be abstract.
     subl_model : [[str]]
         List of strings of species names, in the style of ESPEI `input.json`. This sublattice model
@@ -249,7 +249,4 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
         possible_subls.append(subls)
     unique_subl_models = itertools.product(*possible_subls)
     # create a list of concrete structures with the generated sublattice models
-    structs = []
-    for model in unique_subl_models:
-        structs.append(structure.get_concrete_sqs(model, scale_volume))
-    return structs
+    return [structure.get_concrete_sqs(model, scale_volume) for model in unique_subl_models]
