@@ -167,6 +167,7 @@ def test_atat_bestsqs_is_correctly_parsed_to_sqs_with_multicharacter_atom():
     assert np.all(structure._sublattice_names == ['aej', 'bh'])
     concrete_structure = structure.get_concrete_sqs([['Fe'], ['Ni']])
     assert np.all(concrete_structure.sublattice_configuration == [['Fe'], ['Ni']])
+    assert np.all(concrete_structure.sublattice_site_ratios == [5, 3])
 
 
 def test_sqs_obj_correctly_serialized():
@@ -177,21 +178,21 @@ def test_sqs_obj_correctly_serialized():
 
     # first seralization
     s1 = AbstractSQS.from_dict(sqs.as_dict())
-    # assert sqs == s1
-    # assert s1.sublattice_model == [['a', 'b']]
-    # assert s1._sublattice_names == ['a']
-    # assert s1.normalized_sublattice_site_ratios == [[0.5, 0.5]]
+    assert sqs == s1
+    assert s1.sublattice_model == [['a', 'b']]
+    assert s1._sublattice_names == ['a']
+    assert s1.normalized_sublattice_site_ratios == [[0.5, 0.5]]
 
     # second serialization
-    #s2 = AbstractSQS.from_dict(sqs.as_dict())
-    #assert sqs == s2
-    #assert s2.sublattice_model == [['a', 'b']]
-    #assert s2._sublattice_names == ['a']
-    #assert s2.normalized_sublattice_site_ratios == [[0.5, 0.5]]
+    s2 = AbstractSQS.from_dict(sqs.as_dict())
+    assert sqs == s2
+    assert s2.sublattice_model == [['a', 'b']]
+    assert s2._sublattice_names == ['a']
+    assert s2.normalized_sublattice_site_ratios == [[0.5, 0.5]]
 
     # test that we can make it concrete
-    #concrete_structure = s2.get_concrete_sqs([['Fe', 'Ni']])
-    #assert {s.symbol for s in concrete_structure.types_of_specie} == {'Fe', 'Ni'}
+    concrete_structure = s2.get_concrete_sqs([['Fe', 'Ni']])
+    assert {s.symbol for s in concrete_structure.types_of_specie} == {'Fe', 'Ni'}
 
 
 @pytest.mark.skip
@@ -218,12 +219,15 @@ def test_abstract_sqs_is_properly_substituted_with_sublattice_model():
 
     concrete_structure = structure.get_concrete_sqs([['Fe', 'Ni'], ['Al']])
     assert {s.symbol for s in concrete_structure.types_of_specie} == {'Al', 'Fe', 'Ni'}
+    assert np.all(concrete_structure.espei_sublattice_occupancies == [[0.5, 0.5] ,1])
+    assert np.all(concrete_structure.sublattice_site_ratios == [2, 6])
 
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
     concrete_structure = structure.get_concrete_sqs([['Al', 'Al'], ['Al']])
-    assert np.all(concrete_structure.sublattice_configuration == [['Al', 'Al'], ['Al']])
+    assert np.all(concrete_structure.sublattice_configuration == [['Al'], ['Al']])
     assert np.all(concrete_structure.espei_sublattice_configuration == ['Al', 'Al'])
-    assert {s.symbol for s in structure.types_of_specie} == {'Al'}
+    assert np.all(concrete_structure.espei_sublattice_occupancies == [1 ,1])
+    assert {s.symbol for s in concrete_structure.types_of_specie} == {'Al'}
 
 
 def test_abstract_sqs_scales_volume_when_made_concrete():

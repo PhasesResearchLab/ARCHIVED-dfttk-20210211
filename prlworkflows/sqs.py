@@ -12,7 +12,7 @@ import copy
 
 import numpy as np
 from pymatgen import Structure
-
+import pymatgen as pmg
 
 class AbstractSQS(Structure):
     """A pymatgen Structure with special features for SQS.
@@ -136,8 +136,14 @@ class AbstractSQS(Structure):
             spacegroup_symbol, international_number
         """
         endmember_subl = [['X' + subl_name for _ in subl] for subl, subl_name in
-                     zip(self.sublattice_model, self._sublattice_names)]
-        return (None, None)
+                          zip(self.sublattice_model, self._sublattice_names)]
+        # we need to replace the abstract names with real names of species.
+        endmember_speices = {specie for subl in endmember_subl for specie in subl}
+        real_species_dict = {abstract_specie: real_specie for abstract_specie, real_specie in
+                             zip(endmember_speices, pmg.periodic_table._pt_data.keys())}
+        # replace them
+        endmember_subl = [[real_species_dict[specie] for specie in subl] for subl in endmember_subl]
+        # get the structure and spacegroup info
         endmember_struct = self.get_concrete_sqs(endmember_subl)
         endmember_space_group_info = endmember_struct.get_space_group_info(symprec=symprec, angle_tolerance=angle_tolerance)
         return endmember_space_group_info
@@ -190,7 +196,7 @@ class SQS(Structure):
         Return ESPEI-formatted sublattice model [['a', 'b'], 'a'] for the concrete case
         """
         # short function to convert [['A', 'B'], ['A']] to [['A', 'B'], 'A'] as in ESPEI format
-        canonicalize_sublattice = lambda sl: sl[0] if len(set(sl)) == 1 else sl
+        canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
         return [canonicalize_sublattice(sl) for sl in self.sublattice_configuration]
 
     @property
@@ -200,7 +206,7 @@ class SQS(Structure):
         """
         # short function to convert [[0.3333, 0.6666], [1]] to [[0.3333, 0.6666], 1] as in ESPEI format
         canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
-        return [canonicalize_sublattice(sl) for sl in self.espei_sublattice_occupancies]
+        return [canonicalize_sublattice(sl) for sl in self.sublattice_occupancies]
 
 
 def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
