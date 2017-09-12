@@ -92,15 +92,19 @@ class AbstractSQS(Structure):
         self_copy.replace_species(replacement_dict)
 
         if scale_volume:
-            idx = np.nonzero(self_copy.distance_matrix)  # exclude distance from self
-            # construct a minimal distance matrix based on average ionic radii
-            radius_matrix = np.zeros((len(self_copy.sites), len(self_copy.sites)))
-            for i in range(len(self_copy.sites)):
-                for j in range(len(self_copy.sites)):
-                    radius_matrix[i, j] = (
-                        self_copy.sites[i].specie.data['Atomic radius'] + self_copy.sites[j].specie.data['Atomic radius'])
-            # find the scale factor and scale the lattice
-            sf = np.max(radius_matrix[idx] / self_copy.distance_matrix[idx]) ** 3
+            if len(self_copy) == 1:
+                # we only have one element, just set the scaling factor to scale to the pure element density
+                sf = self_copy.density / (float(self_copy.sites[0].specie.data['Density of solid'].split(' ')[0])/1e3)
+            else:
+                idx = np.nonzero(self_copy.distance_matrix)  # exclude distance from self
+                # construct a minimal distance matrix based on average ionic radii
+                radius_matrix = np.zeros((len(self_copy.sites), len(self_copy.sites)))
+                for i in range(len(self_copy.sites)):
+                    for j in range(len(self_copy.sites)):
+                        radius_matrix[i, j] = (
+                            self_copy.sites[i].specie.data['Atomic radius'] + self_copy.sites[j].specie.data['Atomic radius'])
+                # find the scale factor and scale the lattice
+                sf = np.max(radius_matrix[idx] / self_copy.distance_matrix[idx]) ** 3
             self_copy.scale_lattice(self_copy.volume * sf)
 
         # finally we will construct the SQS object and set the values for the canonicalized
@@ -319,9 +323,4 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True, ski
     # TODO: possibly want combinations rather than permutations because [['Cu', 'Mg']] might == [['Mg', 'Cu']]
     unique_subl_models = itertools.product(*possible_subls)
     # create a list of concrete structures with the generated sublattice models
-    try:
-        s = [structure.get_concrete_sqs(model, scale_volume) for model in unique_subl_models]
-    except:
-        print(structure)
-        raise
-    return s
+    return [structure.get_concrete_sqs(model, scale_volume) for model in unique_subl_models]
