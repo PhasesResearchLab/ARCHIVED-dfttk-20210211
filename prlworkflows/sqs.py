@@ -14,8 +14,7 @@ import numpy as np
 from pymatgen import Structure
 
 
-# TODO: implement making the concrete structure abstract again
-class SQS(Structure):
+class AbstractSQS(Structure):
     """A pymatgen Structure with special features for SQS.
     """
 
@@ -35,25 +34,7 @@ class SQS(Structure):
         """
         self.sublattice_model = kwargs.pop('sublattice_model', None)
         self._sublattice_names = kwargs.pop('sublattice_names', None)
-        self.concrete_sublattice_model = None
-        super(SQS, self).__init__(*args, **kwargs)
-
-    @property
-    def espei_sublattice_model(self):
-        """
-        Return ESPEI-formatted sublattice model [['a', 'b'], 'a'] for the concrete case
-        """
-        if self.concrete_sublattice_model:
-            subl_model = self.concrete_sublattice_model
-        else:
-            subl_model = self.sublattice_model
-        # short function to convert [['A', 'B'], ['A']] to [['A', 'B'], 'A'] as in ESPEI format
-        canonicalize_sublattice = lambda sl: sl[0] if len(set(sl)) == 1 else sl
-        return [canonicalize_sublattice(sl) for sl in subl_model]
-
-    @property
-    def is_abstract(self):
-        return all([specie.symbol.startswith('X') for specie in self.types_of_specie])
+        super(AbstractSQS, self).__init__(*args, **kwargs)
 
     @property
     def normalized_sublattice_site_ratios(self):
@@ -75,7 +56,7 @@ class SQS(Structure):
         site_ratios = [[comp_dict['X'+name+e+'0+'] for e in subl] for subl, name in zip(subl_model, subl_names)]
         return site_ratios
 
-    def make_concrete(self, subl_model, scale_volume=True):
+    def get_concrete_sqs(self, subl_model, scale_volume=True):
         """Modify self to be a concrete SQS based on the sublattice model.
 
         Parameters
@@ -88,32 +69,58 @@ class SQS(Structure):
         """
         def _subl_error():
             raise ValueError('Concrete sublattice model {} does not match size of abstract sublattice model {}'.format(subl_model, self.sublattice_model))
-        if not self.is_abstract:
-            raise ValueError('SQS cannot be made concrete because it already is concrete with species {}.'.format({s.symbol for s in self.types_of_specie}))
         if len(subl_model) != len(self.sublattice_model):
             _subl_error()
-        # build the replacement dictionary
+
+        # build the replacement dictionary and the site ratios
         # we have to look up the sublattice names to build the replacement species names
         replacement_dict = {}
-        for abstract_subl, concrete_subl, subl_name in zip(self.sublattice_model, subl_model, self._sublattice_names):
+        site_occupancies = [] # list of [{'FE': 0.3333, 'NI': 0.6666}, {'FE': 1}] for [['FE', 'NI'], ['FE]]
+        for abstract_subl, concrete_subl, subl_name, subl_ratios in zip(self.sublattice_model, subl_model, self._sublattice_names, self.sublattice_site_ratios):
             if len(abstract_subl) != len(concrete_subl):
                 _subl_error()
-            for abstract_specie, concrete_specie in zip(abstract_subl, concrete_subl):
+            sublattice_ratio_sum = sum(subl_ratios)
+            sublattice_occupancy_dict = {}
+            for abstract_specie, concrete_specie, site_ratio in zip(abstract_subl, concrete_subl, subl_ratios):
                 specie = 'X' + subl_name + abstract_specie
                 replacement_dict[specie] = concrete_specie
-        self.replace_species(replacement_dict)
-        if scale_volume and not self.is_abstract:
-            idx = np.nonzero(self.distance_matrix)  # exclude distance from self
+                sublattice_occupancy_dict[concrete_specie] = sublattice_occupancy_dict.get(concrete_specie, 0) + site_ratio/sublattice_ratio_sum
+            site_occupancies.append(sublattice_occupancy_dict)
+
+        # create a copy of myself to make the transformations and make them
+        self_copy = copy.deepcopy(self)
+        self_copy.replace_species(replacement_dict)
+
+        if scale_volume:
+            idx = np.nonzero(self_copy.distance_matrix)  # exclude distance from self
             # construct a minimal distance matrix based on average ionic radii
-            radius_matrix = np.zeros((len(self.sites), len(self.sites)))
-            for i in range(len(self.sites)):
-                for j in range(len(self.sites)):
+            radius_matrix = np.zeros((len(self_copy.sites), len(self_copy.sites)))
+            for i in range(len(self_copy.sites)):
+                for j in range(len(self_copy.sites)):
                     radius_matrix[i, j] = (
-                        self.sites[i].specie.data['Atomic radius'] + self.sites[j].specie.data['Atomic radius'])
+                        self_copy.sites[i].specie.data['Atomic radius'] + self_copy.sites[j].specie.data['Atomic radius'])
             # find the scale factor and scale the lattice
-            sf = np.max(radius_matrix[idx] / self.distance_matrix[idx]) ** 3
-            self.scale_lattice(self.volume * sf)
-        self.concrete_sublattice_model = subl_model
+            sf = np.max(radius_matrix[idx] / self_copy.distance_matrix[idx]) ** 3
+            self_copy.scale_lattice(self_copy.volume * sf)
+
+        # finally we will construct the SQS object and set the values for the canonicalized
+        # sublattice configuration, site ratios, and site occupancies
+
+        # first, canonicalize the sublattice model, e.g. [['FE', 'FE'], ['NI']] => [['FE'], ['NI']]
+        sublattice_configuration = [sorted(set(subl)) for subl in subl_model]
+        # construct the sublattice occupancies for the model
+        sublattice_occupancies = [[occupancies[specie] for specie in subl] for occupancies, subl in zip(site_occupancies, sublattice_configuration)]
+        # sum up the individual sublattice site ratios to the total sublattice ratios.
+        # e.g [[0.25, 0.25], [0.1666, 0.1666, 0.1666]] => [0.5, 0.5]
+        site_ratios = [sum(ratios) for ratios in self.sublattice_site_ratios]
+
+        # create the SQS and add all of these properties to our SQS
+        concrete_sqs = SQS.from_sites(self_copy.sites)
+        concrete_sqs.sublattice_configuration = sublattice_configuration
+        concrete_sqs.sublattice_occupancies = sublattice_occupancies
+        concrete_sqs.sublattice_site_ratios = site_ratios
+        return concrete_sqs
+
 
     def get_endmember_space_group_info(self, symprec=1e-2, angle_tolerance=5.0):
         """
@@ -130,16 +137,14 @@ class SQS(Structure):
         """
         endmember_subl = [['X' + subl_name for _ in subl] for subl, subl_name in
                      zip(self.sublattice_model, self._sublattice_names)]
-        self_copy = copy.deepcopy(self)
-        self_copy.make_concrete(endmember_subl)
-        endmember_space_group_info = self_copy.get_space_group_info(symprec=symprec, angle_tolerance=angle_tolerance)
-        del self_copy
+        return (None, None)
+        endmember_struct = self.get_concrete_sqs(endmember_subl)
+        endmember_space_group_info = endmember_struct.get_space_group_info(symprec=symprec, angle_tolerance=angle_tolerance)
         return endmember_space_group_info
 
     def as_dict(self, verbosity=1, fmt=None, **kwargs):
-        d = super(SQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
+        d = super(AbstractSQS, self).as_dict(verbosity=verbosity, fmt=fmt, **kwargs)
         d['sublattice_model'] = self.sublattice_model
-        d['concrete_sublattice_model'] = self.concrete_sublattice_model
         d['sublattice_names'] = self._sublattice_names
         d['sublattice_site_ratios'] = self.sublattice_site_ratios
         endmember_symmetry = self.get_endmember_space_group_info()
@@ -148,11 +153,54 @@ class SQS(Structure):
 
     @classmethod
     def from_dict(cls, d, fmt=None):
-        sqs = super(SQS, cls).from_dict(d, fmt=fmt)
+        sqs = super(AbstractSQS, cls).from_dict(d, fmt=fmt)
         sqs.sublattice_model = d.get('sublattice_model')
         sqs._sublattice_names = d.get('sublattice_names')
-        sqs.concrete_sublattice_model = d.get('concrete_sublattice_model')
         return sqs
+
+
+class SQS(Structure):
+    """A pymatgen Structure with special features for SQS.
+    """
+
+    def __init__(self, *args, **kwargs):
+        """Create a SQS object
+
+        Parameters
+        ----------
+        args :
+            args to pass to Structure
+        sublattice_configuration : [[str]]
+            Sublattice configuration  e.g. `[['Fe', 'Ni'], ['Fe']]`.
+        sublattice_occupancies : [[float]]
+            Fraction of the sublattice each element in the configuration  has e.g. `[[0.3333, 0.6666], [1]]`.
+        sublattice_site_ratios : [float]
+            Ratios of sublattice multiplicity  e.g. `[3, 1]`.
+        kwargs :
+            kwargs to pass to Structure
+        """
+        self.sublattice_configuration = kwargs.pop('sublattice_configuration', None)
+        self.sublattice_occupancies = kwargs.pop('sublattice_occupancies', None)
+        self.sublattice_site_ratios = kwargs.pop('sublattice_site_ratios', None)
+        super(SQS, self).__init__(*args, **kwargs)
+
+    @property
+    def espei_sublattice_configuration(self):
+        """
+        Return ESPEI-formatted sublattice model [['a', 'b'], 'a'] for the concrete case
+        """
+        # short function to convert [['A', 'B'], ['A']] to [['A', 'B'], 'A'] as in ESPEI format
+        canonicalize_sublattice = lambda sl: sl[0] if len(set(sl)) == 1 else sl
+        return [canonicalize_sublattice(sl) for sl in self.sublattice_configuration]
+
+    @property
+    def espei_sublattice_occupancies(self):
+        """
+        Return ESPEI-formatted sublattice occupancies [[0.3333, 0.6666], 1] for the concrete case
+        """
+        # short function to convert [[0.3333, 0.6666], [1]] to [[0.3333, 0.6666], 1] as in ESPEI format
+        canonicalize_sublattice = lambda sl: sl[0] if len(sl) == 1 else sl
+        return [canonicalize_sublattice(sl) for sl in self.espei_sublattice_occupancies]
 
 
 def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
@@ -197,7 +245,5 @@ def enumerate_sqs(structure, subl_model, endmembers=True, scale_volume=True):
     # create a list of concrete structures with the generated sublattice models
     structs = []
     for model in unique_subl_models:
-        s = copy.deepcopy(structure)
-        s.make_concrete(model, scale_volume)
-        structs.append(s)
+        structs.append(structure.get_concrete_sqs(model, scale_volume))
     return structs

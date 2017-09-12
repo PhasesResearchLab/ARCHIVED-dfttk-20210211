@@ -30,7 +30,7 @@ from tinydb.storages import MemoryStorage
 from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
 from pymatgen import Lattice
 
-from prlworkflows.sqs import SQS
+from prlworkflows.sqs import AbstractSQS
 from prlworkflows.utils import recursive_glob
 
 def _parse_atat_lattice(lattice_in):
@@ -108,7 +108,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     # create the structure
     sublattice_model = [[e for e in sorted(list(set(subl_model[s])))] for s in sorted(subl_model.keys())]
     sublattice_names = [s for s in sorted(subl_model.keys())]
-    sqs = SQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
+    sqs = AbstractSQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
               sublattice_model=sublattice_model,
               sublattice_names=sublattice_names)
     sqs.modify_lattice(Lattice(lattice))
