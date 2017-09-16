@@ -186,6 +186,21 @@ class SQS(Structure):
         self.sublattice_site_ratios = kwargs.pop('sublattice_site_ratios', None)
         super(SQS, self).__init__(*args, **kwargs)
 
+    def __eq__(self, other):
+        """
+        self and other are equivalent if the sublattice models are equal
+
+        Parameters
+        ----------
+        other : SQS
+        """
+        if not isinstance(other, SQS):
+            return False
+        subl_config = self.sublattice_configuration == other.sublattice_configuration
+        subl_site_ratios = self.sublattice_site_ratios == other.sublattice_site_ratios
+        subl_occupancies = self.sublattice_occupancies == other.sublattice_occupancies
+        return subl_config and subl_site_ratios and subl_occupancies
+
     @property
     def espei_sublattice_configuration(self):
         """

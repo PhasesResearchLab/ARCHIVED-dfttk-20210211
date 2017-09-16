@@ -400,3 +400,29 @@ def test_sqs_finds_correct_endmember_symmetry():
 
     rocksalt_b1 = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
     assert rocksalt_b1.get_endmember_space_group_info()[0] == 'Fm-3m'
+
+
+def test_equality_of_sqs_objects():
+    """SQS structures with different underlying crystal structures are equivalent iff sublattice models are equivalent."""
+    config = [['A', 'B'], ['A']]
+    occupancy = [[0.5, 0.5], [1]]
+    site_ratios = [3, 1]
+    # Use same sublattice for different underlying structures. Should be equal
+    s1 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
+    s2 = SQS(Lattice.cubic(1), ['Fe'], [[0,0,0]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
+    assert s1 == s2
+
+    # Use same underlying crystal structures, but different sublattice configurations. Should be not equal
+    s1.sublattice_site_ratios = [2, 1]
+    assert s1 != s2
+    s1.sublattice_site_ratios = site_ratios
+
+    s1.sublattice_occupancies = [[0.25, 0.5], [1]]
+    assert s1 != s2
+    s1.sublattice_occupancies = occupancy
+
+    s1.sublattice_configuration = [['A', 'A'], ['A']]
+    assert s1 != s2
+    s1.sublattice_configuration = config
+
+    assert s1 == s2
