@@ -9,7 +9,6 @@ from __future__ import division
 
 import itertools
 import copy
-
 import numpy as np
 from pymatgen import Structure
 import pymatgen as pmg
@@ -92,20 +91,13 @@ class AbstractSQS(Structure):
         self_copy.replace_species(replacement_dict)
 
         if scale_volume:
-            if len(self_copy) == 1:
-                # we only have one element, just set the scaling factor to scale to the pure element density
-                sf = self_copy.density / (float(self_copy.sites[0].specie.data['Density of solid'].split(' ')[0])/1e3)
-            else:
-                idx = np.nonzero(self_copy.distance_matrix)  # exclude distance from self
-                # construct a minimal distance matrix based on average ionic radii
-                radius_matrix = np.zeros((len(self_copy.sites), len(self_copy.sites)))
-                for i in range(len(self_copy.sites)):
-                    for j in range(len(self_copy.sites)):
-                        radius_matrix[i, j] = (
-                            self_copy.sites[i].specie.data['Atomic radius'] + self_copy.sites[j].specie.data['Atomic radius'])
-                # find the scale factor and scale the lattice
-                sf = np.max(radius_matrix[idx] / self_copy.distance_matrix[idx]) ** 3
-            self_copy.scale_lattice(self_copy.volume * sf)
+            fractional_comp = dict(self_copy.composition.fractional_composition)
+            estimated_density = 0
+            for component in self_copy.composition.elements :
+                temp = pmg.Element(component).data['Density of solid']
+                density = float(temp.split(' ')[0])
+                estimated_density += (fractional_comp[component] * density)/1000
+            self_copy.scale_lattice((self_copy.volume/estimated_density)*self_copy.density)
 
         # finally we will construct the SQS object and set the values for the canonicalized
         # sublattice configuration, site ratios, and site occupancies
