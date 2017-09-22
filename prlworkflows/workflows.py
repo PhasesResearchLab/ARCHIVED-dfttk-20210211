@@ -7,14 +7,14 @@ import numpy as np
 from uuid import uuid4
 
 from pymatgen.io.vasp.sets import MPRelaxSet, MPStaticSet
-from FireWorks import Workflow, FWAction
+from fireworks import Workflow, FWAction
 from atomate.vasp.config import VASP_CMD, DB_FILE, ADD_WF_METADATA
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
 from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
 from prlworkflows.firetasks import CheckSymmetry
-from prlworkflows.fireworks import OptimizeFW
+from prlworkflows.my_fireworks import OptimizeFW
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
                                tag="", metadata=None, name='structure optimization'):
