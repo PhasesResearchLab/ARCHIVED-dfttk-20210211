@@ -41,12 +41,12 @@ class CheckSymmetry(FiretaskBase):
             for ext in possible_exts:
                 if os.path.exists(filename+ext):
                     return filename+ext
-            raise FileNotFoundError('File {} does not exist with any of the extensions: {}'.format(filename, possible_exts))
+            raise ValueError('File {} does not exist with any of the extensions: {}'.format(filename, possible_exts))
 
         # get initial structure, preferring POSCAR.orig to POSCAR
         try:
             input_file = find_file(os.path.join(calc_dir, 'POSCAR.orig'))
-        except FileNotFoundError:
+        except ValueError:
             input_file = (os.path.join(calc_dir, 'POSCAR'))
         initial_structure = Structure.from_file(input_file)
         contcar_file = find_file(os.path.join(calc_dir, 'CONTCAR'))
@@ -65,8 +65,16 @@ class CheckSymmetry(FiretaskBase):
                            {'spacegroup_symmetry': final_structure_sg_info[0],
                             'structure': final_structure.as_dict()}
                        }
-        pass_action = self.get("pass_action", FWAction(stored_data=stored_data))
-        fail_action = self.get("fail_action", FWAction(stored_data=stored_data, exit=True, defuse_workflow=True))
+        pass_action = self.get("pass_action", ) 
+        if not pass_action:
+            pass_action = FWAction(stored_data=stored_data)
+        else:
+            pass_action = FWAction.from_dict(pass_action)
+        fail_action = self.get("fail_action" )
+        if not fail_action:
+            fail_action = FWAction(stored_data=stored_data)
+        else:
+            fail_action = FWAction.from_dict(pass_action)
 
         if initial_structure_sg_info[0] != final_structure_sg_info[0]:
             logger.info("CheckSymmetry: symmetry of initial structure ({}) is different from the final structure ({}).".format(initial_structure_sg_info[0], final_structure_sg_info[0]))
