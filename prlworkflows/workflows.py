@@ -59,8 +59,9 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     ion_shape_relax_fw = OptimizeFW(structure, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
 
     # add the ion shape relax as a detour to the ion wf
-    fail_action = FWAction()  # continue on failing
-    ion_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, pass_action=FWAction(detours=[ion_shape_relax_fw]), fail_action=fail_action))
+    fail_action = {}  # continue on failing
+    pass_action = {'detours': [ion_shape_relax_fw]}
+    ion_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, pass_action=pass_action, fail_action=fail_action))
     ion_shape_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, fail_action=fail_action))
 
     fws = [vol_relax_fw, ion_relax_fw]
@@ -100,7 +101,7 @@ def wf_gibbs_free_energy(structure, c=None):
     pressure = c.get("PRESSURE", 0.0)
     poisson = c.get("POISSON", 0.25)
     anharmonic_contribution = c.get("ANHARMONIC_CONTRIBUTION", False)
-    metadata = c.get("METADATA", None)
+    metadata = c.get("METADATA", {})
 
     # 7 deformed structures: from -10% to +10% volume
     defos = [(np.identity(3)*(1+x)**(1.0/3.0)).tolist() for x in np.linspace(-0.1, 0.1, 7)]
@@ -116,7 +117,8 @@ def wf_gibbs_free_energy(structure, c=None):
     vis_relax = vis_relax.__class__.from_dict(v)
 
     if robust_optimization:
-        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, )
+        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, 
+                                        name="{} structure optimization".format(tag))
     else:
         # optimization only workflow
         wf = get_wf(structure, "optimize_only.yaml",

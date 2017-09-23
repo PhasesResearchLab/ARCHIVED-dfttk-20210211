@@ -25,8 +25,8 @@ class CheckSymmetry(FiretaskBase):
         angle_tolerance (float): Angle tolerance for symmetry finding. Defaults to 5 degrees.
         rename_input_on_fail (bool): Rename POSCAR -> CONTCAR on detection of broken symmetry.
             Useful for compatibility with ``CopyVaspOutputs``. Defaults to False.
-        pass_action (FWAction): FWAction on success (symmetry preserved). Defaults to add stored data and continue.
-        fail_action (FWAction): FWAction on failure (symmetry changed). Defaults to exit the FW and defuse the WF.
+        pass_action (dict): Keyword arguments to apply to FWAction on success (symmetry preserved). Defaults to add stored data and continue.
+        fail_action (dict): Keyword arguments to apply to FWAction on failure (symmetry changed). Defaults to exit the FW and defuse the WF.
     """
 
     required_params = []
@@ -69,12 +69,12 @@ class CheckSymmetry(FiretaskBase):
         if not pass_action:
             pass_action = FWAction(stored_data=stored_data)
         else:
-            pass_action = FWAction.from_dict(pass_action)
+            pass_action = FWAction(**pass_action)
         fail_action = self.get("fail_action" )
         if not fail_action:
             fail_action = FWAction(stored_data=stored_data)
         else:
-            fail_action = FWAction.from_dict(pass_action)
+            fail_action = FWAction.from_dict(**fail_action)
 
         if initial_structure_sg_info[0] != final_structure_sg_info[0]:
             logger.info("CheckSymmetry: symmetry of initial structure ({}) is different from the final structure ({}).".format(initial_structure_sg_info[0], final_structure_sg_info[0]))
