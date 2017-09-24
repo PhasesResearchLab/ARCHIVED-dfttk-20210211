@@ -151,7 +151,7 @@ class CheckVolume(FiretaskBase):
         if not fail_action:
             fail_action = FWAction(stored_data=stored_data)
         else:
-            fail_action = FWAction.from_dict(**fail_action)
+            fail_action = FWAction(**fail_action)
 
         if volume_difference > tolerance:
             logger.info("CheckVolume: volume of initial structure ({}) is more than {:0.1f}% different from the final structure ({}).".format(initial_structure.volume, tolerance, final_structure.volume))
