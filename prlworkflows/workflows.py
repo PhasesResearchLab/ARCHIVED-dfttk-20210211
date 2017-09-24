@@ -7,13 +7,13 @@ import numpy as np
 from uuid import uuid4
 
 from pymatgen.io.vasp.sets import MPRelaxSet, MPStaticSet
-from fireworks import Workflow, FWAction
+from fireworks import Workflow
 from atomate.vasp.config import VASP_CMD, DB_FILE, ADD_WF_METADATA
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
 from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
-from prlworkflows.firetasks import CheckSymmetry
+from prlworkflows.firetasks import CheckSymmetry, CheckVolume
 from prlworkflows.my_fireworks import OptimizeFW
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
@@ -56,6 +56,13 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     ion_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
     # ion and shape relax, will be added as a detour to #2 on sucess
     ion_shape_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
+
+    # add a detour to volume relax if volume changes too much
+    # this FW is the FW we will detour to. It should still CheckVolume, but either pass or fizzle
+    retry_volume_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
+    retry_volume_fw.tasks.append(CheckVolume(fail_action={'defuse_children': True, 'exit': True}, tolerance=0.05))
+    fail_action = {'detours': [retry_volume_fw]}
+    vol_relax_fw.tasks.append(CheckVolume(tolerance=0.1, fail_action=fail_action))
 
     # add the ion shape relax as a detour to the ion wf
     fail_action = {}  # continue on failing
