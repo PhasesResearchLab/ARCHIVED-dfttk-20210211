@@ -50,13 +50,12 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     """
 
     vasp_input_set = vasp_input_set or MPRelaxSet(structure)
-
     # volume relax
-    vol_relax_fw = OptimizeFW(structure, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
+    vol_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
     # ion relax
-    ion_relax_fw = OptimizeFW(structure, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
+    ion_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
     # ion and shape relax, will be added as a detour to #2 on sucess
-    ion_shape_relax_fw = OptimizeFW(structure, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
+    ion_shape_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
 
     # add the ion shape relax as a detour to the ion wf
     fail_action = {}  # continue on failing
@@ -67,7 +66,6 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     fws = [vol_relax_fw, ion_relax_fw]
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
-
     return Workflow(fws, name=wfname, metadata=metadata)
 
 
@@ -115,17 +113,17 @@ def wf_gibbs_free_energy(structure, c=None):
     v = vis_relax.as_dict()
     v.update({"user_kpoints_settings": user_kpoints_settings})
     vis_relax = vis_relax.__class__.from_dict(v)
-
+    
+    name = "{} structure optimization".format(tag)
     if robust_optimization:
         wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, 
-                                        name="{} structure optimization".format(tag))
+                                        name=name)
     else:
         # optimization only workflow
         wf = get_wf(structure, "optimize_only.yaml",
                     params=[{"vasp_cmd": vasp_cmd,  "db_file": db_file,
-                             "name": "{} structure optimization".format(tag)}],
+                             "name": name}],
                     vis=vis_relax)
-
     # static input set for the transmute firework
     uis_static = {
         "ISIF": 2,

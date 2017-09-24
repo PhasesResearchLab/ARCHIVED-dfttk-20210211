@@ -28,11 +28,10 @@ class OptimizeFW(Firework):
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
         override_default_vasp_params = override_default_vasp_params or {}
-        if isif:
-            override_default_vasp_params.update({"ISIF": isif})
         vasp_input_set = vasp_input_set or MPRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
-
+        if isif:
+            vasp_input_set.user_incar_settings.update({'ISIF': isif})
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspDirect(vasp_cmd=vasp_cmd))
