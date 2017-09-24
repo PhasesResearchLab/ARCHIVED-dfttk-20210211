@@ -84,3 +84,80 @@ class CheckSymmetry(FiretaskBase):
             return fail_action
         else:
             return pass_action
+
+# TODO: Not safe for ssh. Use atomate.utils.fileio.FileClient
+@explicit_serialize
+class CheckVolume(FiretaskBase):
+    """
+    Checks the volume change of the final structure against the starting structure with a tolerance.
+
+    If the volume is the within tolerance, the ``pass_action`` will be invoked. The default is to
+    continue the Firework and Workflow. If the symmetry has broken with respect to the tolerances,
+    then the ``fail_action`` will be invoked, which defaults to exit and defuse the workflow by default.
+
+    Required params:
+        (none)
+    Optional params:
+        calc_dir (str): path containing the VASP input/output files. Defaults to current directory.
+        tolerance (float): Tolerance for volume difference. Defaults to 0.2, a 20% difference
+        rename_input_on_fail (bool): Rename POSCAR -> CONTCAR on detection of broken symmetry.
+            Useful for compatibility with ``CopyVaspOutputs``. Defaults to False.
+        pass_action (dict): Keyword arguments to apply to FWAction on success (volume within tolerance).
+            Defaults to add stored data and continue.
+        fail_action (dict): Keyword arguments to apply to FWAction on failure (volume within tolerance).
+            Defaults to exit the FW and defuse the WF.
+    """
+
+    required_params = []
+    optional_params = ["calc_dir", "tolerance", "rename_on_fail", "pass_action", "fail_action"]
+
+    def run_task(self, fw_spec):
+        calc_dir = self.get("calc_dir", ".")
+
+        def find_file(filename):
+            """Find file by filename with support for extensions."""
+            possible_exts = ['', '.gz']
+            for ext in possible_exts:
+                if os.path.exists(filename+ext):
+                    return filename+ext
+            raise ValueError('File {} does not exist with any of the extensions: {}'.format(filename, possible_exts))
+
+        # get initial structure, preferring POSCAR.orig to POSCAR
+        try:
+            input_file = find_file(os.path.join(calc_dir, 'POSCAR.orig'))
+        except ValueError:
+            input_file = (os.path.join(calc_dir, 'POSCAR'))
+        initial_structure = Structure.from_file(input_file)
+        contcar_file = find_file(os.path.join(calc_dir, 'CONTCAR'))
+        final_structure = Structure.from_file(contcar_file)
+
+        tolerance = self.get("tolerance", 0.2)
+        # returns tuple of (sg symbol, number)
+        volume_difference = abs(initial_structure.volume - final_structure.volume)/initial_structure.volume
+
+        stored_data = {'initial_structure':
+                           {'volume': initial_structure.volume,
+                            'structure': initial_structure.as_dict()},
+                       'final_structure':
+                           {'volume': final_structure.volume,
+                            'structure': final_structure.as_dict()}
+                       }
+        pass_action = self.get("pass_action", )
+        if not pass_action:
+            pass_action = FWAction(stored_data=stored_data)
+        else:
+            pass_action = FWAction(**pass_action)
+        fail_action = self.get("fail_action" )
+        if not fail_action:
+            fail_action = FWAction(stored_data=stored_data)
+        else:
+            fail_action = FWAction.from_dict(**fail_action)
+
+        if volume_difference > tolerance:
+            logger.info("CheckVolume: volume of initial structure ({}) is more than {:0.1f}% different from the final structure ({}).".format(initial_structure.volume, tolerance, final_structure.volume))
+            if self.get("rename_input_on_fail", False):
+                os.rename(input_file, contcar_file)
+                logger.info("CheckVolume: Moving {} to {}".format(input_file, contcar_file))
+            return fail_action
+        else:
+            return pass_action
