@@ -70,7 +70,7 @@ class FullOptFW(Firework):
         vasp_input_set = vasp_input_set or MPRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
         if isif:
-            vasp_input_set.._config_dict["INCAR"]["ISIF"] = isif
+            vasp_input_set._config_dict["INCAR"]["ISIF"] = isif
         if adjust_encut:
             vasp_input_set._config_dict["INCAR"].pop("ENCUT")
             vasp_input_set._config_dict["INCAR"]["PREC"] = "HIGH"
