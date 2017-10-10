@@ -35,7 +35,7 @@ def test_full_opt_fw_writes_isif_setting_takes_effect():
     fw_recon = Firework.from_dict(fw.as_dict())
     vis_recon = fw_recon.tasks[0].get('vasp_input_set')
     # check that UIS exists
-    assert isinstance(vis_recon, MPRelaxSet)
+    assert isinstance(vis_recon, PRLRelaxSet)
     assert vis_recon.user_incar_settings == {'ISIF': 7}
     assert vis_recon.incar.as_dict()['ISIF'] == 7
 
