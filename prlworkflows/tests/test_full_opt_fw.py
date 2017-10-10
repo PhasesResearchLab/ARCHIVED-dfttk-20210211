@@ -8,6 +8,9 @@ import pytest
 import shutil
 import os
 
+# TODO: enable a debug mode for the fixtures. The DEBUG=True would replace the launch_dir function
+# with another function (e.g. launch_dir_debug) that doesn't do the cleanup step.
+
 POSCAR_STR = """Si2
 1.0
 3.840198 0.000000 0.000000
@@ -32,6 +35,7 @@ def lpad():
 
 @pytest.fixture
 def launch_dir():
+    # TODO: create custom launch dirs appended with the time. Then yield the dirname.
     os.mkdir(TEST_DIR)
     os.chdir(TEST_DIR)
     yield
