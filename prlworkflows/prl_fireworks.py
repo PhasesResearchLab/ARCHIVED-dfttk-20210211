@@ -56,8 +56,8 @@ class FullOptFW(Firework):
                 the default vasp_input_set, i.e., MPRelaxSet. This allows one to easily override
                 some settings, e.g., user_incar_settings, etc.
             isif : int
-                Shortcut to override the ISIF parameter. Defaults to None.
-                Will take precedent over override_default_vasp_params
+                Shortcut to override the ISIF parameter. Defaults to None. Will take precedent over
+                override_default_vasp_params. Does not take effect if custom vasp_input_set is passed.
             vasp_cmd (str): Command to run vasp.
             db_file (str): Path to file specifying db credentials to place output parsing.
             force_gamma (bool): Force gamma centered kpoint generation
@@ -65,10 +65,12 @@ class FullOptFW(Firework):
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
         override_default_vasp_params = override_default_vasp_params or {}
+        if isif:
+            odvp_uis = override_default_vasp_params.get('user_incar_settings', {})
+            odvp_uis.update({'ISIF': isif})
+            override_default_vasp_params['user_incar_settings'] = odvp_uis
         vasp_input_set = vasp_input_set or MPRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
-        if isif:
-            vasp_input_set.user_incar_settings["ISIF"] = isif
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
