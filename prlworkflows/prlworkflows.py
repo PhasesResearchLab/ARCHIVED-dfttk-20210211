@@ -13,8 +13,8 @@ from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_
 from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
-from prlworkflows.firetasks import CheckSymmetry, CheckVolume
-from prlworkflows.my_fireworks import OptimizeFW
+from prlworkflows.prlfiretasks import CheckSymmetry, CheckVolume
+from prlworkflows.prlfireworks import OptimizeFW
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
                                tag="", metadata=None, name='structure optimization'):
