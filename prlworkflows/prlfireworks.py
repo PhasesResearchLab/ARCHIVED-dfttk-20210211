@@ -43,7 +43,7 @@ class OptimizeFW(Firework):
 
 class FullOptFW(Firework):
     def __init__(self, structure, name="structure optimization", vasp_input_set=None,
-                 vasp_cmd="vasp", isif=None, adjust_encut=False, override_default_vasp_params=None, db_file=None,
+                 vasp_cmd="vasp", isif=None, override_default_vasp_params=None, db_file=None,
                  force_gamma=True, parents=None, **kwargs):
         """
         Perform a custodian full opt run for the given structure.
@@ -69,9 +69,6 @@ class FullOptFW(Firework):
                                                       **override_default_vasp_params)
         if isif:
             vasp_input_set.user_incar_settings["ISIF"] = isif
-        if adjust_encut:
-            vasp_input_set.user_incar_settings.pop("ENCUT")
-            vasp_input_set.user_incar_settings["PREC"] = "HIGH"
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
