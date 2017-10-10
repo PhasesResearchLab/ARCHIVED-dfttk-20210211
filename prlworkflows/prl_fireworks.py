@@ -69,7 +69,6 @@ class FullOptFW(Firework):
                                                       **override_default_vasp_params)
         if isif:
             vasp_input_set.user_incar_settings["ISIF"] = isif
-        print(vasp_input_set.user_incar_settings)
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
