@@ -91,7 +91,8 @@ def wf_gibbs_free_energy(structure, c=None):
     c : dict
         workflow config dict
 
-    Returns:
+    Returns
+    -------
         Workflow
     """
     c = c or {}
