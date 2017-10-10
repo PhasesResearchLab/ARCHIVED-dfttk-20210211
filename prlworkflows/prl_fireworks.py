@@ -5,6 +5,7 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.run_calc import RunVaspDirect, RunVaspCustodian
 from prlworkflows.input_sets import PRLRelaxSet
+import warnings
 
 class OptimizeFW(Firework):
     def __init__(self, structure, name="structure optimization", vasp_input_set=None,
@@ -33,6 +34,8 @@ class OptimizeFW(Firework):
             odvp_uis = override_default_vasp_params.get('user_incar_settings', {})
             odvp_uis.update({'ISIF': isif})
             override_default_vasp_params['user_incar_settings'] = odvp_uis
+            if vasp_input_set is not None:
+                warnings.warn('The ISIF parameter was passed to the OptimizeFW constructor, but will not take effect because a vasp_input_set was also passed.')
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                        **override_default_vasp_params)
         t = []
@@ -72,6 +75,8 @@ class FullOptFW(Firework):
             odvp_uis = override_default_vasp_params.get('user_incar_settings', {})
             odvp_uis.update({'ISIF': isif})
             override_default_vasp_params['user_incar_settings'] = odvp_uis
+            if vasp_input_set is not None:
+                warnings.warn('The ISIF parameter was passed to the FullOptFW constructor, but will not take effect because a vasp_input_set was also passed.')
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
         t = []
