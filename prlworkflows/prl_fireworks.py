@@ -1,7 +1,7 @@
 from pymatgen.io.vasp.sets import MPRelaxSet
 from fireworks import Firework
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
-from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
+from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.run_calc import RunVaspDirect, RunVaspCustodian
 from prlworkflows.input_sets import PRLRelaxSet
@@ -30,16 +30,12 @@ class OptimizeFW(Firework):
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
         override_default_vasp_params = override_default_vasp_params or {}
-        if isif:
-            odvp_uis = override_default_vasp_params.get('user_incar_settings', {})
-            odvp_uis.update({'ISIF': isif})
-            override_default_vasp_params['user_incar_settings'] = odvp_uis
-            if vasp_input_set is not None:
-                warnings.warn('The ISIF parameter was passed to the OptimizeFW constructor, but will not take effect because a vasp_input_set was also passed.')
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                        **override_default_vasp_params)
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+        if isif:
+            t.append(ModifyIncar(incar_update={'ISIF': isif}))
         t.append(RunVaspDirect(vasp_cmd=vasp_cmd))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name}))
@@ -71,16 +67,12 @@ class FullOptFW(Firework):
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
         override_default_vasp_params = override_default_vasp_params or {}
-        if isif:
-            odvp_uis = override_default_vasp_params.get('user_incar_settings', {})
-            odvp_uis.update({'ISIF': isif})
-            override_default_vasp_params['user_incar_settings'] = odvp_uis
-            if vasp_input_set is not None:
-                warnings.warn('The ISIF parameter was passed to the FullOptFW constructor, but will not take effect because a vasp_input_set was also passed.')
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+        if isif:
+            t.append(ModifyIncar(incar_update={'ISIF': isif}))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name}))

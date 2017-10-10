@@ -88,13 +88,13 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(launch_dir, lpad):
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
 
-def test_full_opt_fw_writes_isif_setting_does_not_take_effect_with_VIS(launch_dir, lpad):
+def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(launch_dir, lpad):
     s = PRLRelaxSet(STRUCT)
-    fw = FullOptFW(STRUCT, vasp_input_set=s, isif=7, vasp_cmd=None)
+    fw = FullOptFW(STRUCT, vasp_input_set=s, isif=5, vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=FWORKER)
     incar = Incar.from_file(os.path.join(launch_dir, 'INCAR.gz'))
-    desired_parameters = {'ISIF': 3}
+    desired_parameters = {'ISIF': 5}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
