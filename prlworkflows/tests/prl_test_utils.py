@@ -1,0 +1,14 @@
+import argparse
+import shutil
+import os
+
+MODULE_DIR = os.path.abspath(os.path.dirname(__file__))
+
+parser = argparse.ArgumentParser(description='Utilities for testing with prlworkflows')
+parser.add_argument('-c', '--clean', action='store_true', help='Clean the temporary directories created in testing')
+args = parser.parse_args()
+
+if args.clean:
+    for f in os.listdir(MODULE_DIR):
+        if f.startswith('tmp'):
+            shutil.rmtree(os.path.join(MODULE_DIR, f))
