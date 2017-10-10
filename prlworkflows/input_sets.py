@@ -20,7 +20,5 @@ class PRLRelaxSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
-        isif = self.kwargs.pop('isif', 3)
         super(PRLRelaxSet, self).__init__(
             structure, PRLRelaxSet.CONFIG, **kwargs)
-        self._config_dict['INCAR']['ISIF'] = isif

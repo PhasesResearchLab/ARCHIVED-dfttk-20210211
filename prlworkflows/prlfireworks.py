@@ -58,8 +58,6 @@ class FullOptFW(Firework):
             isif : int
                 Shortcut to override the ISIF parameter. Defaults to None.
                 Will take precedent over override_default_vasp_params
-            adjust_encut : bool
-                If True, the energy cutoff will set to 1.3*max(ENCUT) via the PREC=HIGH setting
             vasp_cmd (str): Command to run vasp.
             db_file (str): Path to file specifying db credentials to place output parsing.
             force_gamma (bool): Force gamma centered kpoint generation
@@ -70,10 +68,10 @@ class FullOptFW(Firework):
         vasp_input_set = vasp_input_set or MPRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
         if isif:
-            vasp_input_set._config_dict["INCAR"]["ISIF"] = isif
+            vasp_input_set.user_incar_settings["ISIF"] = isif
         if adjust_encut:
-            vasp_input_set._config_dict["INCAR"].pop("ENCUT")
-            vasp_input_set._config_dict["INCAR"]["PREC"] = "HIGH"
+            vasp_input_set.user_incar_settings.pop("ENCUT")
+            vasp_input_set.user_incar_settings["PREC"] = "HIGH"
         t = []
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
