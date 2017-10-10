@@ -6,6 +6,7 @@ class PRLRelaxSet(DictSet):
     Kpoints have a 6000 reciprocal density default.
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
+    CONFIG['INCAR'].pop('ENCUT')
     CONFIG['KPOINTS'].update({
         'grid_density': 6000,
     })
@@ -14,6 +15,7 @@ class PRLRelaxSet(DictSet):
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,
+        'PREC': 'HIGH'
     })
 
     def __init__(self, structure, **kwargs):
