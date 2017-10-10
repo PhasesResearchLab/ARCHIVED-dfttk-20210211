@@ -59,7 +59,7 @@ class FullOptFW(Firework):
                 some settings, e.g., user_incar_settings, etc.
             isif : int
                 Shortcut to override the ISIF parameter. Defaults to None. Will take precedent over
-                override_default_vasp_params. Does not take effect if custom vasp_input_set is passed.
+                override_default_vasp_params and the passed input set.
             vasp_cmd (str): Command to run vasp.
             db_file (str): Path to file specifying db credentials to place output parsing.
             force_gamma (bool): Force gamma centered kpoint generation
