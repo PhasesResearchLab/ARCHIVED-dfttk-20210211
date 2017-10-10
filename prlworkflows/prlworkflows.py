@@ -14,7 +14,8 @@ from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
 from prlworkflows.prlfiretasks import CheckSymmetry, CheckVolume
-from prlworkflows.prlfireworks import OptimizeFW
+from prlworkflows.prlfireworks import OptimizeFW, FullOptFW
+from prlworkflows.input_sets import PRLRelaxSet
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
                                tag="", metadata=None, name='structure optimization'):
@@ -49,28 +50,29 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     Workflow
     """
 
-    vasp_input_set = vasp_input_set or MPRelaxSet(structure)
+    vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
     # volume relax
-    vol_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
+    vol_relax_fw = FullOptFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
     # ion relax
-    ion_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
+    #ion_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
     # ion and shape relax, will be added as a detour to #2 on sucess
-    ion_shape_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
+    #ion_shape_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
 
     # add a detour to volume relax if volume changes too much
     # this FW is the FW we will detour to. It should still CheckVolume, but either pass or fizzle
-    retry_volume_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
-    retry_volume_fw.tasks.append(CheckVolume(fail_action={'defuse_children': True, 'exit': True}, tolerance=0.05))
-    fail_action = {'detours': [retry_volume_fw]}
-    vol_relax_fw.tasks.append(CheckVolume(tolerance=0.1, fail_action=fail_action))
+    #retry_volume_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
+    #retry_volume_fw.tasks.append(CheckVolume(fail_action={'defuse_children': True, 'exit': True}, tolerance=0.05))
+    #fail_action = {'detours': [retry_volume_fw]}
+    #vol_relax_fw.tasks.append(CheckVolume(tolerance=0.1, fail_action=fail_action))
 
     # add the ion shape relax as a detour to the ion wf
-    fail_action = {}  # continue on failing
-    pass_action = {'detours': [ion_shape_relax_fw]}
-    ion_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, pass_action=pass_action, fail_action=fail_action))
-    ion_shape_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, fail_action=fail_action))
+    #fail_action = {}  # continue on failing
+    #pass_action = {'detours': [ion_shape_relax_fw]}
+    #ion_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, pass_action=pass_action, fail_action=fail_action))
+    #ion_shape_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, fail_action=fail_action))
 
-    fws = [vol_relax_fw, ion_relax_fw]
+    #fws = [vol_relax_fw, ion_relax_fw]
+    fws = [vol_relax_fw]
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     return Workflow(fws, name=wfname, metadata=metadata)
