@@ -3,7 +3,7 @@ from fireworks import Firework
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
 from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
-from atomate.vasp.firetasks.run_calc import RunVaspDirect, RunVaspCustodian
+from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from prlworkflows.input_sets import PRLRelaxSet
 import warnings
 
@@ -36,7 +36,7 @@ class OptimizeFW(Firework):
         t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         if isif:
             t.append(ModifyIncar(incar_update={'ISIF': isif}))
-        t.append(RunVaspDirect(vasp_cmd=vasp_cmd))
+        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="normal"))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name}))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".
