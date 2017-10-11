@@ -1,6 +1,4 @@
 """Custom Phases Research Lab Workflows
-
-For now, mostly contains some vanilla (non-custodian) optimizations.
 """
 
 import numpy as np
@@ -13,7 +11,6 @@ from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_
 from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
-from prlworkflows.prl_firetasks import CheckSymmetry, CheckVolume
 from prlworkflows.prl_fireworks import OptimizeFW, FullOptFW
 from prlworkflows.input_sets import PRLRelaxSet
 
@@ -23,9 +20,9 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     Return an optimization workflow tailored to calculations for unstable structures.
 
     Calculation steps:
-    1. Relax volume
-    2. Relax ions, if symmetry breaks then return the structure from #1
-    3. Relax cell shape and ions, if symmetry breaks then return the structure from #2
+    1. Relax volume until the volume change is less than 5%
+    2. Relax ions
+    3. Relax cell shape and ions
 
     Parameters
     ----------
@@ -48,31 +45,25 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     Returns
     -------
     Workflow
+
+    Notes
+    -----
+    In the future, this may have some advanced symmetry checking. For now the workflow runs through
+    the entire optimization procedure and it is up to the user to pick which ones to continue
+    their calculations with.
+
+    Changelog:
+    0.1: 7-2-4 scheme with custodian full opt ISIF 7, custodian normal ISIF 2 and 4.
     """
-
+    metadata = metadata or {}
+    metadata.update({'robust_optimization_version': 0.1 }) # SEMVER naming scheme
     vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
-    # volume relax
-    vol_relax_fw = FullOptFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
-    # ion relax
-    #ion_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=2, parents=vol_relax_fw)
-    # ion and shape relax, will be added as a detour to #2 on sucess
-    #ion_shape_relax_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=4)
 
-    # add a detour to volume relax if volume changes too much
-    # this FW is the FW we will detour to. It should still CheckVolume, but either pass or fizzle
-    #retry_volume_fw = OptimizeFW(structure, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, isif=7)
-    #retry_volume_fw.tasks.append(CheckVolume(fail_action={'defuse_children': True, 'exit': True}, tolerance=0.05))
-    #fail_action = {'detours': [retry_volume_fw]}
-    #vol_relax_fw.tasks.append(CheckVolume(tolerance=0.1, fail_action=fail_action))
+    vol_relax_fw = FullOptFW(structure, isif=7, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file)
+    ion_relax_fw = OptimizeFW(structure, isif=2, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=vol_relax_fw)
+    ion_shape_relax_fw = OptimizeFW(structure, isif=4, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=ion_relax_fw)
 
-    # add the ion shape relax as a detour to the ion wf
-    #fail_action = {}  # continue on failing
-    #pass_action = {'detours': [ion_shape_relax_fw]}
-    #ion_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, pass_action=pass_action, fail_action=fail_action))
-    #ion_shape_relax_fw.tasks.append(CheckSymmetry(rename_on_fail=True, fail_action=fail_action))
-
-    #fws = [vol_relax_fw, ion_relax_fw]
-    fws = [vol_relax_fw]
+    fws = [vol_relax_fw, ion_relax_fw, ion_shape_relax_fw]
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     return Workflow(fws, name=wfname, metadata=metadata)
