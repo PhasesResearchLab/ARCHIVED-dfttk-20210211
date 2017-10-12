@@ -426,3 +426,20 @@ def test_equality_of_sqs_objects():
     s1.sublattice_configuration = config
 
     assert s1 == s2
+
+@pytest.mark.skip
+def test_equality_of_sqs_objects_with_different_indexing():
+    """SQS structures that are the same, but indexed differently should be equal."""
+    # TODO: implement this behavior in SQS.__eq__
+    config_1 = [['A', 'B'], ['A']]
+    occupancy_1 = [[0.25, 0.75], [1]]
+    site_ratios_1 = [3, 1]
+
+    config_2 = [['A'], ['A', 'B']]
+    occupancy_2 = [[1], [0.25, 0.75]]
+    site_ratios_2 = [1, 3]
+
+    s1 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_1, sublattice_occupancies=occupancy_1, sublattice_site_ratios=site_ratios_1)
+    s2 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_2, sublattice_occupancies=occupancy_2, sublattice_site_ratios=site_ratios_2)
+
+    assert s1 == s2
