@@ -140,7 +140,7 @@ class AbstractSQS(Structure):
         # replace them
         endmember_subl = [[real_species_dict[specie] for specie in subl] for subl in endmember_subl]
         # get the structure and spacegroup info
-        endmember_struct = self.get_concrete_sqs(endmember_subl)
+        endmember_struct = self.get_concrete_sqs(endmember_subl, scale_volume=False)
         endmember_space_group_info = endmember_struct.get_space_group_info(symprec=symprec, angle_tolerance=angle_tolerance)
         return endmember_space_group_info
 
