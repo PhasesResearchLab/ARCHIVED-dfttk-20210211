@@ -14,6 +14,120 @@ from prlworkflows.sqs import AbstractSQS, enumerate_sqs, SQS
 from prlworkflows.sqs_db import lat_in_to_sqs
 
 
+ATAT_FCC_A1_LEV3_LATTICE_IN = """1.000000 0.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 0.000000 1.000000
+0.500000 -0.500000 -1.000000
+-1.500000 -1.500000 0.000000
+-2.000000 2.000000 -2.000000
+-1.500000 -1.000000 -0.500000 a_A
+-3.000000 0.500000 -2.500000 a_A
+-2.500000 0.500000 -3.000000 a_A
+-2.500000 -0.000000 -1.500000 a_C
+-2.000000 -0.500000 -1.500000 a_C
+-1.500000 -0.500000 -2.000000 a_A
+-1.500000 -1.000000 -1.500000 a_B
+-1.500000 -0.500000 -1.000000 a_B
+-1.000000 -1.000000 -1.000000 a_A
+-1.000000 -0.500000 -0.500000 a_B
+-2.500000 1.000000 -2.500000 a_B
+-2.000000 1.000000 -3.000000 a_B
+-2.500000 -0.000000 -2.500000 a_C
+-2.500000 0.500000 -2.000000 a_B
+-2.000000 -0.000000 -2.000000 a_C
+-2.000000 0.500000 -1.500000 a_A
+-1.500000 -0.000000 -1.500000 a_B
+-1.000000 -0.000000 -2.000000 a_A
+-1.000000 -0.500000 -1.500000 a_A
+-1.000000 -0.000000 -1.000000 a_C
+-0.500000 -0.500000 -1.000000 a_C
+-0.500000 -0.000000 -0.500000 a_B
+-2.000000 1.500000 -2.500000 a_C
+-3.000000 -0.000000 -3.000000 a_C
+-2.000000 0.500000 -2.500000 a_B
+-2.000000 1.000000 -2.000000 a_B
+-1.500000 0.500000 -2.000000 a_C
+-1.500000 1.000000 -1.500000 a_C
+-1.000000 0.500000 -1.500000 a_C
+-2.000000 -1.000000 -2.000000 a_A
+-0.500000 -0.000000 -1.500000 a_B
+-2.000000 -1.000000 -1.000000 a_A
+-1.500000 -1.500000 -1.000000 a_A
+-1.500000 1.000000 -2.500000 a_C
+-3.000000 -0.000000 -2.000000 a_B
+-2.500000 -0.500000 -2.000000 a_A"""
+
+ATAT_GAMMA_L12_LATTICE_IN = """4.000000 0.000000 0.000000
+0.000000 4.000000 0.000000
+0.000000 0.000000 4.000000
+-1.000000 -2.000000 2.000000
+-1.000000 2.000000 -2.000000
+-0.000000 -2.000000 -2.000000
+-1.000000 0.000000 -3.000000 a_A
+-1.000000 -1.000000 -2.000000 a_A
+-1.000000 -0.000000 -2.000000 a_A
+-1.000000 1.000000 -2.000000 a_A
+-1.000000 -2.000000 -1.000000 a_A
+-1.000000 -1.000000 -1.000000 a_A
+-2.000000 -1.000000 -1.000000 a_B
+-1.000000 -0.000000 -1.000000 a_B
+-1.000000 -1.000000 -3.000000 a_A
+-1.000000 -3.000000 0.000000 a_A
+-1.000000 -2.000000 -0.000000 a_A
+-1.000000 -1.000000 0.000000 a_B
+-1.000000 -2.000000 -2.000000 a_A
+-2.000000 -2.000000 -2.000000 a_A
+-1.000000 -2.000000 1.000000 a_B
+-1.000000 -3.000000 -1.000000 a_A
+-1.000000 0.500000 -2.500000 c_A
+-1.000000 -0.500000 -1.500000 c_A
+-1.000000 0.500000 -1.500000 c_A
+-1.000000 -0.500000 -3.500000 c_A
+-1.000000 -1.500000 -0.500000 c_A
+-1.000000 -0.500000 -0.500000 c_A
+-2.000000 -0.500000 -0.500000 c_A
+-1.000000 -1.500000 -2.500000 c_A
+-1.000000 -0.500000 -2.500000 c_A
+-1.000000 -2.500000 0.500000 c_A
+-1.000000 -1.500000 0.500000 c_A
+-1.000000 -2.500000 -1.500000 c_A
+-1.000000 -1.500000 -1.500000 c_A
+-2.000000 -1.500000 -1.500000 c_A
+-1.000000 -3.500000 -0.500000 c_A
+-1.000000 -2.500000 -0.500000 c_A
+-1.500000 -2.000000 -0.500000 c_A
+-0.500000 -1.000000 -1.500000 c_A
+-0.500000 0.000000 -1.500000 c_A
+-1.500000 -1.000000 0.500000 c_A
+-0.500000 -2.000000 -0.500000 c_A
+-0.500000 -1.000000 -0.500000 c_A
+-1.500000 -1.000000 -0.500000 c_A
+-0.500000 -0.000000 -0.500000 c_A
+-0.500000 -1.000000 -2.500000 c_A
+-1.500000 -1.000000 -1.500000 c_A
+-1.500000 0.000000 -1.500000 c_A
+-0.500000 -1.000000 0.500000 c_A
+-0.500000 -2.000000 -1.500000 c_A
+-1.500000 -2.000000 -1.500000 c_A
+-1.500000 0.000000 -0.500000 c_A
+-1.500000 -1.000000 -2.500000 c_A
+-1.500000 -1.500000 -1.000000 c_A
+-0.500000 -0.500000 -2.000000 c_A
+-1.500000 -1.500000 0.000000 c_A
+-1.500000 -0.500000 -0.000000 c_A
+-0.500000 -1.500000 -1.000000 c_A
+-0.500000 -0.500000 -1.000000 c_A
+-1.500000 -0.500000 -1.000000 c_A
+-0.500000 0.500000 -1.000000 c_A
+-1.500000 -2.500000 -1.000000 c_A
+-1.500000 -0.500000 -2.000000 c_A
+-0.500000 -1.500000 0.000000 c_A
+-0.500000 -0.500000 0.000000 c_A
+-0.500000 -1.500000 -2.000000 c_A
+-1.500000 -1.500000 -2.000000 c_A
+-1.500000 0.500000 -1.000000 c_A
+-0.500000 -2.500000 -1.000000 c_A"""
+
 ATAT_FCC_L12_LATTICE_IN = """1.000000 0.000000 0.000000
 0.000000 1.000000 0.000000
 0.000000 0.000000 1.000000
@@ -246,31 +360,38 @@ def test_abstract_sqs_scales_volume_when_made_concrete():
 def test_sqs_is_properly_enumerated_for_a_higher_order_sublattice_model():
     """Tests that a sublattice model of higher order than an SQS properly enumerated"""
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
-    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=False)
-    assert len(structures) == 4
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']])
+    assert len(structures) == 6
 
     structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
-    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=True)
-    assert len(structures) == 16
+    structures = enumerate_sqs(structure, [['Al', 'Ni', 'Fe'], ['Fe', 'Ni', 'Cr']])
+    assert len(structures) == 36
 
 def test_sqs_is_properly_enumerated_for_a_multiple_solution_sublattice_model():
     """Tests that a sublattice model with multiple solution sublattices is properly enumerated"""
     structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
-    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=False)
-    assert len(structures) == 4
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']])
+    assert len(structures) == 9
 
     structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
-    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']], endmembers=True)
-    assert len(structures) == 16
+    structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']])
+    assert len(structures) == 9
     assert all([isinstance(s, SQS) for s in structures])
 
+def test_enumerating_sqs_without_symmetry():
+    structure = lat_in_to_sqs(ATAT_GAMMA_L12_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Fe','Ni','Al'], ['Al']])
+    assert len(structures) == 9
 
 def test_enumerating_sqs_with_lower_order_subl_raises():
     """If a lower order sublattice model is passed be enumerated in an SQS, it should raise."""
     structure = lat_in_to_sqs(ATAT_FCC_L12_LATTICE_IN)
-    with pytest.raises(ValueError):
-        enumerate_sqs(structure, [['Fe'], ['Al']])
+    structures = enumerate_sqs(structure, [['Fe'], ['Al']])
+    assert len(structures) == 1
 
+    structure = lat_in_to_sqs(ATAT_FCC_A1_LEV3_LATTICE_IN)
+    structures = enumerate_sqs(structure, [['Fe','Ni']])
+    assert len(structures) == 4
 
 def test_sqs_finds_correct_endmember_symmetry():
     """SQS shouldd correctly find endmember symmetry."""
