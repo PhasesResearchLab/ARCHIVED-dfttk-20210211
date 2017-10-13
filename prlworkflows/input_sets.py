@@ -32,7 +32,7 @@ class PRLStaticSet(DictSet):
     CONFIG = _load_yaml_config("MPRelaxSet")
     CONFIG['INCAR'].pop('ENCUT')
     CONFIG['KPOINTS'].update({
-        'grid_density': 6000,
+        'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
