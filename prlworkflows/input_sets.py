@@ -30,12 +30,12 @@ class PRLStaticSet(DictSet):
     Kpoints have a 6000 reciprocal density default.
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
-    CONFIG['INCAR'].pop('ENCUT')
     CONFIG['KPOINTS'].update({
         'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
+        'ENCUT': 520, # MP compatibility
         'ISMEAR': -5,
         "NSW": 0,
         "IBRION": -1,
