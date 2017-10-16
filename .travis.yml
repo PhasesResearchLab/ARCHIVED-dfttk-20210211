@@ -10,3 +10,4 @@ script:
   - py.test -v prlworkflows/
 notifications:
   email: False
+services: mongodb
