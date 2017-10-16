@@ -58,7 +58,7 @@ def launch_dir():
 @pytest.fixture
 def patch_pmg_psp_dir():
     current_psp_dir = pymatgen.SETTINGS.get('PMG_VASP_PSP_DIR')
-    if current_psp_dir is NONE:
+    if current_psp_dir is None:
         pymatgen.SETTINGS['PMG_VASP_PSP_DIR'] = os.path.join(MODULE_DIR, 'test_potcars')
     yield
     pymatgen.SETTINGS['PMG_VASP_PSP_DIR'] = current_psp_dir
