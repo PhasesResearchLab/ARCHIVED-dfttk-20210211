@@ -54,6 +54,15 @@ def launch_dir():
     return
 
 
+@pytest.fixture
+def patch_pmg_psp_dir():
+    current_psp_dir = pymatgen.SETTINGS.get('PMG_VASP_PSP_DIR')
+    if current_psp_dir is NONE:
+        pymatgen.SETTINGS['PMG_VASP_PSP_DIR'] = os.path.join(MODULE_DIR, 'test_potcars')
+    yield
+    pymatgen.SETTINGS['PMG_VASP_PSP_DIR'] = current_psp_dir
+
+
 @pytest.fixture(scope='module')
 def launch_dir_debug():
     test_dir = TEST_DIR + '-' + str(time.time()).split('.')[0]
@@ -67,7 +76,7 @@ if DEBUG_MODE:
     launch_dir = launch_dir_debug
 
 
-def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(launch_dir, lpad):
+def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad):
     s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
     fw = FullOptFW(STRUCT, vasp_input_set=s, vasp_cmd=None)
     wf = Workflow([fw])
@@ -78,7 +87,7 @@ def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(launch_dir, lp
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
 
-def test_full_opt_fw_writes_isif_setting_takes_effect(launch_dir, lpad):
+def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad):
     fw = FullOptFW(STRUCT, isif=7, vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
@@ -88,7 +97,7 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(launch_dir, lpad):
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
 
-def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(launch_dir, lpad):
+def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad):
     s = PRLRelaxSet(STRUCT)
     fw = FullOptFW(STRUCT, vasp_input_set=s, isif=5, vasp_cmd=None)
     wf = Workflow([fw])
