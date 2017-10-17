@@ -9,7 +9,7 @@ import warnings
 
 class OptimizeFW(Firework):
     def __init__(self, structure, name="structure optimization", vasp_input_set=None,
-                 vasp_cmd="vasp", isif=None, override_default_vasp_params=None, db_file=None,
+                 vasp_cmd="vasp", isif=None, metadata=None, override_default_vasp_params=None, db_file=None,
                  force_gamma=True, parents=None, **kwargs):
         """
         Optimize the given structure.
@@ -29,6 +29,7 @@ class OptimizeFW(Firework):
             parents ([Firework]): Parents of this particular Firework.
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
+        metadata = metadata or {}
         override_default_vasp_params = override_default_vasp_params or {}
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                        **override_default_vasp_params)
@@ -38,14 +39,14 @@ class OptimizeFW(Firework):
             t.append(ModifyIncar(incar_update={'ISIF': isif}))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="normal"))
         t.append(PassCalcLocs(name=name))
-        t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name}))
+        t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".
                                          format(structure.composition.reduced_formula, name),
                                          **kwargs)
 
 class FullOptFW(Firework):
     def __init__(self, structure, name="structure optimization", vasp_input_set=None,
-                 vasp_cmd="vasp", isif=None, override_default_vasp_params=None, db_file=None,
+                 vasp_cmd="vasp", isif=None, metadata=None, override_default_vasp_params=None, db_file=None,
                  force_gamma=True, parents=None, **kwargs):
         """
         Perform a custodian full opt run for the given structure.
@@ -66,6 +67,7 @@ class FullOptFW(Firework):
             parents ([Firework]): Parents of this particular Firework.
             \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
+        metadata = metadata or {}
         override_default_vasp_params = override_default_vasp_params or {}
         vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
                                                       **override_default_vasp_params)
@@ -75,7 +77,7 @@ class FullOptFW(Firework):
             t.append(ModifyIncar(incar_update={'ISIF': isif}))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type="full_opt_run"))
         t.append(PassCalcLocs(name=name))
-        t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name}))
+        t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
         super(FullOptFW, self).__init__(t, parents=parents, name="{}-{}".
                                          format(structure.composition.reduced_formula, name),
                                          **kwargs)

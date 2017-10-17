@@ -58,9 +58,9 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     metadata.update({'robust_optimization_version': 0.1 }) # SEMVER naming scheme
     vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
 
-    vol_relax_fw = FullOptFW(structure, isif=7, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file)
-    ion_relax_fw = OptimizeFW(structure, isif=2, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=vol_relax_fw)
-    ion_shape_relax_fw = OptimizeFW(structure, isif=4, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=ion_relax_fw)
+    vol_relax_fw = FullOptFW(structure, isif=7, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+    ion_relax_fw = OptimizeFW(structure, isif=2, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=vol_relax_fw, metadata=metadata)
+    ion_shape_relax_fw = OptimizeFW(structure, isif=4, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=ion_relax_fw, metadata=metadata)
 
     fws = [vol_relax_fw, ion_relax_fw, ion_shape_relax_fw]
 
