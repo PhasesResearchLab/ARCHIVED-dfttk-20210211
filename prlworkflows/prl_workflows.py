@@ -4,7 +4,6 @@
 import numpy as np
 from uuid import uuid4
 
-from pymatgen.io.vasp.sets import MPRelaxSet, MPStaticSet
 from fireworks import Workflow
 from atomate.vasp.config import VASP_CMD, DB_FILE, ADD_WF_METADATA
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
@@ -12,7 +11,7 @@ from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
 from prlworkflows.prl_fireworks import OptimizeFW, FullOptFW
-from prlworkflows.input_sets import PRLRelaxSet
+from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
                                tag="", metadata=None, name='structure optimization'):
@@ -110,14 +109,14 @@ def wf_gibbs_free_energy(structure, c=None):
     tag = "gibbs group: >>{}<<".format(str(uuid4()))
 
     # input set for structure optimization
-    vis_relax = MPRelaxSet(structure, force_gamma=True)
+    vis_relax = PRLRelaxSet(structure, force_gamma=True)
     v = vis_relax.as_dict()
     v.update({"user_kpoints_settings": user_kpoints_settings})
     vis_relax = vis_relax.__class__.from_dict(v)
-    
+
     name = "{} structure optimization".format(tag)
     if robust_optimization:
-        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, 
+        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file,
                                         name=name)
     else:
         # optimization only workflow
@@ -140,7 +139,7 @@ def wf_gibbs_free_energy(structure, c=None):
             raise RuntimeError("'phonopy' package is NOT installed but is required for the final "
                                "analysis step; you can alternatively switch to the qha_type to "
                                "'debye_model' which does not require 'phonopy'.")
-    vis_static = MPStaticSet(structure, force_gamma=True, lepsilon=lepsilon,
+    vis_static = PRLStaticSet(structure, force_gamma=True, lepsilon=lepsilon,
                              user_kpoints_settings=user_kpoints_settings,
                              user_incar_settings=uis_static)
     # get gibbs workflow and chain it to the optimization workflow
