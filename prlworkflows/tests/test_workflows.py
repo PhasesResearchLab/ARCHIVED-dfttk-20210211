@@ -5,6 +5,8 @@ from fireworks import FWorker, Workflow, LaunchPad
 from fireworks.core.rocket_launcher import launch_rocket
 from prlworkflows.prl_fireworks import FullOptFW
 from prlworkflows.input_sets import PRLRelaxSet
+from prlworkflows.prl_workflows import wf_gibbs_free_energy, get_wf_robust_optimization
+from prlworkflows.utils import update_fws_spec
 import pytest
 import shutil
 import os
@@ -108,3 +110,8 @@ def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_ps
     desired_parameters = {'ISIF': 5}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
+
+def test_fw_spec_modified_by_powerup():
+    wf = get_wf_robust_optimization(STRUCT)
+    wf = update_fws_spec(wf, {'_preserve_fworker': True})
+    assert all([fw.spec['_preserve_fworker'] == True for fw in wf.fws])
