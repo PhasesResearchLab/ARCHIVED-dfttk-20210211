@@ -12,3 +12,6 @@ if args.clean:
     for f in os.listdir(MODULE_DIR):
         if f.startswith('tmp'):
             shutil.rmtree(os.path.join(MODULE_DIR, f))
+    scratch_dir = os.path.join(MODULE_DIR, 'scratch_dir')
+    if os.path.exists(scratch_dir):
+        shutil.rmtree(scratch_dir)

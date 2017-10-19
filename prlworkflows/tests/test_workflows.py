@@ -31,8 +31,6 @@ direct
 STRUCT = Structure.from_str(POSCAR_STR, fmt='POSCAR')
 TEST_DIR = os.path.join(MODULE_DIR, 'tmp_fw_test_dir')
 LPAD = LaunchPad.from_dict({'host': 'localhost', 'logdir': None, 'name': 'prlworkflows_unittest', 'password': None, 'port': 27017, 'ssl_ca_file': None, 'strm_lvl': 'DEBUG', 'user_indices': [], 'username': None, 'wf_user_indices': []})
-# TODO: make FWORKER a fixture and clean the db with every function call
-FWORKER = FWorker(env={"db_file": os.path.join(MODULE_DIR, "db.json")})
 
 # TODO: enable debug mode by having a launchpad that does not reset
 # Can this be done by still having other tests pass?
@@ -79,33 +77,41 @@ if DEBUG_MODE:
     launch_dir = launch_dir_debug
 
 
-def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad):
+@pytest.fixture
+def fworker():
+    scratch_dir = os.path.join(MODULE_DIR, 'scratch_dir')
+    os.mkdir(scratch_dir)
+    yield FWorker(env={"db_file": os.path.join(MODULE_DIR, "db.json"), 'scratch_dir': scratch_dir})
+    shutil.rmtree(scratch_dir)
+
+
+def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
     fw = FullOptFW(STRUCT, vasp_input_set=s, vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
-    launch_rocket(lpad, fworker=FWORKER)
+    launch_rocket(lpad, fworker=fworker)
     incar = Incar.from_file(os.path.join(launch_dir, 'INCAR.gz'))
     desired_parameters = {'ISIF': 4}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
 
-def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad):
+def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     fw = FullOptFW(STRUCT, isif=7, vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
-    launch_rocket(lpad, fworker=FWORKER)
+    launch_rocket(lpad, fworker=fworker)
     incar = Incar.from_file(os.path.join(launch_dir, 'INCAR.gz'))
     desired_parameters = {'ISIF': 7}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
 
-def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad):
+def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT)
     fw = FullOptFW(STRUCT, vasp_input_set=s, isif=5, vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
-    launch_rocket(lpad, fworker=FWORKER)
+    launch_rocket(lpad, fworker=fworker)
     incar = Incar.from_file(os.path.join(launch_dir, 'INCAR.gz'))
     desired_parameters = {'ISIF': 5}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
@@ -115,3 +121,11 @@ def test_fw_spec_modified_by_powerup():
     wf = get_wf_robust_optimization(STRUCT)
     wf = update_fws_spec(wf, {'_preserve_fworker': True})
     assert all([fw.spec['_preserve_fworker'] == True for fw in wf.fws])
+
+
+def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
+    wf = wf_gibbs_free_energy(STRUCT, {'VASP_CMD': None})
+    lpad.add_wf(wf)
+    os.mkdir('scratch')
+    # TODO: make this actually run by using run_no_vasp
+    launch_rocket(lpad, fworker=fworker)
