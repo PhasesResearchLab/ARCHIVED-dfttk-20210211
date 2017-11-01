@@ -3,7 +3,7 @@ import pymatgen
 from pymatgen.io.vasp.inputs import Incar
 from fireworks import FWorker, Workflow, LaunchPad
 from fireworks.core.rocket_launcher import launch_rocket
-from prlworkflows.prl_fireworks import FullOptFW
+from prlworkflows.prl_fireworks import OptimizeFW
 from prlworkflows.input_sets import PRLRelaxSet
 from prlworkflows.prl_workflows import wf_gibbs_free_energy, get_wf_robust_optimization
 from prlworkflows.utils import update_fws_spec
@@ -87,7 +87,7 @@ def fworker():
 
 def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
-    fw = FullOptFW(STRUCT, vasp_input_set=s, vasp_cmd=None)
+    fw = OptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -97,7 +97,7 @@ def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_
 
 
 def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    fw = FullOptFW(STRUCT, isif=7, vasp_cmd=None)
+    fw = OptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -108,7 +108,7 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_
 
 def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT)
-    fw = FullOptFW(STRUCT, vasp_input_set=s, isif=5, vasp_cmd=None)
+    fw = OptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)

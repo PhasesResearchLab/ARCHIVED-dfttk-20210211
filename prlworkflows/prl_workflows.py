@@ -7,10 +7,9 @@ from uuid import uuid4
 from fireworks import Workflow
 from atomate.vasp.config import VASP_CMD, DB_FILE, ADD_WF_METADATA
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
-from atomate.vasp.workflows.base.core import get_wf
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
-from prlworkflows.prl_fireworks import OptimizeFW, FullOptFW
+from prlworkflows.prl_fireworks import OptimizeFW
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
@@ -58,11 +57,48 @@ def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", 
     metadata.update({'robust_optimization_version': 0.1 }) # SEMVER naming scheme
     vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
 
-    vol_relax_fw = FullOptFW(structure, isif=7, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+    vol_relax_fw = OptimizeFW(structure, isif=7, job_type='full_opt_run', name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
     ion_relax_fw = OptimizeFW(structure, isif=2, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=vol_relax_fw, metadata=metadata)
     ion_shape_relax_fw = OptimizeFW(structure, isif=4, name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, parents=ion_relax_fw, metadata=metadata)
 
     fws = [vol_relax_fw, ion_relax_fw, ion_shape_relax_fw]
+
+    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+    return Workflow(fws, name=wfname, metadata=metadata)
+
+
+def get_wf_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
+                        tag="", metadata=None, name='structure optimization'):
+    """
+    Return an optimization workflow for stable structures using a standard double relaxation.
+
+    Parameters
+    ----------
+    structure : Structure
+        A pymatgen Structure to be optimized
+    vasp_input_set : DictVaspInputSet
+        VASP input set for the relaxation
+    vasp_cmd : str
+        Command to run
+    db_file : str
+        Path to file containing the database credentials.
+    tag : str
+        Some unique string that will be appended to the names of the fireworks so that the data from
+        those tagged fireworks can be queried later during the analysis.
+    metadata : dict
+        meta data
+    name : str
+        Name for the workflow
+
+    Returns
+    -------
+    Workflow
+    """
+    metadata = metadata or {}
+    vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
+
+    relax_fw = OptimizeFW(structure, isif=3, job_type='double_relaxation_run', name=name, vasp_input_set=vasp_input_set, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+    fws = [relax_fw]
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     return Workflow(fws, name=wfname, metadata=metadata)
@@ -116,14 +152,10 @@ def wf_gibbs_free_energy(structure, c=None):
 
     name = "{} structure optimization".format(tag)
     if robust_optimization:
-        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file,
-                                        name=name)
+        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
     else:
         # optimization only workflow
-        wf = get_wf(structure, "optimize_only.yaml",
-                    params=[{"vasp_cmd": vasp_cmd,  "db_file": db_file,
-                             "name": name}],
-                    vis=vis_relax)
+        wf = get_wf_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
     # static input set for the transmute firework
     uis_static = {
         "ISIF": 2,
