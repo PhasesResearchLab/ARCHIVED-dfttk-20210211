@@ -134,5 +134,5 @@ def test_prl_gibbs_optimization():
     without_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
     with_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
     with_robust_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': True})
-    assert len(with_optimize.fws) == len(without_optimize.fws)+1
-    assert len(with_robust_optimize.fws) == len(without_optimize.fws)+3
+    assert len(with_optimize.fws) == len(without_optimize.fws)
+    assert len(with_robust_optimize.fws) == len(without_optimize.fws)+2

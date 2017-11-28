@@ -6,6 +6,7 @@ from uuid import uuid4
 
 from fireworks import Workflow
 from atomate.vasp.config import VASP_CMD, DB_FILE, ADD_WF_METADATA
+from atomate.vasp.fireworks.core import StaticFW
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
@@ -169,14 +170,13 @@ def wf_gibbs_free_energy(structure, c=None):
                                         anharmonic_contribution=anharmonic_contribution,
                                         tag=tag, vasp_input_set=vis_static)
 
-    # chaining
+    # input set for structure optimization
+    vis_relax = PRLRelaxSet(structure, force_gamma=True)
+    v = vis_relax.as_dict()
+    v.update({"user_kpoints_settings": user_kpoints_settings})
+    vis_relax = vis_relax.__class__.from_dict(v)
+    name = "{} structure optimization".format(tag)
     if optimize:
-        # input set for structure optimization
-        vis_relax = PRLRelaxSet(structure, force_gamma=True)
-        v = vis_relax.as_dict()
-        v.update({"user_kpoints_settings": user_kpoints_settings})
-        vis_relax = vis_relax.__class__.from_dict(v)
-        name = "{} structure optimization".format(tag)
         if robust_optimization:
             wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
         else:
@@ -184,7 +184,10 @@ def wf_gibbs_free_energy(structure, c=None):
             wf = get_wf_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
         wf.append_wf(wf_gibbs, wf.leaf_fw_ids)
     else:
-        wf = wf_gibbs
+        fw = StaticFW(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax, prev_calc_loc=False)
+        wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+        wf = Workflow([fw], name=wfname, metadata=metadata)
+        wf.append_wf(wf_gibbs, wf.leaf_fw_ids)
 
     wf = add_modify_incar(wf, modify_incar_params={"incar_update": {"EDIFF": e_diff,
                                                                     "LAECHG": False}})
