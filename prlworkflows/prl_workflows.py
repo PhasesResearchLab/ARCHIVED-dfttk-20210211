@@ -122,10 +122,10 @@ def wf_gibbs_free_energy(structure, c=None):
         Workflow
     """
     c = c or {}
-
     vasp_cmd = c.get("VASP_CMD", VASP_CMD)
     db_file = c.get("DB_FILE", DB_FILE)
     robust_optimization = c.get("ROBUST", False)
+    optimize = c.get("OPTIMIZE", False)
     eos = c.get("EOS", "vinet")
     qha_type = c.get("QHA_TYPE", "debye_model")
     # min and max temp in K, default setting is to compute the properties at 300K only
@@ -134,9 +134,9 @@ def wf_gibbs_free_energy(structure, c=None):
     t_step = c.get("T_STEP", 100.0)
     pressure = c.get("PRESSURE", 0.0)
     poisson = c.get("POISSON", 0.25)
+    e_diff = c.get("EDIFF", 1e-6)
     anharmonic_contribution = c.get("ANHARMONIC_CONTRIBUTION", False)
     metadata = c.get("METADATA", {})
-
     # 7 deformed structures: from -10% to +10% volume
     defos = [(np.identity(3)*(1+x)**(1.0/3.0)).tolist() for x in np.linspace(-0.1, 0.1, 7)]
     deformations = c.get("DEFORMATIONS", defos)
@@ -144,24 +144,11 @@ def wf_gibbs_free_energy(structure, c=None):
 
     tag = "gibbs group: >>{}<<".format(str(uuid4()))
 
-    # input set for structure optimization
-    vis_relax = PRLRelaxSet(structure, force_gamma=True)
-    v = vis_relax.as_dict()
-    v.update({"user_kpoints_settings": user_kpoints_settings})
-    vis_relax = vis_relax.__class__.from_dict(v)
-
-    name = "{} structure optimization".format(tag)
-    if robust_optimization:
-        wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
-    else:
-        # optimization only workflow
-        wf = get_wf_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
     # static input set for the transmute firework
     uis_static = {
         "ISIF": 2,
         "ISTART": 1,
     }
-
     lepsilon = False
     if qha_type not in ["debye_model"]:
         lepsilon = True
@@ -183,9 +170,23 @@ def wf_gibbs_free_energy(structure, c=None):
                                         tag=tag, vasp_input_set=vis_static)
 
     # chaining
-    wf.append_wf(wf_gibbs, wf.leaf_fw_ids)
+    if optimize:
+        # input set for structure optimization
+        vis_relax = PRLRelaxSet(structure, force_gamma=True)
+        v = vis_relax.as_dict()
+        v.update({"user_kpoints_settings": user_kpoints_settings})
+        vis_relax = vis_relax.__class__.from_dict(v)
+        name = "{} structure optimization".format(tag)
+        if robust_optimization:
+            wf = get_wf_robust_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
+        else:
+            # optimization only workflow
+            wf = get_wf_optimization(structure, vasp_cmd=vasp_cmd, db_file=db_file, name=name, vasp_input_set=vis_relax)
+        wf.append_wf(wf_gibbs, wf.leaf_fw_ids)
+    else:
+        wf = wf_gibbs
 
-    wf = add_modify_incar(wf, modify_incar_params={"incar_update": {"EDIFF": 1e-6,
+    wf = add_modify_incar(wf, modify_incar_params={"incar_update": {"EDIFF": e_diff,
                                                                     "LAECHG": False}})
 
     wf = add_common_powerups(wf, c)

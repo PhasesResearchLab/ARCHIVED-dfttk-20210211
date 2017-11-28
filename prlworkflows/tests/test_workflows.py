@@ -129,3 +129,10 @@ def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     os.mkdir('scratch')
     # TODO: make this actually run by using run_no_vasp
     launch_rocket(lpad, fworker=fworker)
+
+def test_prl_gibbs_optimization():
+    without_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
+    with_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
+    with_robust_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': True})
+    assert len(with_optimize.fws) == len(without_optimize.fws)+1
+    assert len(with_robust_optimize.fws) == len(without_optimize.fws)+3
