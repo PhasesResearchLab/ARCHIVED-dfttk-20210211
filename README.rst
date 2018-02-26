@@ -17,12 +17,6 @@ Installation
 
 1. You should ideally download this repo to your codes directory in your atomate installation 
 2. Install it as editable using pip (``pip install -e .``)
-3. Add the folder containing the *Firetasks* you are interested in to the ``ADD_USER_PACKAGES`` entry in ``FW_config.yaml`` formatted like a Python import. For example:
-
-::
-
-    ADD_USER_PACKAGES:
-      - prlworkflows
 
 Contributing
 ------------
