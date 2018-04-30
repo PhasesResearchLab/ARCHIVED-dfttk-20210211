@@ -6,9 +6,8 @@ from uuid import uuid4
 
 from fireworks import Workflow
 from atomate.vasp.config import VASP_CMD, DB_FILE
-from atomate.vasp.fireworks.core import StaticFW
 
-from prlworkflows.prl_fireworks import PRLOptimizeFW
+from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
 
 
@@ -57,7 +56,7 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.05, va
         fws.append(isif_4_fw)
 
         vis = PRLStaticSet(struct)
-        static = StaticFW(structure, job_type='normal', name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
+        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
         fws.append(static)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
