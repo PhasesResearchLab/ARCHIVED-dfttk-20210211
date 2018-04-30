@@ -10,7 +10,7 @@ import warnings
 
 class PRLOptimizeFW(Firework):
     def __init__(self, structure, name="structure optimization", vasp_input_set=None, job_type="normal",
-                 vasp_cmd="vasp", isif=None, metadata=None, override_default_vasp_params=None, db_file=None,
+                 vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
                  force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, **kwargs):
         """
         Optimize the given structure.
@@ -43,8 +43,6 @@ class PRLOptimizeFW(Firework):
         else:
             vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
-        if isif:
-            t.append(ModifyIncar(incar_update={'ISIF': isif}))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type))
         t.append(PassCalcLocs(name=name))
         if db_insert:
