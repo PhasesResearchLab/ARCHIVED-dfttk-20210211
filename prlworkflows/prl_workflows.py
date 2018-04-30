@@ -10,7 +10,7 @@ from atomate.vasp.fireworks.core import StaticFW
 from atomate.vasp.powerups import add_common_powerups, add_modify_incar, add_wf_metadata
 from atomate.vasp.workflows.base.gibbs import get_wf_gibbs_free_energy
 
-from prlworkflows.prl_fireworks import OptimizeFW
+from prlworkflows.prl_fireworks import PRLOptimizeFW
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
 
 def get_wf_robust_optimization(structure, vasp_input_set=None, vasp_cmd="vasp", db_file=None,
