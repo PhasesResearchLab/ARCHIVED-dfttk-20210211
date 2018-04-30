@@ -20,6 +20,8 @@ class PRLRelaxSet(DictSet):
         'LREAL': False,
         'PREC': 'HIGH',
         'ALGO': 'NORMAL'
+        'ENCUT': 520,
+
     })
 
     def __init__(self, structure, **kwargs):
@@ -43,7 +45,6 @@ class PRLStaticSet(DictSet):
         "NSW": 0,
         "IBRION": -1,
         'LREAL': False,
-        'ENCUT': 520,
         'ALGO': 'NORMAL',
         # other settings from MPStaticSet
         "LAECHG": True,
@@ -52,6 +53,7 @@ class PRLStaticSet(DictSet):
         "LVHAR": True,
         "LWAVE": False,
         "ICHARG": 0,
+        "NEDOS": 5001,
     })
 
     def __init__(self, structure, prev_incar=None, prev_kpoints=None,
