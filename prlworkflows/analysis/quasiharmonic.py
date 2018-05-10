@@ -46,18 +46,11 @@ class QuasiharmonicDebyeApprox(object):
                 "deltafactor", "numerical_eos"
         pressure (float): in GPa, optional.
         poisson (float): poisson ratio.
-        use_mie_gruneisen (bool): whether or not to use the mie-gruneisen
-            formulation to compute the gruneisen parameter.
-            The default is the slater-gamma formulation.
-        anharmonic_contribution (bool): whether or not to consider the anharmonic
-            contribution to the Debye temperature. Cannot be used with
-            use_mie_gruneisen. Defaults to False.
+        anharmonic_contribution (bool): Whether to use the Debye-Gruneisen model
     """
-    def __init__(self, energies, volumes, structure, vasprun_paths, t_min=300.0, t_step=100,
-                 t_max=300.0, eos="vinet", pressure=0.0, poisson=0.25,
-                 use_mie_gruneisen=False, gruneisen=True, bp2gru=2./3.):
-        vasprun_objs = [Vasprun(v) for v in vasprun_paths]
-
+    def __init__(self, energies, volumes, structure, vasprun_paths, t_min=0.0, t_step=10,
+                 t_max=2000.0, eos="vinet", pressure=0.0, poisson=0.25,
+                 gruneisen=True, bp2gru=2./3.):
         self.energies = energies
         self.volumes = volumes
         self.structure = structure
@@ -68,16 +61,10 @@ class QuasiharmonicDebyeApprox(object):
         self.pressure = pressure
         self.poisson = poisson
         self.bp2gru = bp2gru
-        self.use_mie_gruneisen = use_mie_gruneisen
         self.gruneisen = gruneisen
-        if self.use_mie_gruneisen and self.gruneisen:
-            raise ValueError('The Mie-Gruneisen formulation and anharmonic contribution are circular referenced and cannot be used together.')
         self.mass = sum([e.atomic_mass for e in self.structure.species])
         self.natoms = self.structure.composition.num_atoms
-        thermal_electronic_props = [calculate_thermal_electronic_contribution(vr.complete_dos, t0=t_min, t1=t_max, td=t_step, natom=1) for vr in vasprun_objs]
-        self.F_el = [p['free_energy'] for p in thermal_electronic_props]
-        self.avg_mass = physical_constants["atomic mass constant"][0] \
-                        * self.mass / self.natoms  # kg
+        self.avg_mass = physical_constants["atomic mass constant"][0] * self.mass / self.natoms  # kg
         self.kb = physical_constants["Boltzmann constant in eV/K"][0]
         self.hbar = physical_constants["Planck constant over 2 pi in eV s"][0]
         self.gpa_to_ev_ang = 1./160.21766208  # 1 GPa in ev/Ang^3
@@ -91,6 +78,10 @@ class QuasiharmonicDebyeApprox(object):
         self.eos = EOS(eos)
         self.ev_eos_fit = self.eos.fit(volumes, energies)
         self.bulk_modulus = self.ev_eos_fit.b0_GPa  # in GPa
+
+        vasprun_objs = [Vasprun(v) for v in vasprun_paths]
+        thermal_electronic_props = [calculate_thermal_electronic_contribution(vr.complete_dos, t0=t_min, t1=t_max, td=t_step, natom=1) for vr in vasprun_objs]
+        self.F_el = [p['free_energy'] for p in thermal_electronic_props]
         self.F_vib = [np.zeros(self.F_el[0].size) for _ in volumes]
         self.optimize_gibbs_free_energy()
 
@@ -256,81 +247,6 @@ class QuasiharmonicDebyeApprox(object):
         else:
             return 6.493939 * factor
 
-    def gruneisen_parameter(self, temperature, volume):
-        """
-        Slater-gamma formulation(the default):
-            gruneisen paramter = - d log(theta)/ d log(V)
-                               = - ( 1/6 + 0.5 d log(B)/ d log(V) )
-                               = - (1/6 + 0.5 V/B dB/dV),
-                                    where dB/dV = d^2E/dV^2 + V * d^3E/dV^3
-
-        Mie-gruneisen formulation:
-            Eq(31) in doi.org/10.1016/j.comphy.2003.12.001
-            Eq(7) in Blanco et. al. Joumal of Molecular Structure (Theochem)
-                368 (1996) 245-255
-            Also se J.P. Poirier, Introduction to the Physics of the Earth’s
-                Interior, 2nd ed. (Cambridge University Press, Cambridge,
-                2000) Eq(3.53)
-
-        Args:
-            temperature (float): temperature in K
-            volume (float): in Ang^3
-
-        Returns:
-            float: unitless
-        """
-        if isinstance(self.eos, PolynomialEOS):
-            p = np.poly1d(self.eos.eos_params)
-            # first derivative of energy at 0K wrt volume evaluated at the
-            # given volume, in eV/Ang^3
-            dEdV = np.polyder(p, 1)(volume)
-            # second derivative of energy at 0K wrt volume evaluated at the
-            # given volume, in eV/Ang^6
-            d2EdV2 = np.polyder(p, 2)(volume)
-            # third derivative of energy at 0K wrt volume evaluated at the
-            # given volume, in eV/Ang^9
-            d3EdV3 = np.polyder(p, 3)(volume)
-        else:
-            func = self.ev_eos_fit.func
-            dEdV = derivative(func, volume, dx=1e-3)
-            d2EdV2 = derivative(func, volume, dx=1e-3, n=2, order=5)
-            d3EdV3 = derivative(func, volume, dx=1e-3, n=3, order=7)
-
-        # Mie-gruneisen formulation
-        if self.use_mie_gruneisen:
-            p0 = dEdV
-            return (self.gpa_to_ev_ang * volume *
-                    (self.pressure + p0 / self.gpa_to_ev_ang) /
-                    self.vibrational_internal_energy(temperature, volume))
-
-        # Slater-gamma formulation
-        # first derivative of bulk modulus wrt volume, eV/Ang^6
-        dBdV = d2EdV2 + d3EdV3 * volume
-        return -(1./6. + 0.5 * volume * dBdV /
-                 FloatWithUnit(self.ev_eos_fit.b0_GPa, "GPa").to("eV ang^-3"))
-
-    def thermal_conductivity(self, temperature, volume):
-        """
-        Eq(17) in 10.1103/PhysRevB.90.174107
-
-        Args:
-            temperature (float): temperature in K
-            volume (float): in Ang^3
-
-        Returns:
-            float: thermal conductivity in W/K/m
-        """
-        gamma = self.gruneisen_parameter(temperature, volume)
-        theta_d = self.debye_temperature(volume)  # K
-        theta_a = theta_d * self.natoms**(-1./3.)  # K
-        prefactor = (0.849 * 3 * 4**(1./3.)) / (20. * np.pi**3)
-        # kg/K^3/s^3
-        prefactor = prefactor * (self.kb/self.hbar)**3 * self.avg_mass
-        kappa = prefactor / (gamma**2 - 0.514 * gamma + 0.228)
-        # kg/K/s^3 * Ang = (kg m/s^2)/(Ks)*1e-10
-        # = N/(Ks)*1e-10 = Nm/(Kms)*1e-10 = W/K/m*1e-10
-        kappa = kappa * theta_a**2 * volume**(1./3.) * 1e-10
-        return kappa
 
     def get_summary_dict(self):
         """
@@ -345,8 +261,4 @@ class QuasiharmonicDebyeApprox(object):
         d["gibbs_free_energy"] = self.gibbs_free_energy
         d["temperatures"] = self.temperatures
         d["optimum_volumes"] = self.optimum_volumes
-        for v, t in zip(self.optimum_volumes, self.temperatures):
-            d["debye_temperature"].append(self.debye_temperature(v))
-            d["gruneisen_parameter"].append(self.gruneisen_parameter(t, v))
-            d["thermal_conductivity"].append(self.thermal_conductivity(t, v))
         return d
