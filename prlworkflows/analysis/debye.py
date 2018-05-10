@@ -72,11 +72,18 @@ class DebyeModel(object):
         self.ev_eos_fit = self.eos.fit(volumes, energies)
         self.bulk_modulus = self.ev_eos_fit.b0_GPa  # in GPa
 
-        # calculate the Helmholtz vibrational free energy
+        self.calculate_F_el()
+
+    def calculate_F_el(self):
+        """
+        Calculate the Helmholtz vibrational free energy
+
+        """
         self.F_vib = np.zeros((len(self.volumes), self.temperatures.size ))
         for v_idx, vol in enumerate(self.volumes):
             for t_idx, temp in enumerate(self.temperatures):
                 self.F_vib[v_idx, t_idx] = self.vibrational_free_energy(temp, vol)
+
 
     def vibrational_free_energy(self, temperature, volume):
         """
