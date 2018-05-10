@@ -66,6 +66,7 @@ class Quasiharmonic(object):
                  vibrational_mode='debye', bp2gru=2./3., vib_kwargs=None):
         self.energies = np.array(energies)
         self.volumes = np.array(volumes)
+        self.natoms = len(structure)
         self.temperatures = np.arange(t_min, t_max+t_step, t_step)
         self.eos_name = eos
         self.pressure = pressure
@@ -150,10 +151,7 @@ class Quasiharmonic(object):
         """
         d = defaultdict(list)
         d["pressure"] = self.pressure
-        d["poisson"] = self.poisson
-        d["mass"] = self.mass
         d["natoms"] = int(self.natoms)
-        d["bulk_modulus"] = self.bulk_modulus
         d["gibbs_free_energy"] = self.gibbs_free_energy
         d["temperatures"] = self.temperatures
         d["optimum_volumes"] = self.optimum_volumes
