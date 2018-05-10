@@ -1,9 +1,10 @@
 """
-This module implements the Quasi-harmonic Debye approximation that can
+This module implements the Quasiharmonic approximation that can
 be used to compute thermal properties.
 
-Quasiharmonic Debye-Gruneisen model based on pymatgen's QHA and modified
-to clean up and use the proper Gruneisen parameter.
+It is based on pymatgen's QHA and further modified/refactored to abstract away the sources of
+contributions to the Gibbs energy so that it may apply to the Debye models, phonon properties, etc.
+
 """
 # coding: utf-8
 # Copyright (c) Pymatgen Development Team.
@@ -14,78 +15,90 @@ from __future__ import unicode_literals, division, print_function
 from collections import defaultdict
 
 import numpy as np
-
-from scipy.constants import physical_constants
-from scipy.integrate import quadrature
-from scipy.misc import derivative
 from scipy.optimize import minimize
-
-from pymatgen.core.units import FloatWithUnit
-from pymatgen.analysis.eos import EOS, PolynomialEOS
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.analysis.eos import EOS
 
 from prlworkflows.analysis.thermal_electronic import calculate_thermal_electronic_contribution
+from prlworkflows.analysis.debye import DebyeModel
 
 __author__ = "Kiran Mathew, Brandon Bocklund"
 __credits__ = "Cormac Toher"
 
 
-class QuasiharmonicDebyeApprox(object):
+class Quasiharmonic(object):
     """
-    Args:
-        energies (list): list of DFT energies in eV
-        volumes (list): list of volumes in Ang^3
-        structure (Structure):
-        t_min (float): min temperature
-        t_step (float): temperature step
-        t_max (float): max temperature
-        eos (str): equation of state used for fitting the energies and the
-            volumes.
-            options supported by pymatgen: "quadratic", "murnaghan", "birch",
-                "birch_murnaghan", "pourier_tarantola", "vinet",
-                "deltafactor", "numerical_eos"
-        pressure (float): in GPa, optional.
-        poisson (float): poisson ratio.
-        anharmonic_contribution (bool): Whether to use the Debye-Gruneisen model
+    Class to perform quasiharmonic calculations.
+
+    In principle, helps to abstract away where different energy contributions come from.
+
+    Parameters
+    ----------
+    energies : list
+        List of DFT energies in eV
+    volumes : list
+        List of volumes in Ang^3
+    structure : pymatgen.Structure
+        One of the structures on the E-V curve (can be any volume).
+    dos_objects : list
+        List of pymatgen Dos objects corresponding to the volumes. If passed, will enable the
+        electronic contribution.
+    t_min : float
+        Minimum temperature
+    t_step : float
+        Temperature step size
+    t_max : float
+        Maximum temperature (inclusive)
+    eos : str
+        Equation of state used for fitting the energies and the volumes.
+        Options supported by pymatgen: "quadratic", "murnaghan", "birch", "birch_murnaghan",
+        "pourier_tarantola", "vinet", "deltafactor", "numerical_eos". Default is "vinet".
+    pressure : float
+        Pressure to apply to the E-V curve/Gibbs energies in GPa. Defaults to 0.
+    poisson : float
+        Poisson ratio, defaults to 0.25
+    vibrational_mode : str
+        Which vibrational mode to use. 'debye' is currently available. Defaults to 'debye'.
+    vib_kwargs : dict
+        Additional keyword arguments to pass to the vibrational calculator
     """
-    def __init__(self, energies, volumes, structure, vasprun_paths, t_min=0.0, t_step=10,
+    def __init__(self, energies, volumes, structure, dos_objects=None, t_min=0.0, t_step=10,
                  t_max=2000.0, eos="vinet", pressure=0.0, poisson=0.25,
-                 gruneisen=True, bp2gru=2./3.):
-        self.energies = energies
-        self.volumes = volumes
-        self.structure = structure
-        self.temperature_min = t_min
-        self.temperature_max = t_max
-        self.temperature_step = t_step
+                 vibrational_mode='debye', bp2gru=2./3., vib_kwargs=None):
+        self.energies = np.array(energies)
+        self.volumes = np.array(volumes)
+        self.temperatures = np.arange(t_min, t_max+t_step, t_step)
         self.eos_name = eos
         self.pressure = pressure
-        self.poisson = poisson
-        self.bp2gru = bp2gru
-        self.gruneisen = gruneisen
-        self.mass = sum([e.atomic_mass for e in self.structure.species])
-        self.natoms = self.structure.composition.num_atoms
-        self.avg_mass = physical_constants["atomic mass constant"][0] * self.mass / self.natoms  # kg
-        self.kb = physical_constants["Boltzmann constant in eV/K"][0]
-        self.hbar = physical_constants["Planck constant over 2 pi in eV s"][0]
         self.gpa_to_ev_ang = 1./160.21766208  # 1 GPa in ev/Ang^3
-        self.gibbs_free_energy = []  # optimized values, eV
-        # list of temperatures for which the optimized values are available, K
-        self.temperatures = []
-        self.optimum_volumes = []  # in Ang^3
-        # fit E and V and get the bulk modulus(used to compute the Debye
-        # temperature)
-        print("Fitting E and V")
         self.eos = EOS(eos)
-        self.ev_eos_fit = self.eos.fit(volumes, energies)
-        self.bulk_modulus = self.ev_eos_fit.b0_GPa  # in GPa
 
-        vasprun_objs = [Vasprun(v) for v in vasprun_paths]
-        thermal_electronic_props = [calculate_thermal_electronic_contribution(vr.complete_dos, t0=t_min, t1=t_max, td=t_step, natom=1) for vr in vasprun_objs]
-        self.F_el = [p['free_energy'] for p in thermal_electronic_props]
-        self.F_vib = [np.zeros(self.F_el[0].size) for _ in volumes]
+        # get the vibrational properties as a function of V and T
+        if vibrational_mode == 'debye':
+            vib_kwargs = vib_kwargs or {}
+            debye_model = DebyeModel(energies, volumes, structure, t_min=t_min, t_step=t_step,
+                                     t_max=t_max, eos=eos, poisson=poisson, bp2gru=bp2gru, **vib_kwargs)
+            self.F_vib = debye_model.F_vib  # vibrational free energy as a function of volume and temperature
+        else:
+            raise ValueError('Unknown vibrational mode "{}" passed. "debye" is available'.format(vibrational_mode))
+
+        # get the electronic properties as a function of V and T
+        if dos_objects:
+            # we set natom to 1 always because we want the property per formula unit here.
+            thermal_electronic_props = [calculate_thermal_electronic_contribution(dos, t0=t_min, t1=t_max, td=t_step, natom=1) for dos in dos_objects]
+            self.F_el = [p['free_energy'] for p in thermal_electronic_props]
+        else:
+            self.F_el = np.zeros((self.volumes.size, self.temperatures.size))
+
+        # Set up the array of Gibbs energies
+        # G = E_0(V) + F_vib(V,T) + F_el(V,T) + PV
+        self.G = self.energies[:, np.newaxis] + self.F_vib + self.F_el + self.pressure * self.volumes[:, np.newaxis] * self.gpa_to_ev_ang
+
+        # set up the final variables of the optimized Gibbs energies
+        self.gibbs_free_energy = []  # optimized values, eV
+        self.optimum_volumes = []  # in Ang^3
         self.optimize_gibbs_free_energy()
 
-    def optimize_gibbs_free_energy(self, verbose=False):
+    def optimize_gibbs_free_energy(self):
         """
         Evaluate the gibbs free energy as a function of V, T and P i.e
         G(V, T, P), minimize G(V, T, P) wrt V for each T and store the
@@ -94,28 +107,12 @@ class QuasiharmonicDebyeApprox(object):
         Note: The data points for which the equation of state fitting fails
             are skipped.
         """
-        temperatures = np.linspace(
-            self.temperature_min,  self.temperature_max,
-            int(np.ceil((self.temperature_max - self.temperature_min)
-            / self.temperature_step) + 1))
-
-        for t in temperatures:
-            G_opt, V_opt = self.optimizer(t, verbose=verbose)
-            try:
-                #G_opt, V_opt = self.optimizer(t)
-                pass
-            except:
-                if len(temperatures) > 1:
-                    print("EOS fitting failed, so skipping this data point, {}".
-                          format(t))
-                    continue
-                else:
-                    raise
+        for temp_idx in range(self.temperatures.size):
+            G_opt, V_opt = self.optimizer(temp_idx)
             self.gibbs_free_energy.append(G_opt)
-            self.temperatures.append(t)
             self.optimum_volumes.append(V_opt)
 
-    def optimizer(self, temperature, verbose=False):
+    def optimizer(self, temp_idx):
         """
         Evaluate G(V, T, P) at the given temperature(and pressure) and
         minimize it wrt V.
@@ -128,26 +125,13 @@ class QuasiharmonicDebyeApprox(object):
         4. Finally G(V, P, T) is minimized with respect to V.
 
         Args:
-            temperature (float): temperature in K
+            temp_idx : int
+            Index of the temperature of interest from self.temperatures
 
         Returns:
             float, float: G_opt(V_opt, T, P) in eV and V_opt in Ang^3.
         """
-        G_V = []  # G for each volume
-        # G = E(V) + PV + A_vib(V, T) + F_el(V, T)
-        for i, v in enumerate(self.volumes):
-            vib = self.vibrational_free_energy(temperature, v)
-            temp_idx = int((temperature-self.temperature_min)/self.temperature_step)
-            self.F_vib[i][temp_idx] = vib
-            e_wo_el = self.energies[i] + self.pressure * v * self.gpa_to_ev_ang + vib
-            el = self.F_el[i][temp_idx]
-            G_V.append( e_wo_el + el)
-            #G_V.append(e_wo_el)
-            if verbose:
-                print((temperature - self.temperature_min) / self.temperature_step)
-                print('energy wo electronic {}'.format(e_wo_el))
-                print('vibrational energy {}'.format(vib))
-                print('energy electronic {}'.format(el))
+        G_V = self.G[:, temp_idx]
 
         # fit equation of state, G(V, T, P)
         eos_fit = self.eos.fit(self.volumes, G_V)
@@ -158,94 +142,6 @@ class QuasiharmonicDebyeApprox(object):
         min_wrt_vol = minimize(eos_fit.func, volume_guess)
         # G_opt=G(V_opt, T, P), V_opt
         return min_wrt_vol.fun, min_wrt_vol.x[0]
-
-    def vibrational_free_energy(self, temperature, volume):
-        """
-        Vibrational Helmholtz free energy, A_vib(V, T).
-        Eq(4) in doi.org/10.1016/j.comphy.2003.12.001
-
-        Args:
-            temperature (float): temperature in K
-            volume (float)
-
-        Returns:
-            float: vibrational free energy in eV
-        """
-        y = self.debye_temperature(volume) / temperature
-        return self.kb * self.natoms * temperature * (9./8. * y + 3 * np.log(1 - np.exp(-y)) - self.debye_integral(y))
-
-    def vibrational_internal_energy(self, temperature, volume):
-        """
-        Vibrational internal energy, U_vib(V, T).
-        Eq(4) in doi.org/10.1016/j.comphy.2003.12.001
-
-        Args:
-            temperature (float): temperature in K
-            volume (float): in Ang^3
-
-        Returns:
-            float: vibrational internal energy in eV
-        """
-        y = self.debye_temperature(volume) / temperature
-        return self.kb * self.natoms * temperature * (9./8. * y +
-                                                      3*self.debye_integral(y))
-
-    def debye_temperature(self, volume):
-        """
-        Calculates the debye temperature.
-        Eq(6) in doi.org/10.1016/j.comphy.2003.12.001. Thanks to Joey.
-
-        Eq(6) above is equivalent to Eq(3) in doi.org/10.1103/PhysRevB.37.790
-        which does not consider anharmonic effects. Eq(20) in the same paper
-        and Eq(18) in doi.org/10.1016/j.commatsci.2009.12.006 both consider
-        anharmonic contributions to the Debye temperature through the Gruneisen
-        parameter at 0K (Gruneisen constant).
-
-        The anharmonic contribution is toggled by setting the anharmonic_contribution
-        to True or False in the QuasiharmonicDebyeApprox constructor.
-
-        Args:
-            volume (float): in Ang^3
-
-        Returns:
-            float: debye temperature in K
-         """
-        term1 = (2./3. * (1. + self.poisson) / (1. - 2. * self.poisson))**1.5
-        term2 = (1./3. * (1. + self.poisson) / (1. - self.poisson))**1.5
-        f = (3. / (2. * term1 + term2))**(1. / 3.)
-        debye = 2.9772e-11 * (volume / self.natoms) ** (-1. / 6.) * f * np.sqrt(self.bulk_modulus/self.avg_mass)
-        if self.gruneisen:
-            # bp2gru should be the correction to the Gruneisen constant.
-            # High temperature limit: 2/3
-            # Low temperature limit: 1
-            # take 0 K E-V curve properties
-            dBdP = self.ev_eos_fit.b1  # bulk modulus/pressure derivative
-            gamma = (1+dBdP)/2 - self.bp2gru  # 0K equilibrium Gruneisen parameter
-            return debye * (self.ev_eos_fit.v0 / volume) ** (gamma)
-        else:
-            return debye
-
-
-    @staticmethod
-    def debye_integral(y):
-        """
-        Debye integral. Eq(5) in  doi.org/10.1016/j.comphy.2003.12.001
-
-        Args:
-            y (float): debye temperature/T, upper limit
-
-        Returns:
-            float: unitless
-        """
-        # floating point limit is reached around y=155, so values beyond that
-        # are set to the limiting value(T-->0, y --> \infty) of
-        # 6.4939394 (from wolfram alpha).
-        factor = 3. / y ** 3
-        if y < 155:
-            integral = quadrature(lambda x: x ** 3 / (np.exp(x) - 1.), 0, y)
-            return list(integral)[0] * factor
-        else:
-            return 6.493939 * factor
 
 
     def get_summary_dict(self):

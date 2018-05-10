@@ -26,25 +26,41 @@ __credits__ = "Cormac Toher"
 class DebyeModel(object):
     """
     Calculate the vibrational free energy for volumes/temperatures using the Debye model
-    Args:
-        energies (list): list of DFT energies in eV
-        volumes (list): list of volumes in Ang^3
-        structure (Structure):
-        t_min (float): min temperature
-        t_step (float): temperature step
-        t_max (float): max temperature
-        eos (str): equation of state used for fitting the energies and the
-            volumes.
-            options supported by pymatgen: "quadratic", "murnaghan", "birch",
-                "birch_murnaghan", "pourier_tarantola", "vinet",
-                "deltafactor", "numerical_eos"
-        poisson (float): poisson ratio.
-        gruneisen (bool): Whether to use the Debye-Gruneisen model
-        bp2gru : float
-            Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
-            value and 1 is the low temperature value.
-        mass_average_mode : str
-            Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
+
+    Note that the properties are per unit formula!
+
+    Parameters
+    ----------
+    energies : list
+        List of DFT energies in eV
+    volumes : list
+        List of volumes in Ang^3
+    structure : pymatgen.Structure
+        One of the structures on the E-V curve (can be any volume).
+    dos_objects : list
+        List of pymatgen Dos objects corresponding to the volumes. If passed, will enable the
+        electronic contribution.
+    t_min : float
+        Minimum temperature
+    t_step : float
+        Temperature step size
+    t_max : float
+        Maximum temperature (inclusive)
+    eos : str
+        Equation of state used for fitting the energies and the volumes.
+        Options supported by pymatgen: "quadratic", "murnaghan", "birch", "birch_murnaghan",
+        "pourier_tarantola", "vinet", "deltafactor", "numerical_eos". Default is "vinet".
+    pressure : float
+        Pressure to apply to the E-V curve/Gibbs energies in GPa. Defaults to 0.
+    poisson : float
+        Poisson ratio, defaults to 0.25
+    gruneisen : bool
+        Whether to use the Debye-Gruneisen model. Defaults to True.
+    bp2gru : float
+        Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
+        value and 1 is the low temperature value. Defaults to 2/3.
+    mass_average_mode : str
+        Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
     """
     def __init__(self, energies, volumes, structure, t_min=0.0, t_step=10,
                  t_max=2000.0, eos="vinet", poisson=0.25,
