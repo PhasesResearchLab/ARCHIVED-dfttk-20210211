@@ -52,7 +52,7 @@ class DebyeModel(object):
         self.energies = energies
         self.volumes = volumes
         self.structure = structure
-        self.temperatures = np.arange(t_min, t_max, t_step)
+        self.temperatures = np.arange(t_min, t_max+t_step, t_step)
         self.eos_name = eos
         self.poisson = poisson
         self.bp2gru = bp2gru
