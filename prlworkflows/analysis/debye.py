@@ -62,7 +62,7 @@ class DebyeModel(object):
     mass_average_mode : str
         Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
     """
-    def __init__(self, energies, volumes, structure, t_min=0.0, t_step=10,
+    def __init__(self, energies, volumes, structure, t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", poisson=0.25,
                  gruneisen=True, bp2gru=2./3., mass_average_mode='arithmetic'):
         self.energies = energies
