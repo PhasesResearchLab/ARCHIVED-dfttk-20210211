@@ -117,21 +117,6 @@ class DebyeModel(object):
         return self.kb * self.natoms * temperature * (9./8. * y + 3 * np.log(1 - np.exp(-y)) - self.debye_integral(y))
 
 
-    def vibrational_internal_energy(self, temperature, volume):
-        """
-        Vibrational internal energy, U_vib(V, T).
-        Eq(4) in doi.org/10.1016/j.comphy.2003.12.001
-
-        Args:
-            temperature (float): temperature in K
-            volume (float): in Ang^3
-
-        Returns:
-            float: vibrational internal energy in eV
-        """
-        y = self.debye_temperature(volume) / temperature
-        return self.kb * self.natoms * temperature * (9./8. * y + 3*self.debye_integral(y))
-
     def debye_temperature(self, volume):
         """
         Calculates the debye temperature.
