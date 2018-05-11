@@ -5,7 +5,9 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar,
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
-from prlworkflows.input_sets import PRLRelaxSet
+from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
+from prlworkflows.prl_firetasks import WriteVaspFromIOSetPrevStructure
+
 import warnings
 
 class PRLOptimizeFW(Firework):
@@ -39,7 +41,7 @@ class PRLOptimizeFW(Firework):
         if parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
-            t.append(WriteVaspStaticFromPrev())
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
@@ -90,9 +92,9 @@ class PRLStaticFW(Firework):
         if parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
-            t.append(WriteVaspStaticFromPrev())
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
-            vasp_input_set = vasp_input_set or MPStaticSet(structure)
+            vasp_input_set = vasp_input_set or PRLStaticSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
 
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<"))
