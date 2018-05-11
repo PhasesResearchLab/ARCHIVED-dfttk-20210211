@@ -19,7 +19,7 @@ class PRLRelaxSet(DictSet):
         'SIGMA': 0.2,
         'LREAL': False,
         'PREC': 'HIGH',
-        'ALGO': 'NORMAL'
+        'ALGO': 'NORMAL',
         'ENCUT': 520,
 
     })
