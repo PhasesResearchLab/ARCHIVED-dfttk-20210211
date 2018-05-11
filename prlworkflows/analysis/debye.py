@@ -58,13 +58,13 @@ class DebyeModel(object):
         Whether to use the Debye-Gruneisen model. Defaults to True.
     bp2gru : float
         Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
-        value and 1 is the low temperature value. Defaults to 2/3.
+        value and 1 is the low temperature value. Defaults to 1.
     mass_average_mode : str
         Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
     """
     def __init__(self, energies, volumes, structure, t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", poisson=0.25,
-                 gruneisen=True, bp2gru=2./3., mass_average_mode='arithmetic'):
+                 gruneisen=True, bp2gru=1., mass_average_mode='arithmetic'):
         self.energies = energies
         self.volumes = volumes
         self.structure = structure

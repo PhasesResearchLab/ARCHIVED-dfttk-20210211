@@ -58,12 +58,15 @@ class Quasiharmonic(object):
         Poisson ratio, defaults to 0.25
     vibrational_mode : str
         Which vibrational mode to use. 'debye' is currently available. Defaults to 'debye'.
+    bp2gru : float
+        Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
+        value and 1 is the low temperature value. Defaults to 1.
     vib_kwargs : dict
         Additional keyword arguments to pass to the vibrational calculator
     """
     def __init__(self, energies, volumes, structure, dos_objects=None, t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", pressure=0.0, poisson=0.25,
-                 vibrational_mode='debye', bp2gru=2./3., vib_kwargs=None):
+                 vibrational_mode='debye', bp2gru=1., vib_kwargs=None):
         self.energies = np.array(energies)
         self.volumes = np.array(volumes)
         self.natoms = len(structure)
