@@ -49,7 +49,7 @@ def create_supercell_displacements(structure, supercell_matrix, displacement_dis
     return supercells, disp_dicts
 
 
-def get_f_vib_phonopy(structure, supercell_matrix, force_sets, displacement_dicts,
+def get_f_vib_phonopy(structure, supercell_matrix, displacement_dicts, force_sets=None,
                      qpoint_mesh=(50, 50, 50), t_min=5, t_step=5, t_max=2000.0,):
     """
     Return F_vib(T)
@@ -92,7 +92,9 @@ def get_f_vib_phonopy(structure, supercell_matrix, force_sets, displacement_dict
     ph = Phonopy(ph_unitcell, supercell_matrix)
     # set the forces and displacements
     ph.set_displacement_dataset(disp_dataset)
-    ph.set_forces(force_sets)
+    # force_sets can also be passed as 'forces' in displacement dicts, however they are updated here if passed
+    if force_sets is not None:
+        ph.set_forces(force_sets)
     # make the force constants from the forces and displacements
     ph.produce_force_constants()
     # calculate the thermal properties
