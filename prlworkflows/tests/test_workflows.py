@@ -84,7 +84,7 @@ def fworker():
     yield FWorker(env={"db_file": os.path.join(MODULE_DIR, "db.json"), 'scratch_dir': scratch_dir})
     shutil.rmtree(scratch_dir)
 
-
+@pytest.skip
 def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
     fw = OptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
@@ -95,7 +95,7 @@ def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_
     desired_parameters = {'ISIF': 4}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
-
+@pytest.skip
 def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     fw = OptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
@@ -105,7 +105,7 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_
     desired_parameters = {'ISIF': 7}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
-
+@pytest.skip
 def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT)
     fw = OptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
@@ -122,7 +122,7 @@ def test_fw_spec_modified_by_powerup():
     wf = update_fws_spec(wf, {'_preserve_fworker': True})
     assert all([fw.spec['_preserve_fworker'] == True for fw in wf.fws])
 
-
+@pytest.skip
 def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     wf = wf_gibbs_free_energy(STRUCT, {'VASP_CMD': None})
     lpad.add_wf(wf)
@@ -130,6 +130,7 @@ def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     # TODO: make this actually run by using run_no_vasp
     launch_rocket(lpad, fworker=fworker)
 
+@pytest.skip
 def test_prl_gibbs_optimization():
     without_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
     with_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
