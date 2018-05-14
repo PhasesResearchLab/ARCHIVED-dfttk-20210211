@@ -5,6 +5,7 @@ from pymatgen import Structure
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class
 from prlworkflows.analysis.phonon import get_all_force_sets, get_f_vib_phonopy
+import numpy as np
 
 
 @explicit_serialize
@@ -71,18 +72,18 @@ class CalculatePhononThermalProperties(FiretaskBase):
     """
     def run_task(self, fw_spec):
         disp_dicts = fw_spec['displacement_dicts']
-        unitcell = Structure.from_dict(fw_spec['unitcell'])
+        # FireWorks unwraps forces arrays from NumPy to lists. We have to convert back otherwise we get errors in phonopy.
+        force_sets = [np.array(ds.pop('forces')) for ds in disp_dicts]
+        unitcell = fw_spec['unitcell']
         supercell_matrix = fw_spec['supercell_matrix']
-
-        temperatures, f_vib, s_vib, cv_vib = get_f_vib_phonopy(unitcell, supercell_matrix, disp_dicts)
+        temperatures, f_vib, s_vib, cv_vib = get_f_vib_phonopy(unitcell, supercell_matrix, disp_dicts, force_sets=force_sets)
         thermal_props_dict = {
             'volume': unitcell.volume,
             'F_vib': f_vib,
             'CV_vib': cv_vib,
             'S_vib': s_vib,
             'temperatures': temperatures,
-
         }
 
-        return FWAction(mod_spec=[{'_push': {'f_vib': thermal_props_dict}}])
+        return FWAction(stored_data=thermal_props_dict, mod_spec=[{'_push': {'f_vib': thermal_props_dict}}])
 
