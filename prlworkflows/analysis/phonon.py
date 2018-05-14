@@ -19,8 +19,9 @@ Phonon analysis using phonopy
 
 import numpy as np
 from phonopy import Phonopy
-from phonopy.structure.atoms import PhonopyAtoms
 from phonopy.interface.vasp import Vasprun as PhonopyVasprun
+from pymatgen.io.phonopy import get_phonopy_structure, get_pmg_structure
+
 
 def get_all_force_sets(displacement_vasprun_files):
     """Will be replaced by reading the outputs from Fireworks"""
@@ -30,11 +31,38 @@ def get_all_force_sets(displacement_vasprun_files):
         force_sets.append(vasprun.read_forces())
     return force_sets
 
-def pmg_structure_to_phonopy_atoms(structure):
-    """Convert a pymatgen Structure to PhonopyAtoms"""
-    return PhonopyAtoms(symbols=[str(s.specie) for s in structure],
-                 scaled_positions=structure.frac_coords,
-                 cell=structure.lattice.matrix)
+
+def create_supercell_displacements(structure, supercell_matrix, displacement_distance=0.01):
+    """
+
+    Parameters
+    ----------
+    structure : pymatgen.Structure
+        Unitcell (not supercell) of interest.
+    supercell_matrix : numpy.ndarray
+        3x3 matrix of the supercell deformation, e.g. [[3, 0, 0], [0, 3, 0], [0, 0, 3]].
+    displacement_distance : float
+        Distance of each displacement. Defaults to 0.01, consistent with phonopy.
+
+
+    Returns
+    -------
+    list
+        List of 2-tuples containing (supercell structure, displacement_dict)
+    """
+    ph_unitcell = get_phonopy_structure(structure)
+    ph = Phonopy(ph_unitcell, supercell_matrix)
+    ph.generate_displacements(distance=displacement_distance)
+    supercells = [get_pmg_structure(sc) for sc in ph.get_supercells_with_displacements()]
+    disp_dataset = ph.get_displacement_dataset()
+    disp_dicts = disp_dataset['first_atoms']
+    # phonopy does some weird stuff with the displacement dataset, so we will sanitize it
+    for disp_dict in disp_dicts:
+        disp_dict['number'] = int(disp_dict['number'])
+        disp_dict['displacement'] = disp_dict['displacement'].tolist()  # numpy array to list
+        disp_dict['direction'] = [int(d) for d in disp_dict['direction']]  # directions are always -1, 0, 1
+    return supercells, disp_dicts
+
 
 def get_f_vib_phonopy(structure, supercell_matrix, force_sets, displacement_dicts,
                      qpoint_mesh=(50, 50, 50), t_min=5, t_step=5, t_max=2000.0,):
@@ -64,12 +92,17 @@ def get_f_vib_phonopy(structure, supercell_matrix, force_sets, displacement_dict
     t_max : float
         Maximum temperature (inclusive)
 
+    Returns
+    -------
+    tuple
+        Tuple of (temperature, F_vib)
+
     """
     # reconstruct the displacement dataset:
     disp_dataset = {'first_atoms': [ds for ds in displacement_dicts], 'natom': len(structure)}
 
     # TODO: Do the displacement dicts need to be ordered or just correspond? Verify with a test
-    ph_unitcell = pmg_structure_to_phonopy_atoms(structure)
+    ph_unitcell = get_phonopy_structure(structure)
     # I don't think I need a primitive matrix here, but it needs to be tested.
     # If we do need a primitive matrix, is this the matrix of the primitive cell even if the unit cell is conventional? Or is it just the unit cell matrix?
     ph = Phonopy(ph_unitcell, supercell_matrix)
