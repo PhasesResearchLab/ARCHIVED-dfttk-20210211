@@ -2,21 +2,6 @@
 Phonon analysis using phonopy
 """
 
-# from the web for preprocessing:
-# import numpy as np
-# from phonopy import Phonopy
-
-# phonon = Phonopy(unitcell,
-#                  [[2, 0, 0], [0, 2, 0], [0, 0, 2]],
-#                  primitive_matrix=[[0, 0.5, 0.5],
-#                                    [0.5, 0, 0.5],
-#                                    [0.5, 0.5, 0]])
-# phonon.generate_displacements(distance=0.03) # default is 0.1
-# supercells = phonon.get_supercells_with_displacements()
-# # save teh displacement dicts with
-# ds = phonon.get_displacement_dataset()
-# # attach each displacement in ds['first_atoms'] to the individual supercell generated
-
 import numpy as np
 from phonopy import Phonopy
 from phonopy.interface.vasp import Vasprun as PhonopyVasprun
@@ -101,7 +86,6 @@ def get_f_vib_phonopy(structure, supercell_matrix, force_sets, displacement_dict
     # reconstruct the displacement dataset:
     disp_dataset = {'first_atoms': [ds for ds in displacement_dicts], 'natom': len(structure)}
 
-    # TODO: Do the displacement dicts need to be ordered or just correspond? Verify with a test
     ph_unitcell = get_phonopy_structure(structure)
     # I don't think I need a primitive matrix here, but it needs to be tested.
     # If we do need a primitive matrix, is this the matrix of the primitive cell even if the unit cell is conventional? Or is it just the unit cell matrix?
@@ -124,7 +108,7 @@ if test:
     from pymatgen import Structure
     struct = Structure.from_file('/Users/brandon/Projects/phonopy-runs/Al-QHA/run_on_cluster/QHA-01/POSCAR')
 
-    # TODO: sorting probably really important here. Displacement dict order and vasprun order must agree.
+    # sorting really important here. Displacement dict order and vasprun order must agree.
     displacement_vasprun_files = [
         '/Users/brandon/Projects/phonopy-runs/Al-QHA/run_on_cluster/QHA-01/disp-001/vasprun.xml'
     ]
