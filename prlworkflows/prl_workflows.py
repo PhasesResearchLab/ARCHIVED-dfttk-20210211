@@ -105,7 +105,7 @@ def get_wf_phonon(structure, supercell_matrix, smearing_type='methfessel-paxton'
 
     thermal_props = Firework([CalculatePhononThermalProperties()], parents=fws, name='CalculateThermalProperties',
                                spec={'unitcell': structure, 'supercell_matrix': supercell_matrix},)
-    fws.append(thermal_props)
+    fws = fws + [thermal_props]  # have to add here to create a new object, otherwise the thermal_props parents includes self.
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     return Workflow(fws, name=wfname)
 
