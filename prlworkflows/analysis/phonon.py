@@ -102,7 +102,7 @@ def get_f_vib_phonopy(structure, supercell_matrix, displacement_dicts, force_set
     ph.set_thermal_properties(t_min=t_min, t_max=t_max, t_step=t_step)
     # the thermal properties are for the unit cell
     temperatures, f_vib, s_vib, cv_vib = ph.get_thermal_properties()
-    return f_vib
+    return temperatures, f_vib, s_vib, cv_vib
 
 test = False
 # sample code for how to run:
