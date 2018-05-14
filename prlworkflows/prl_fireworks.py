@@ -156,7 +156,7 @@ class PRLPhononDisplacementFW(Firework):
             elif smearing_type == 'tetrahedron':
                 vasp_input_set = PRLStaticSet(structure)
             elif smearing_type == 'methfessel-paxton':
-                vasp_input_set = PRLStaticSet(structure, user_incar_settings={'ISMEAR': 0, 'SIGMA': 0.2})
+                vasp_input_set = PRLStaticSet(structure, user_incar_settings={'ISMEAR': 1, 'SIGMA': 0.2})
             else:
                 raise ValueError('No vasp_input_set was passed and the smearing_type "{}" is not one of "gaussian", "tetrahedron" or "methfessel-paxton".'.format(smearing_type))
 
