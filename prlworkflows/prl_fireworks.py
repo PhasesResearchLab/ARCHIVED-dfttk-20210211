@@ -45,7 +45,7 @@ class PRLOptimizeFW(Firework):
         else:
             vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
-        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type))
+        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
@@ -97,7 +97,7 @@ class PRLStaticFW(Firework):
             vasp_input_set = vasp_input_set or PRLStaticSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
 
-        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<"))
+        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
         super(PRLStaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
@@ -162,7 +162,7 @@ class PRLPhononDisplacementFW(Firework):
 
         tasks = []
         tasks.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
-        tasks.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<"))
+        tasks.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         tasks.append(UpdateDisplacementDictForces())
 
         super(PRLPhononDisplacementFW, self).__init__(tasks, parents=parents, spec=spec,
