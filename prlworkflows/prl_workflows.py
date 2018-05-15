@@ -110,7 +110,7 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     return Workflow(fws, name=wfname)
 
 
-def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
+def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, phonon_supercell_matrix=None, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
     """
     E - V
     curve
@@ -123,6 +123,8 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
     deformation_fraction: float
     phonon : bool
         Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
+    phonon_supercell_matrix : list
+        3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]]. Must be specified if phonon is specified.
     phonon_kwargs : dict
         Keyword arguments to send to the GeneratePhononDisplacements Firetask.
     vasp_cmd : str
@@ -142,6 +144,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
         't_min': t_min,
         't_max': t_max,
         't_step': t_step,
+        'supercell_matrix': phonon_supercell_matrix,
     })
 
     metadata = metadata or {}
