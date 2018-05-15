@@ -160,7 +160,7 @@ class QHAAnalysis(FiretaskBase):
     Optional params
     ---------------
     poisson : float
-        Poisson ratio, defaults to 0.25. Only used in QHA
+        Poisson ratio, defaults to 0.25. Only used in Debye
 
     Notes
     -----
@@ -213,7 +213,7 @@ class QHAAnalysis(FiretaskBase):
 
         qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
                             t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
-                            poisson=self.get('poisson'))
+                            poisson=self.get('poisson', 0.25))
 
         qha_summary = qha.get_summary_dict()
         qha_summary['phonon'] = self['phonon']
