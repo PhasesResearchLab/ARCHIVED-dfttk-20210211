@@ -6,6 +6,7 @@ import numpy as np
 from phonopy import Phonopy
 from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen.io.phonopy import get_phonopy_structure, get_pmg_structure
+from prlworkflows.utils import J_per_mol_to_eV_per_atom
 
 
 def get_all_force_sets(displacement_vasprun_files):
@@ -102,6 +103,10 @@ def get_f_vib_phonopy(structure, supercell_matrix, displacement_dicts, force_set
     ph.set_thermal_properties(t_min=t_min, t_max=t_max, t_step=t_step)
     # the thermal properties are for the unit cell
     temperatures, f_vib, s_vib, cv_vib = ph.get_thermal_properties()
+    # convert the units into our expected eV/atom-form (and per K)
+    f_vib *= J_per_mol_to_eV_per_atom
+    s_vib *= J_per_mol_to_eV_per_atom
+    cv_vib *= J_per_mol_to_eV_per_atom
     return temperatures, f_vib, s_vib, cv_vib
 
 test = False

@@ -8,8 +8,12 @@ import os
 
 from pymatgen import MPRester
 from fireworks import LaunchPad
+import scipy
+
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
 
+eV_per_atom_to_J_per_mol = scipy.constants.eV*scipy.constants.Avogadro
+J_per_mol_to_eV_per_atom = 1/(scipy.constants.eV*scipy.constants.Avogadro)
 
 def mp_structures_from_ids(mp_ids, API_KEY=None):
     """Returns a list of structures from MP ids
