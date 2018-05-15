@@ -89,7 +89,7 @@ class CalculatePhononThermalProperties(FiretaskBase):
 
 
 @explicit_serialize
-class GeneratePhononDetour():
+class GeneratePhononDetour(FiretaskBase):
     """
     A Firetask to create a phonon workflow from a single Firetask.
 
@@ -132,3 +132,16 @@ class GeneratePhononDetour():
                                                 vasp_cmd=vasp_cmd,)
 
         return FWAction(detours=phonon_wf)
+
+
+@explicit_serialize
+class QHAAnalysis(FiretaskBase):
+    """
+    Do the quasiharmonic calculation from either phonon or Debye.
+    """
+
+    required_params = ["phonon"]
+
+    def run_task(self, fw_spec):
+        if self['phonon']:
+            qha = Quasiharmonic

@@ -8,7 +8,7 @@ from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 
 from prlworkflows.analysis.phonon import create_supercell_displacements
-from prlworkflows.prl_firetasks import CalculatePhononThermalProperties
+from prlworkflows.prl_firetasks import CalculatePhononThermalProperties, QHAAnalysis
 from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW, PRLPhononDisplacementFW
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
 
@@ -109,3 +109,63 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     return Workflow(fws, name=wfname)
 
+
+def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
+    """
+    E - V
+    curve
+
+    workflow
+    Parameters
+    ------
+    structure: pymatgen.Structure
+    num_deformations: int
+    deformation_fraction: float
+    phonon : bool
+        Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
+    vasp_cmd : str
+        Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+    name : str
+        Name of the workflow
+    metadata : dict
+        Metadata to include
+    """
+    vasp_cmd = vasp_cmd or VASP_CMD
+    db_file = db_file or DB_FILE
+
+    metadata = metadata or {}
+    if 'tag' not in metadata.keys():
+        metadata['tag'] = '{}'.format(str(uuid4()))
+
+    deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
+
+    # follow a scheme of
+    # 1. ISIF 2
+    # 2. ISIF 4
+    # 3. Static
+    fws = []
+    static_calcs = []
+    for i, deformation in enumerate(deformations):
+        struct = structure.copy()
+        struct.scale_lattice(struct.volume*deformation)
+        vis = PRLRelaxSet(struct, user_incar_settings={'ISIF': 2})
+        isif_2_fw = PRLOptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_2'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+        fws.append(isif_2_fw)
+
+        vis = PRLRelaxSet(struct, user_incar_settings={'ISIF': 4})
+        isif_4_fw = PRLOptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_4'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_2_fw)
+        fws.append(isif_4_fw)
+
+        vis = PRLStaticSet(struct)
+        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw, phonon_detour=phonon)
+        fws.append(static)
+        static_calcs.append(static)
+
+    qha_fw = Firework(QHAAnalysis(phonon=phonon), parents=static_calcs)
+
+
+    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+
+    return Workflow(fws, name=wfname, metadata=metadata)

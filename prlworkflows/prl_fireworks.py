@@ -6,7 +6,7 @@ from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
-from prlworkflows.prl_firetasks import WriteVaspFromIOSetPrevStructure, UpdateDisplacementDictForces
+from prlworkflows.prl_firetasks import WriteVaspFromIOSetPrevStructure, UpdateDisplacementDictForces, GeneratePhononDetour
 
 import warnings
 
@@ -55,7 +55,7 @@ class PRLOptimizeFW(Firework):
 
 class PRLStaticFW(Firework):
     def __init__(self, structure, name="static", vasp_input_set=None, dos=True, vasp_cmd="vasp", metadata=None,
-                 prev_calc_loc=True, db_file=None, parents=None, **kwargs):
+                 prev_calc_loc=True, db_file=None, parents=None, phonon_detour=False, phonon_args=None, **kwargs):
         """
         Standard static calculation Firework - either from a previous location or from a structure.
 
@@ -79,6 +79,10 @@ class PRLStaticFW(Firework):
             new static calculation using the provided structure.
         db_file (str): Path to file specifying db credentials.
         parents (Firework): Parents of this particular Firework. FW or list of FWS.
+        prepare_phonon : bool
+            If True, will add a task to create a phonon workflow as a detour.
+        phonon_args : dict
+            Dictionary of arguments to pass to GeneratePhononDetour
         \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
 
@@ -100,6 +104,8 @@ class PRLStaticFW(Firework):
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
+        if phonon_detour:
+            t.append(GeneratePhononDetour(**phonon_args))
         super(PRLStaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 
