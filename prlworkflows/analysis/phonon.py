@@ -104,7 +104,7 @@ def get_f_vib_phonopy(structure, supercell_matrix, displacement_dicts, force_set
     # the thermal properties are for the unit cell
     temperatures, f_vib, s_vib, cv_vib = ph.get_thermal_properties()
     # convert the units into our expected eV/atom-form (and per K)
-    f_vib *= J_per_mol_to_eV_per_atom
+    f_vib *= J_per_mol_to_eV_per_atom*1000
     s_vib *= J_per_mol_to_eV_per_atom
     cv_vib *= J_per_mol_to_eV_per_atom
     return temperatures, f_vib, s_vib, cv_vib
