@@ -110,7 +110,7 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     return Workflow(fws, name=wfname)
 
 
-def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, phonon_supercell_matrix=None, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
+def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1), phonon=False, phonon_supercell_matrix=None, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
     """
     E - V
     curve
@@ -121,6 +121,9 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
     structure: pymatgen.Structure
     num_deformations: int
     deformation_fraction: float
+        Can be a float (a single value) or a 2-type of a min,max deformation fraction.
+        Default is (-0.05, 0.1) leading to volumes of 0.95-1.10. A single value gives plus/minus
+        by default.
     phonon : bool
         Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
     phonon_supercell_matrix : list
@@ -152,7 +155,10 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
     if 'tag' not in metadata.keys():
         metadata['tag'] = tag
 
-    deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
+    if isinstance(deformation_fraction, (list, tuple)):
+        deformations = np.linspace(1+deformation_fraction[0], 1+deformation_fraction[1], num_deformations)
+    else:
+        deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
 
     # follow a scheme of
     # 1. ISIF 2
