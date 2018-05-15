@@ -87,3 +87,48 @@ class CalculatePhononThermalProperties(FiretaskBase):
 
         return FWAction(stored_data=thermal_props_dict, mod_spec=[{'_push': {'f_vib': thermal_props_dict}}])
 
+
+@explicit_serialize
+class GeneratePhononDetour():
+    """
+    A Firetask to create a phonon workflow from a single Firetask.
+
+    Assumes the structure to start with is a POSCAR in the current directory.
+
+    Required params
+    ---------------
+    supercell_matrix : numpy.ndarray
+        3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]].
+
+    Optional params
+    ---------------
+    smearing_type : str
+        It must be one of 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
+        is 'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
+        but it should not be used for semiconductors or insulators. Using 'tetrahedron'
+        or 'gaussian' gives a SIGMA of 0.05. Any further customizations should use a custom workflow.
+    displacement_distance : float
+        Distance of each displacement. Defaults to 0.01, consistent with phonopy.
+    vasp_cmd : str
+        Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
+
+    """
+
+    required_params = ["supercell_matrix"]
+    optional_params = ["smearing_type", "displacement_distance", "vasp_cmd"]
+
+
+    def run_task(self, fw_spec):
+        from prlworkflows.prl_workflows import get_wf_phonon_single_volume
+
+        smearing_type = self.get('smearing_type', 'methfessel-paxton')
+        displacement_distance = self.get('displacement_distance', 0.01)
+        vasp_cmd = self.get('vasp_cmd', None)
+
+        phonon_wf = get_wf_phonon_single_volume(Structure.from_file('POSCAR'),
+                                                self['supercell_matrix'],
+                                                smearing_type=smearing_type,
+                                                displacement_distance=displacement_distance,
+                                                vasp_cmd=vasp_cmd,)
+
+        return FWAction(detours=phonon_wf)
