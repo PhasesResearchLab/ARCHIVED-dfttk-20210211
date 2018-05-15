@@ -42,6 +42,8 @@ class Quasiharmonic(object):
     dos_objects : list
         List of pymatgen Dos objects corresponding to the volumes. If passed, will enable the
         electronic contribution.
+    f_vib : numpy.ndarray
+        Array of F_vib(V,T) of shape (len(volumes), len(temperatures)). If absent, will use the Debye model.
     t_min : float
         Minimum temperature
     t_step : float
@@ -56,17 +58,15 @@ class Quasiharmonic(object):
         Pressure to apply to the E-V curve/Gibbs energies in GPa. Defaults to 0.
     poisson : float
         Poisson ratio, defaults to 0.25
-    vibrational_mode : str
-        Which vibrational mode to use. 'debye' is currently available. Defaults to 'debye'.
     bp2gru : float
         Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
         value and 1 is the low temperature value. Defaults to 1.
     vib_kwargs : dict
         Additional keyword arguments to pass to the vibrational calculator
     """
-    def __init__(self, energies, volumes, structure, dos_objects=None, t_min=5, t_step=5,
+    def __init__(self, energies, volumes, structure, dos_objects=None, F_vib=None, t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", pressure=0.0, poisson=0.25,
-                 vibrational_mode='debye', bp2gru=1., vib_kwargs=None):
+                 bp2gru=1., vib_kwargs=None):
         self.energies = np.array(energies)
         self.volumes = np.array(volumes)
         self.natoms = len(structure)
@@ -77,13 +77,14 @@ class Quasiharmonic(object):
         self.eos = EOS(eos)
 
         # get the vibrational properties as a function of V and T
-        if vibrational_mode == 'debye':
+        if F_vib is None:  # use the Debye model
             vib_kwargs = vib_kwargs or {}
             debye_model = DebyeModel(energies, volumes, structure, t_min=t_min, t_step=t_step,
                                      t_max=t_max, eos=eos, poisson=poisson, bp2gru=bp2gru, **vib_kwargs)
             self.F_vib = debye_model.F_vib  # vibrational free energy as a function of volume and temperature
         else:
-            raise ValueError('Unknown vibrational mode "{}" passed. "debye" is available'.format(vibrational_mode))
+            self.F_vib = F_vib
+
 
         # get the electronic properties as a function of V and T
         if dos_objects:

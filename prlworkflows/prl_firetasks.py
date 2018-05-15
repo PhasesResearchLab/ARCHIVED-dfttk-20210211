@@ -5,6 +5,7 @@ from pymatgen import Structure
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class
 from prlworkflows.analysis.phonon import get_all_force_sets, get_f_vib_phonopy
+from prlworkflows.analysis.quasiharmonic import Quasiharmonic
 import numpy as np
 
 
@@ -143,5 +144,16 @@ class QHAAnalysis(FiretaskBase):
     required_params = ["phonon"]
 
     def run_task(self, fw_spec):
+        # get the energies, volumes and DOS objects by searching for the tag
+        # sort everything in volume order
         if self['phonon']:
-            qha = Quasiharmonic
+            # get the vibrational properties from the FW spec
+            vol_vol = [sp['volume'] for sp in fw_spec['f_vib']]  # these are just used for sorting and will be thrown away
+            vol_f_vib = [sp['F_vib'] for sp in fw_spec['f_vib']]
+            # sort them order of the unit cell volumes
+            vol_f_vib = [f for _, f in sorted(zip(vol_vol, vol_f_vib), key=lambda pair: pair[0])]
+            f_vib = np.vstack(vol_f_vib)
+        else:
+            f_vib = None
+        #qha = Quasiharmonic(energies, volumes, )
+        # TODO: Add T min, max, step to phonon firetask
