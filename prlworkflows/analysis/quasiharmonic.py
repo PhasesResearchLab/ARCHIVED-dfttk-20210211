@@ -57,7 +57,7 @@ class Quasiharmonic(object):
     pressure : float
         Pressure to apply to the E-V curve/Gibbs energies in GPa. Defaults to 0.
     poisson : float
-        Poisson ratio, defaults to 0.25
+        Poisson ratio, defaults to 0.25. Only used in QHA
     bp2gru : float
         Fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
         value and 1 is the low temperature value. Defaults to 1.

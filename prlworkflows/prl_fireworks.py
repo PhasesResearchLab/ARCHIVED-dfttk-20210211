@@ -55,7 +55,7 @@ class PRLOptimizeFW(Firework):
 
 class PRLStaticFW(Firework):
     def __init__(self, structure, name="static", vasp_input_set=None, dos=True, vasp_cmd="vasp", metadata=None,
-                 prev_calc_loc=True, db_file=None, parents=None, phonon_detour=False, phonon_args=None, **kwargs):
+                 prev_calc_loc=True, db_file=None, parents=None, phonon_detour=False, phonon_kwargs=None, **kwargs):
         """
         Standard static calculation Firework - either from a previous location or from a structure.
 
@@ -81,7 +81,7 @@ class PRLStaticFW(Firework):
         parents (Firework): Parents of this particular Firework. FW or list of FWS.
         prepare_phonon : bool
             If True, will add a task to create a phonon workflow as a detour.
-        phonon_args : dict
+        phonon_kwargs : dict
             Dictionary of arguments to pass to GeneratePhononDetour
         \*\*kwargs: Other kwargs that are passed to Firework.__init__.
         """
@@ -105,7 +105,7 @@ class PRLStaticFW(Firework):
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
         if phonon_detour:
-            t.append(GeneratePhononDetour(**phonon_args))
+            t.append(GeneratePhononDetour(**phonon_kwargs))
         super(PRLStaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 

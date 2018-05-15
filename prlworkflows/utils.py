@@ -145,3 +145,8 @@ def recursive_glob(start, pattern):
         for filename in fnmatch.filter(filenames, pattern):
             matches.append(os.path.join(root, filename))
     return sorted(matches)
+
+
+def sort_x_by_y(x, y):
+    """Sort a list of x in the order of sorting y"""
+    return sorted([xx for _, xx in sorted(zip(y, x), key=lambda pair: pair[0])])

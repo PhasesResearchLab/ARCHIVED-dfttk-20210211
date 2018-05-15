@@ -3,9 +3,11 @@ Custom Firetasks for prlworkflows
 """
 from pymatgen import Structure
 from fireworks import explicit_serialize, FiretaskBase, FWAction
-from atomate.utils.utils import load_class
+from atomate.utils.utils import load_class, env_chk
+from atomate.vasp.database import VaspCalcDb
 from prlworkflows.analysis.phonon import get_all_force_sets, get_f_vib_phonopy
 from prlworkflows.analysis.quasiharmonic import Quasiharmonic
+from prlworkflows.utils import sort_x_by_y
 import numpy as np
 
 
@@ -116,7 +118,7 @@ class GeneratePhononDetour(FiretaskBase):
     """
 
     required_params = ["supercell_matrix"]
-    optional_params = ["smearing_type", "displacement_distance", "vasp_cmd"]
+    optional_params = ["smearing_type", "displacement_distance", "vasp_cmd", "t_step", "t_min", "t_max"]
 
 
     def run_task(self, fw_spec):
@@ -139,21 +141,92 @@ class GeneratePhononDetour(FiretaskBase):
 class QHAAnalysis(FiretaskBase):
     """
     Do the quasiharmonic calculation from either phonon or Debye.
+
+    Required params
+    ---------------
+    tag : str
+        Tag to search the database for static calculations (energies, volumes, eDOS) from this job.
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+    phonon : bool
+        True if f_vib comes from phonon calculations (in the spec). If False, it is calculated by the Debye model.
+    t_min : float
+        Minimum temperature
+    t_step : float
+        Temperature step size
+    t_max : float
+        Maximum temperature (inclusive)
+
+    Optional params
+    ---------------
+    poisson : float
+        Poisson ratio, defaults to 0.25. Only used in QHA
+
+    Notes
+    -----
+    Heterogeneity in the sources of E_0/F_el and F_vib is solved by sorting them according to increasing volume.
     """
 
-    required_params = ["phonon"]
+    required_params = ["phonon", "db_file", "t_min", "t_max", "t_step", "tag"]
+
+    optional_params = ["poisson"]
 
     def run_task(self, fw_spec):
+        # handle arguments and database setup
+        db_file = env_chk(self.get("db_file"), fw_spec)
+        tag = self["tag"]
+
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+
         # get the energies, volumes and DOS objects by searching for the tag
+        static_calculations = vasp_db.collection.find({"metadata.tag": tag})
+
+        energies = []
+        volumes = []
+        dos_objs = []  # pymatgen.electronic_structure.dos.Dos objects
+        structure = None  # single Structure for QHA calculation
+        metadata = None  # single metadata for the tag to add to this job
+        for calc in static_calculations:
+            energies.append(calc['output']['energy'])
+            volumes.append(calc['output']['structure']['lattice']['volume'])
+            dos_objs.append(vasp_db.get_dos(calc['task_id']))
+            # get a Structure. We only need one for the masses and number of atoms in the unit cell.
+            if structure is None:
+                structure = Structure.from_dict(calc['output']['structure'])
+
         # sort everything in volume order
+        # note that we are doing volume last because it is the thing we are sorting by!
+
+        energies = sort_x_by_y(energies, volumes)
+        dos_objs = sort_x_by_y(dos_objs, volumes)
+        volumes = sorted(volumes)
+
         if self['phonon']:
             # get the vibrational properties from the FW spec
             vol_vol = [sp['volume'] for sp in fw_spec['f_vib']]  # these are just used for sorting and will be thrown away
             vol_f_vib = [sp['F_vib'] for sp in fw_spec['f_vib']]
             # sort them order of the unit cell volumes
-            vol_f_vib = [f for _, f in sorted(zip(vol_vol, vol_f_vib), key=lambda pair: pair[0])]
+            vol_f_vib = sort_x_by_y(vol_f_vib, vol_vol)
             f_vib = np.vstack(vol_f_vib)
         else:
             f_vib = None
-        #qha = Quasiharmonic(energies, volumes, )
-        # TODO: Add T min, max, step to phonon firetask
+
+        qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
+                            t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
+                            poisson=self.get('poisson'))
+
+        qha_summary = qha.get_summary_dict()
+        qha_summary['phonon'] = self['phonon']
+        structure = Structure()
+        qha_summary['structure'] = structure.as_dict()
+        qha_summary['formula_pretty'] = structure.composition.reduced_formula
+        qha_summary['composition'] = structure.composition.reduced_composition
+
+        # write to JSON for debugging purposes
+        import json
+        with open('qha_summary.json', 'w') as fp:
+            json.dump(qha_summary, fp)
+
+        vasp_db.db['qha'].insert_one(qha_summary)
+
+

@@ -110,7 +110,7 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     return Workflow(fws, name=wfname)
 
 
-def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
+def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phonon=False, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
     """
     E - V
     curve
@@ -123,6 +123,8 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
     deformation_fraction: float
     phonon : bool
         Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
+    phonon_kwargs : dict
+        Keyword arguments to send to the GeneratePhononDisplacements Firetask.
     vasp_cmd : str
         Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
     db_file : str
@@ -134,10 +136,18 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
     """
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
+    phonon_kwargs = phonon_kwargs or {}
+    # update these to be consistent with the QHA.
+    phonon_kwargs.update({
+        't_min': t_min,
+        't_max': t_max,
+        't_step': t_step,
+    })
 
     metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
     if 'tag' not in metadata.keys():
-        metadata['tag'] = '{}'.format(str(uuid4()))
+        metadata['tag'] = tag
 
     deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
 
@@ -159,12 +169,12 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=0.05, phono
         fws.append(isif_4_fw)
 
         vis = PRLStaticSet(struct)
-        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw, phonon_detour=phonon)
+        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw, phonon_detour=phonon, phonon_kwargs=phonon_kwargs)
         fws.append(static)
         static_calcs.append(static)
 
-    qha_fw = Firework(QHAAnalysis(phonon=phonon), parents=static_calcs)
-
+    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag), parents=static_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
+    fws.append(qha_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
 
