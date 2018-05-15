@@ -161,6 +161,9 @@ class QHAAnalysis(FiretaskBase):
     ---------------
     poisson : float
         Poisson ratio, defaults to 0.25. Only used in Debye
+    bp2gru : float
+        Debye model fitting parameter for dBdP in the Gruneisen parameter. 2/3 is the high temperature
+        value and 1 is the low temperature value. Defaults to 1.
 
     Notes
     -----
@@ -169,7 +172,7 @@ class QHAAnalysis(FiretaskBase):
 
     required_params = ["phonon", "db_file", "t_min", "t_max", "t_step", "tag"]
 
-    optional_params = ["poisson"]
+    optional_params = ["poisson", "bp2gru"]
 
     def run_task(self, fw_spec):
         # handle arguments and database setup
@@ -213,14 +216,13 @@ class QHAAnalysis(FiretaskBase):
 
         qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
                             t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
-                            poisson=self.get('poisson', 0.25))
+                            poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
 
         qha_summary = qha.get_summary_dict()
+        qha_summary['temperatures'] = qha_summary['temperatures'].tolist()
         qha_summary['phonon'] = self['phonon']
-        structure = Structure()
         qha_summary['structure'] = structure.as_dict()
         qha_summary['formula_pretty'] = structure.composition.reduced_formula
-        qha_summary['composition'] = structure.composition.reduced_composition
 
         # write to JSON for debugging purposes
         import json
