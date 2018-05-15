@@ -149,4 +149,4 @@ def recursive_glob(start, pattern):
 
 def sort_x_by_y(x, y):
     """Sort a list of x in the order of sorting y"""
-    return sorted([xx for _, xx in sorted(zip(y, x), key=lambda pair: pair[0])])
+    return [xx for _, xx in sorted(zip(y, x), key=lambda pair: pair[0])]
