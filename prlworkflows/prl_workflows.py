@@ -67,7 +67,7 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.05, va
     return Workflow(fws, name=wfname, metadata=metadata)
 
 
-def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='methfessel-paxton', displacement_distance=0.01, vasp_cmd=None, name='Phonon', t_min=5, t_max=2000, t_step=5):
+def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='auto', displacement_distance=0.01, vasp_cmd=None, name='Phonon', t_min=5, t_max=2000, t_step=5):
     """
     A workflow to calculate the phonon vibration properties for a single volume.
 
@@ -78,8 +78,9 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     supercell_matrix : numpy.ndarray
         3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]].
     smearing_type : str
-        It must be one of 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
-        is 'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
+        It must be one of 'auto', 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
+        is 'auto', which determines whether to use 'methfessel-paxton' or 'tetrahedron' based on the bandgap.
+        'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
         but it should not be used for semiconductors or insulators. Using 'tetrahedron'
         or 'gaussian' gives a SIGMA of 0.05. Any further customizations should use a custom workflow.
     displacement_distance : float

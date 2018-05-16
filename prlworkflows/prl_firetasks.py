@@ -2,6 +2,7 @@
 Custom Firetasks for prlworkflows
 """
 from pymatgen import Structure
+from pymatgen.io.vasp.outputs import Vasprun
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
@@ -100,6 +101,7 @@ class GeneratePhononDetour(FiretaskBase):
     A Firetask to create a phonon workflow from a single Firetask.
 
     Assumes the structure to start with is a POSCAR in the current directory.
+    Assumes a vasprun is present if the ``smearing_type`` is set to 'auto'.
 
     Required params
     ---------------
@@ -109,8 +111,9 @@ class GeneratePhononDetour(FiretaskBase):
     Optional params
     ---------------
     smearing_type : str
-        It must be one of 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
-        is 'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
+        It must be one of 'auto', 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
+        is 'auto', which determines whether to use 'methfessel-paxton' or 'tetrahedron' based on the bandgap.
+        'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
         but it should not be used for semiconductors or insulators. Using 'tetrahedron'
         or 'gaussian' gives a SIGMA of 0.05. Any further customizations should use a custom workflow.
     displacement_distance : float
@@ -127,7 +130,15 @@ class GeneratePhononDetour(FiretaskBase):
     def run_task(self, fw_spec):
         from prlworkflows.prl_workflows import get_wf_phonon_single_volume
 
-        smearing_type = self.get('smearing_type', 'methfessel-paxton')
+        smearing_type = self.get('smearing_type', 'auto')
+        if smearing_type == 'auto':
+            # determine the smearing based on the bandgap
+            v = Vasprun('vasprun.xml')
+            if v.complete_dos.get_gap() > 0:
+                smearing_type = 'tetrahedron'
+            else:
+                smearing_type = 'methfessel-paxton'
+
         displacement_distance = self.get('displacement_distance', 0.01)
         vasp_cmd = self.get('vasp_cmd', None)
         t_min = self.get('t_min', 5)
