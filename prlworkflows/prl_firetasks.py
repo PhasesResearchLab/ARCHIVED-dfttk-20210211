@@ -127,12 +127,16 @@ class GeneratePhononDetour(FiretaskBase):
         smearing_type = self.get('smearing_type', 'methfessel-paxton')
         displacement_distance = self.get('displacement_distance', 0.01)
         vasp_cmd = self.get('vasp_cmd', None)
+        t_min = self.get('t_min', 5)
+        t_max = self.get('t_max', 2000)
+        t_step = self.get('t_step', 5)
 
         phonon_wf = get_wf_phonon_single_volume(Structure.from_file('POSCAR'),
                                                 self['supercell_matrix'],
                                                 smearing_type=smearing_type,
                                                 displacement_distance=displacement_distance,
-                                                vasp_cmd=vasp_cmd,)
+                                                vasp_cmd=vasp_cmd,
+                                                t_min=t_min, t_max=t_max, t_step=t_step,)
 
         return FWAction(detours=phonon_wf)
 
