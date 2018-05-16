@@ -15,6 +15,7 @@ class PRLRelaxSet(DictSet):
     })
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-4,
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,
@@ -40,6 +41,7 @@ class PRLStaticSet(DictSet):
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-6,
         'ENCUT': 520, # MP compatibility
         'ISMEAR': -5,
         "NSW": 0,
