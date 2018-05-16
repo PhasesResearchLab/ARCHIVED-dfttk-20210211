@@ -67,7 +67,7 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.05, va
     return Workflow(fws, name=wfname, metadata=metadata)
 
 
-def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='methfessel-paxton', displacement_distance=0.01, vasp_cmd=None, name='Phonon'):
+def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='methfessel-paxton', displacement_distance=0.01, vasp_cmd=None, name='Phonon', t_min=5, t_max=2000, t_step=5):
     """
     A workflow to calculate the phonon vibration properties for a single volume.
 

@@ -73,13 +73,16 @@ class CalculatePhononThermalProperties(FiretaskBase):
 
     This requires that a list of ``displacement_dicts`` be present in the current Firework's spec.
     """
+
+    required_params = ['t_min', 't_max', 't_step']
+
     def run_task(self, fw_spec):
         disp_dicts = fw_spec['displacement_dicts']
         # FireWorks unwraps forces arrays from NumPy to lists. We have to convert back otherwise we get errors in phonopy.
         force_sets = [np.array(ds.pop('forces')) for ds in disp_dicts]
         unitcell = fw_spec['unitcell']
         supercell_matrix = fw_spec['supercell_matrix']
-        temperatures, f_vib, s_vib, cv_vib = get_f_vib_phonopy(unitcell, supercell_matrix, disp_dicts, force_sets=force_sets)
+        temperatures, f_vib, s_vib, cv_vib = get_f_vib_phonopy(unitcell, supercell_matrix, disp_dicts, force_sets=force_sets, t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'])
         thermal_props_dict = {
             'volume': unitcell.volume,
             'F_vib': f_vib,
