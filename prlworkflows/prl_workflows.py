@@ -103,7 +103,7 @@ def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='meth
     for sc, disp_dict in zip(supercells, displacement_dicts):
         fws.append(PRLPhononDisplacementFW(sc, disp_dict, name="phonon_displacement", smearing_type=smearing_type, vasp_cmd=vasp_cmd))
 
-    thermal_props = Firework([CalculatePhononThermalProperties()], parents=fws, name='CalculateThermalProperties',
+    thermal_props = Firework([CalculatePhononThermalProperties(t_min=t_min, t_max=t_max, t_step=t_step)], parents=fws, name='CalculateThermalProperties',
                                spec={'unitcell': structure, 'supercell_matrix': supercell_matrix},)
     fws = fws + [thermal_props]  # have to add here to create a new object, otherwise the thermal_props parents includes self.
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
