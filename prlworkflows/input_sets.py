@@ -3,6 +3,22 @@ import six
 from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.sets import DictSet, get_vasprun_outcar, get_structure_from_prev_run, _load_yaml_config
 
+
+# We set potentials back to the VASP recommended, since we primarily don't work on oxides.
+POTCAR_UPDATES = {
+        'Be': 'Be',  # 2 electrons, default was Be_sv (4 electrons)
+        'Cu': 'Cu',  # 11 electrons, default was Cu_pv (17 electrons)
+        'Fe': 'Fe',  # 8 electrons, default was Fe_pv (14 electrons)
+        'Mg': 'Mg',  # 2 electrons, default was Mg_pv (8 electrons)
+        'Ni': 'Ni',  # 10 electrons, default was Ni_pv (16 electrons)
+        'Mo': 'Mo_sv',  # 14 electrons, default was Mo_pv (12 electrons)
+        'Nb': 'Nb_sv',  # 13 electrons, default was Nb_pv (11 electrons)
+        'Os': 'Os',  # 8 electrons, default was Os_pv (14 electrons)
+        'Re': 'Re',  # 7 electrons, default was Re_pv (13 electrons)
+        'Ti': 'Ti_sv',  # 12 electrons, default Ti_pv (10 electrons)
+        'V': 'V_sv',  # 13 electrons, default V_pv (11 electrons)
+    }
+
 class PRLRelaxSet(DictSet):
     """Set tuned for metal relaxations (correct smearing).
     Add `isif` parameter to the set to easily allow for overriding ISIF setting.
@@ -21,9 +37,12 @@ class PRLRelaxSet(DictSet):
         'LREAL': False,
         'PREC': 'HIGH',
         'ALGO': 'NORMAL',
-        'ENCUT': 520,
 
     })
+    # we never are comparing relaxations, only using them for optimizing structures.
+    CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
+    # now we reset the potentials
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
@@ -57,6 +76,8 @@ class PRLStaticSet(DictSet):
         "ICHARG": 0,
         "NEDOS": 5001,
     })
+    # now we reset the potentials
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, prev_incar=None, prev_kpoints=None,
                  lepsilon=False, lcalcpol=False, grid_density=8000, **kwargs):
