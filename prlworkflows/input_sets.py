@@ -25,7 +25,8 @@ class PRLRelaxSet(DictSet):
     Kpoints have a 6000 reciprocal density default.
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
-    CONFIG['INCAR'].pop('ENCUT')
+    # we never are comparing relaxations, only using them for optimizing structures.
+    CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
     CONFIG['KPOINTS'].update({
         'grid_density': 6000,
     })
@@ -39,8 +40,6 @@ class PRLRelaxSet(DictSet):
         'ALGO': 'NORMAL',
 
     })
-    # we never are comparing relaxations, only using them for optimizing structures.
-    CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
