@@ -1,5 +1,5 @@
 from pymatgen import Structure
-
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 class PRLStructure(Structure):
     """A pymatgen Structure object, with some customizations for ESPEI.
@@ -72,6 +72,68 @@ class PRLStructure(Structure):
         struct.sublattice_configuration = d.get('sublattice_configuration')
         struct.sublattice_occupancies = d.get('sublattice_occupancies')
         struct.sublattice_site_ratios = d.get('sublattice_site_ratios')
+        return struct
+
+
+    @classmethod
+    def from_structure(cls, structure, equivalent_wyckoff_sites=None):
+        """
+
+        Parameters
+        ----------
+        structure : pymatgen.Structure
+        equivalent_wyckoff_sites : list of lists
+            List of Wyckoff sites that are treated as the same sublattice, e.g. [['b', 'f']] will
+            give combine Wyckoff site 'b' and Wyckoff site 'f' into one sublattice. Putting the same
+            Wyckoff site in multiple equivalent groups will produce undefined results.
+
+        Returns
+        -------
+        PRLStructure
+        """
+        struct = PRLStructure.from_dict(structure.as_dict())
+        # normalize the input structure to a pure element to get Wyckoff sites
+        structure = Structure.from_dict(structure.as_dict())
+        structure.replace_species({sp.name: "H" for sp in structure.species})
+        sga = SpacegroupAnalyzer(structure)
+        wyckoff_sites = sga.get_symmetry_dataset()['wyckoffs']
+        true_sublattices = sorted(set(wyckoff_sites))
+        if equivalent_wyckoff_sites is not None:
+            # transform the true sublattices by combining equivalent sites
+            combined_sublattices = [''.join(sorted(sites)) for sites in equivalent_wyckoff_sites]
+            def match_subl(candidate):
+                for subl in combined_sublattices:
+                    # if the candidate site is in the combined sublattice, return the combined sublattice
+                    if candidate in subl:
+                        return subl
+                # no match found
+                return candidate
+
+            new_subl_model = sorted(set([match_subl(subl) for subl in true_sublattices]))
+        else:
+            new_subl_model = true_sublattices
+
+        #ratios = [sum([1 if site in subl else 0 for site in wyckoff_sites]) for subl in new_subl_model]
+        config = []
+        occ = []
+        ratios = []
+        for subl in new_subl_model:
+            species_frequency_dict = {}
+            for site, wyckoff_site in zip(struct.sites, wyckoff_sites):
+                if wyckoff_site in subl:
+                    species = site.specie.name
+                    species_frequency_dict[species] = species_frequency_dict.get(species, 0) + 1
+            total_subl_occupation = sum(species_frequency_dict.values())
+            subl_species = sorted(set(species_frequency_dict.keys()))
+            subl_occpancy = [species_frequency_dict[sp]/total_subl_occupation for sp in subl_species]
+            config.append(subl_species)
+            occ.append(subl_occpancy)
+            ratios.append(total_subl_occupation)
+        #config = [sorted(set([site.specie.name for site, wyckoff in  if wyckoff in subl])) for subl in new_subl_model]
+
+        struct.sublattice_configuration = config
+        struct.sublattice_occupancies = occ
+        struct.sublattice_site_ratios = ratios
         return struct
 
     @staticmethod
