@@ -11,7 +11,8 @@ import pytest
 from prlworkflows.structure_builders.sqs_db import lat_in_to_sqs
 from pymatgen import Lattice
 
-from prlworkflows.structure_builders.sqs import AbstractSQS, enumerate_sqs, SQS
+from prlworkflows.structure_builders.sqs import AbstractSQS, enumerate_sqs
+from prlworkflows import PRLStructure
 
 ATAT_FCC_A1_LEV3_LATTICE_IN = """1.000000 0.000000 0.000000
 0.000000 1.000000 0.000000
@@ -375,7 +376,7 @@ def test_sqs_is_properly_enumerated_for_a_multiple_solution_sublattice_model():
     structure = lat_in_to_sqs(ATAT_ROCKSALT_B1_LATTICE_IN)
     structures = enumerate_sqs(structure, [['Al', 'Ni'], ['Fe', 'Cr']])
     assert len(structures) == 9
-    assert all([isinstance(s, SQS) for s in structures])
+    assert all([isinstance(s, PRLStructure) for s in structures])
 
 def test_enumerating_sqs_without_symmetry():
     structure = lat_in_to_sqs(ATAT_GAMMA_L12_LATTICE_IN)
@@ -407,8 +408,8 @@ def test_equality_of_sqs_objects():
     occupancy = [[0.5, 0.5], [1]]
     site_ratios = [3, 1]
     # Use same sublattice for different underlying structures. Should be equal
-    s1 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
-    s2 = SQS(Lattice.cubic(1), ['Fe'], [[0,0,0]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
+    s1 = PRLStructure(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0, 0, 0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
+    s2 = PRLStructure(Lattice.cubic(1), ['Fe'], [[0, 0, 0]], sublattice_configuration=config, sublattice_occupancies=occupancy, sublattice_site_ratios=site_ratios)
     assert s1 == s2
 
     # Use same underlying crystal structures, but different sublattice configurations. Should be not equal
@@ -438,7 +439,7 @@ def test_equality_of_sqs_objects_with_different_indexing():
     occupancy_2 = [[1], [0.25, 0.75]]
     site_ratios_2 = [1, 3]
 
-    s1 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_1, sublattice_occupancies=occupancy_1, sublattice_site_ratios=site_ratios_1)
-    s2 = SQS(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0,0,0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_2, sublattice_occupancies=occupancy_2, sublattice_site_ratios=site_ratios_2)
+    s1 = PRLStructure(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0, 0, 0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_1, sublattice_occupancies=occupancy_1, sublattice_site_ratios=site_ratios_1)
+    s2 = PRLStructure(Lattice.hexagonal(1, 2), ['Mg', 'Mg'], [[0, 0, 0], [0.3333, 0.66666, 0.5]], sublattice_configuration=config_2, sublattice_occupancies=occupancy_2, sublattice_site_ratios=site_ratios_2)
 
     assert s1 == s2
