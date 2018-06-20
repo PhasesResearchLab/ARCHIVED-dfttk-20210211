@@ -8,11 +8,10 @@ sublattice models and symmetry from user-input.
 
 import numpy as np
 import pytest
+from prlworkflows.structure_builders.sqs_db import lat_in_to_sqs
 from pymatgen import Lattice
 
-from prlworkflows.sqs import AbstractSQS, enumerate_sqs, SQS
-from prlworkflows.sqs_db import lat_in_to_sqs
-
+from prlworkflows.structure_builders.sqs import AbstractSQS, enumerate_sqs, SQS
 
 ATAT_FCC_A1_LEV3_LATTICE_IN = """1.000000 0.000000 0.000000
 0.000000 1.000000 0.000000

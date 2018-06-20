@@ -24,13 +24,12 @@ the resulting Structure objects can be made concrete using functions in `prlwork
 
 import json
 
-import numpy as np
+from pymatgen import Lattice
+from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
 from tinydb import TinyDB
 from tinydb.storages import MemoryStorage
-from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
-from pymatgen import Lattice
 
-from prlworkflows.sqs import AbstractSQS
+from prlworkflows.structure_builders.sqs import AbstractSQS
 from prlworkflows.utils import recursive_glob
 
 def _parse_atat_lattice(lattice_in):
