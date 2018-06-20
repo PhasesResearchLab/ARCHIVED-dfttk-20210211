@@ -6,7 +6,7 @@ from pymatgen.io.vasp.outputs import Vasprun
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
-from prlworkflows.analysis.phonon import get_all_force_sets, get_f_vib_phonopy
+from prlworkflows.analysis.phonon import get_f_vib_phonopy
 from prlworkflows.analysis.quasiharmonic import Quasiharmonic
 from prlworkflows.utils import sort_x_by_y
 import numpy as np
@@ -49,110 +49,65 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
 
 
 @explicit_serialize
-class UpdateDisplacementDictForces(FiretaskBase):
+class SupercellTransformation(FiretaskBase):
     """
-    Phonon-related Firetask to get the forces from the vasprun.xml file in the current directory
-    and pass this structure's displacement dict on to the next Firework.
+    Transform a unitcell POSCAR to a supercell. Make a copy of the unitcell as a POSCAR-unitcell.
 
-    This requires that a displacement dictionary is present in the current Firework's spec.
+    This requires that a POSCAR is present in the current directory.
     """
+
+    required_params = ['supercell_matrix']
     def run_task(self, fw_spec):
-        # get the forces, assuming a vasprun.xml is present in the current directory
-        forces = get_all_force_sets(['vasprun.xml'])[0]
+        unitcell = Structure.from_file('POSCAR')
 
-        disp_dict = fw_spec['displacement_dict']
-        disp_dict['forces'] = forces
+        # create the unitcell file backup
+        unitcell.to(filename='POSCAR-unitcell')
 
-        return FWAction(mod_spec=[{'_push': {'displacement_dicts': disp_dict}}])
+        # make the supercell and write to file
+        unitcell.make_supercell(self['supercell_matrix'])
+        unitcell.to(filename='POSCAR')
 
 
 @explicit_serialize
 class CalculatePhononThermalProperties(FiretaskBase):
     """
-    Phonon-related Firetask to take displacement dictionaries, unitcell, and supercell matrix
-    from the fw_spec and calculate F_vib.
+    Phonon-related Firetask to calculate force constants and F_vib.
 
-    This requires that a list of ``displacement_dicts`` be present in the current Firework's spec.
+    This requires that a vasprun.xml from a force constants run and
+    a POSCAR-unitcell be present in the current directory.
     """
 
-    required_params = ['t_min', 't_max', 't_step']
+    required_params = ['supercell_matrix', 't_min', 't_max', 't_step', 'db_file', 'tag']
+    optional_params = ['metadata']
 
     def run_task(self, fw_spec):
-        disp_dicts = fw_spec['displacement_dicts']
-        # FireWorks unwraps forces arrays from NumPy to lists. We have to convert back otherwise we get errors in phonopy.
-        force_sets = [np.array(ds.pop('forces')) for ds in disp_dicts]
-        unitcell = fw_spec['unitcell']
-        supercell_matrix = fw_spec['supercell_matrix']
-        temperatures, f_vib, s_vib, cv_vib = get_f_vib_phonopy(unitcell, supercell_matrix, disp_dicts, force_sets=force_sets, t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'])
+
+        tag = self["tag"]
+        metadata = self.get('metadata', {})
+        metadata['tag'] = tag
+
+        unitcell = Structure.from_file('POSCAR-unitcell')
+        supercell_matrix = self['supercell_matrix']
+        temperatures, f_vib, s_vib, cv_vib, force_constants = get_f_vib_phonopy(unitcell, supercell_matrix, vasprun_path='vasprun.xml', t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'])
+        if isinstance(supercell_matrix, np.ndarray):
+            supercell_matrix = supercell_matrix.tolist()  # make serializable
         thermal_props_dict = {
             'volume': unitcell.volume,
-            'F_vib': f_vib,
-            'CV_vib': cv_vib,
-            'S_vib': s_vib,
-            'temperatures': temperatures,
+            'F_vib': f_vib.tolist(),
+            'CV_vib': cv_vib.tolist(),
+            'S_vib': s_vib.tolist(),
+            'temperatures': temperatures.tolist(),
+            'force_constants': force_constants.tolist(),
+            'metadata': metadata,
+            'unitcell': unitcell.as_dict(),
+            'supercell_matrix': supercell_matrix,
         }
 
-        return FWAction(stored_data=thermal_props_dict, mod_spec=[{'_push': {'f_vib': thermal_props_dict}}])
+        # insert into database
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        vasp_db.db['phonon'].insert_one(thermal_props_dict)
 
-
-@explicit_serialize
-class GeneratePhononDetour(FiretaskBase):
-    """
-    A Firetask to create a phonon workflow from a single Firetask.
-
-    Assumes the structure to start with is a POSCAR in the current directory.
-    Assumes a vasprun is present if the ``smearing_type`` is set to 'auto'.
-
-    Required params
-    ---------------
-    supercell_matrix : numpy.ndarray
-        3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]].
-
-    Optional params
-    ---------------
-    smearing_type : str
-        It must be one of 'auto', 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
-        is 'auto', which determines whether to use 'methfessel-paxton' or 'tetrahedron' based on the bandgap.
-        'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
-        but it should not be used for semiconductors or insulators. Using 'tetrahedron'
-        or 'gaussian' gives a SIGMA of 0.05. Any further customizations should use a custom workflow.
-    displacement_distance : float
-        Distance of each displacement. Defaults to 0.01, consistent with phonopy.
-    vasp_cmd : str
-        Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
-
-    """
-
-    required_params = ["supercell_matrix"]
-    optional_params = ["smearing_type", "displacement_distance", "vasp_cmd", "t_step", "t_min", "t_max"]
-
-
-    def run_task(self, fw_spec):
-        from prlworkflows.prl_workflows import get_wf_phonon_single_volume
-
-        smearing_type = self.get('smearing_type', 'auto')
-        if smearing_type == 'auto':
-            # determine the smearing based on the bandgap
-            v = Vasprun('vasprun.xml')
-            if v.complete_dos.get_gap() > 0:
-                smearing_type = 'tetrahedron'
-            else:
-                smearing_type = 'methfessel-paxton'
-
-        displacement_distance = self.get('displacement_distance', 0.01)
-        vasp_cmd = self.get('vasp_cmd', None)
-        t_min = self.get('t_min', 5)
-        t_max = self.get('t_max', 2000)
-        t_step = self.get('t_step', 5)
-
-        phonon_wf = get_wf_phonon_single_volume(Structure.from_file('POSCAR'),
-                                                self['supercell_matrix'],
-                                                smearing_type=smearing_type,
-                                                displacement_distance=displacement_distance,
-                                                vasp_cmd=vasp_cmd,
-                                                t_min=t_min, t_max=t_max, t_step=t_step,)
-
-        return FWAction(detours=phonon_wf)
 
 
 @explicit_serialize
@@ -190,7 +145,7 @@ class QHAAnalysis(FiretaskBase):
 
     required_params = ["phonon", "db_file", "t_min", "t_max", "t_step", "tag"]
 
-    optional_params = ["poisson", "bp2gru"]
+    optional_params = ["poisson", "bp2gru", "metadata"]
 
     def run_task(self, fw_spec):
         # handle arguments and database setup
@@ -206,7 +161,6 @@ class QHAAnalysis(FiretaskBase):
         volumes = []
         dos_objs = []  # pymatgen.electronic_structure.dos.Dos objects
         structure = None  # single Structure for QHA calculation
-        metadata = None  # single metadata for the tag to add to this job
         for calc in static_calculations:
             energies.append(calc['output']['energy'])
             volumes.append(calc['output']['structure']['lattice']['volume'])
@@ -224,8 +178,9 @@ class QHAAnalysis(FiretaskBase):
 
         if self['phonon']:
             # get the vibrational properties from the FW spec
-            vol_vol = [sp['volume'] for sp in fw_spec['f_vib']]  # these are just used for sorting and will be thrown away
-            vol_f_vib = [sp['F_vib'] for sp in fw_spec['f_vib']]
+            phonon_calculations = list(vasp_db.db['phonon'].find({'metadata.tag': tag}))
+            vol_vol = [calc['volume'] for calc in phonon_calculations]  # these are just used for sorting and will be thrown away
+            vol_f_vib = [calc['F_vib'] for calc in phonon_calculations]
             # sort them order of the unit cell volumes
             vol_f_vib = sort_x_by_y(vol_f_vib, vol_vol)
             f_vib = np.vstack(vol_f_vib)
@@ -241,6 +196,7 @@ class QHAAnalysis(FiretaskBase):
         qha_summary['phonon'] = self['phonon']
         qha_summary['structure'] = structure.as_dict()
         qha_summary['formula_pretty'] = structure.composition.reduced_formula
+        qha_summary['metadata'] = self.get('metadata', {})
 
         # write to JSON for debugging purposes
         import json
@@ -248,5 +204,3 @@ class QHAAnalysis(FiretaskBase):
             json.dump(qha_summary, fp)
 
         vasp_db.db['qha'].insert_one(qha_summary)
-
-

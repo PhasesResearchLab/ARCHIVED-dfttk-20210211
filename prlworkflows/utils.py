@@ -8,6 +8,7 @@ import os
 
 from pymatgen import MPRester
 from fireworks import LaunchPad
+import numpy as np
 import scipy
 
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
@@ -154,3 +155,77 @@ def recursive_glob(start, pattern):
 def sort_x_by_y(x, y):
     """Sort a list of x in the order of sorting y"""
     return [xx for _, xx in sorted(zip(y, x), key=lambda pair: pair[0])]
+
+
+def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
+                                      target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
+                                      verbose=False):
+    """
+    Find a the supercell scaling matrix that gives the most cubic supercell for a
+    structure, where the supercell has between the minimum and maximum nubmer of atoms.
+
+    Parameters
+    ----------
+    structure : pymatgen.Structure
+        Unitcell of a structure
+    min_atoms : target number of atoms in the supercell, defaults to 5
+    max_atoms : int
+        Maximum number of atoms allowed in the supercell
+    target_shape : str
+        Target shape of supercell. Could choose 'sc' for simple cubic or 'fcc' for face centered
+        cubic. Default is 'sc'.
+    lower_search_limit : int
+        How far to search below the 'ideal' cubic scaling. Default is -2.
+    upper_search_limit : int
+        How far to search below the 'ideal' cubic scaling. Default is 2.
+    verbose : bool
+        Whether to print extra details on the cell shapes and scores. Useful for debugging.
+
+    Returns
+    -------
+    numpy.ndarray
+        2d array of a scaling matrix, e.g. [[3,0,0],[0,3,0],[0,0,3]]
+
+    Notes
+    -----
+    The motiviation for this is for use in phonon calculations and defect calculations.
+    It is important that defect atoms are far enough apart that they do not interact.
+    Scaling unit cells that are not cubic by even dimensions might result in interacting
+    defects. An example would be a tetragonal cell with 2x8x8 Ang lattice vectors being
+    made into a 2x2x2 supercell. Atoms along the first dimension would not be very far
+    apart.
+
+    We are using a pure Python implementation from ASE, which is not very fast for a given
+    supercell size. This allows for a variable supercell size, so it's going to be slow
+    for a large range of atoms.
+
+    The search limits are passed directloy to ``find_optimal_cell_shape_pure_python``.
+    They define the search space for each individual supercell based on the "ideal" scaling.
+    For example, a cell with 4 atoms and a target size of 110 atoms might have an ideal scaling
+    of 3x3x3. The search space for a lower and upper limit of -2/+2 would be 1-5. Since the
+    calculations are based on the cartesian product of 3x3 matrices, large search ranges are
+    very expensive.
+    """
+    from ase.build import get_deviation_from_optimal_cell_shape, find_optimal_cell_shape_pure_python
+
+    # range of supercell sizes in number of unitcells
+    supercell_sizes = range(min_atoms//len(structure), max_atoms//len(structure) + 1)
+
+    optimal_supercell_shapes = []  # numpy arrays of optimal shapes
+    optimal_supercell_scores = []  # will correspond to supercell size
+
+    # find the target shapes
+    for sc_size in supercell_sizes:
+        optimal_shape = find_optimal_cell_shape_pure_python(structure.lattice.matrix, sc_size, target_shape, upper_limit=upper_search_limit, lower_limit=lower_search_limit)
+        optimal_supercell_shapes.append(optimal_shape)
+        optimal_supercell_scores.append(get_deviation_from_optimal_cell_shape(optimal_shape, target_shape))
+
+    if verbose:
+        for i in range(len(supercell_sizes)):
+            print('{} {:0.4f} {}'.format(supercell_sizes[i], optimal_supercell_scores[i], optimal_supercell_shapes[i].tolist()))
+
+    # find the most optimal cell shape along the range of sizes
+    optimal_sc_shape = optimal_supercell_shapes[np.argmin(optimal_supercell_scores)]
+
+    return optimal_sc_shape
+

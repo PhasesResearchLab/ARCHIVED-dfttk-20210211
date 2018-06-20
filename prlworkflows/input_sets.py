@@ -20,9 +20,12 @@ POTCAR_UPDATES = {
     }
 
 class PRLRelaxSet(DictSet):
-    """Set tuned for metal relaxations (correct smearing).
-    Add `isif` parameter to the set to easily allow for overriding ISIF setting.
-    Kpoints have a 6000 reciprocal density default.
+    """
+    Set for performing relaxations.
+
+    The smearing must be set to give the correct forces.
+    The default is tuned for metal relaxations.
+    Kpoints have a 6000 kpoints per reciprocal atom default.
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
     # we never are comparing relaxations, only using them for optimizing structures.
@@ -47,6 +50,46 @@ class PRLRelaxSet(DictSet):
         self.kwargs = kwargs
         super(PRLRelaxSet, self).__init__(
             structure, PRLRelaxSet.CONFIG, **kwargs)
+
+class PRLForceConstantsSet(DictSet):
+    """
+    Set for calculating force constants calculations.
+
+    Force constants are calculated by the finite difference method with symmetry considered.
+
+    The smearing must be set to give the correct forces.
+    The default is tuned for metals.
+
+    Kpoints have a 8000 kpoints per reciprocal atom default.
+    """
+    CONFIG = _load_yaml_config("MPRelaxSet")
+    # we never are comparing relaxations, only using them for optimizing structures.
+    CONFIG['KPOINTS'].update({
+        'grid_density': 8000,
+    })
+    CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
+    CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
+    CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-6,
+        'ISMEAR': 1,
+        'SIGMA': 0.2,
+        'LREAL': False,
+        'ISIF': 0,  # only calculate the forces, stress tensor is not needed
+        'IBRION': 6,  # calculate force constants by finite differences with symmetry
+        'POTIM': 0.015,  # displacement distance
+        'NFREE': 2,  # how many displacments to do. 2 gives +POTIM and -POTIM
+        'NSW': 1,  # backwards compatibility setting
+        'PREC': 'HIGH',
+        'ALGO': 'NORMAL',
+        'SYMPREC': 1e-4,  # some supercells seem to have issues with primcel VASP algorithm
+    })
+    # now we reset the potentials
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
+
+    def __init__(self, structure, **kwargs):
+        self.kwargs = kwargs
+        super(PRLForceConstantsSet, self).__init__(
+            structure, PRLForceConstantsSet.CONFIG, **kwargs)
 
 class PRLStaticSet(DictSet):
     """Set tuned for metal relaxations (correct smearing).
@@ -106,22 +149,6 @@ class PRLStaticSet(DictSet):
              "LORBIT": 11, "LVHAR": True, "LWAVE": False, "NSW": 0,
              "ICHARG": 0, "ALGO": "Normal"})
 
-        if self.lepsilon:
-            incar["IBRION"] = 8
-            incar["LEPSILON"] = True
-
-            # LPEAD=T: numerical evaluation of overlap integral prevents
-            # LRF_COMMUTATOR errors and can lead to better expt. agreement
-            # but produces slightly different results
-            incar["LPEAD"] = True
-
-            # Note that DFPT calculations MUST unset NSW. NSW = 0 will fail
-            # to output ionic.
-            incar.pop("NSW", None)
-            incar.pop("NPAR", None)
-
-        if self.lcalcpol:
-            incar["LCALCPOL"] = True
 
         for k in ["MAGMOM", "NUPDOWN"] + list(self.kwargs.get(
                 "user_incar_settings", {}).keys()):

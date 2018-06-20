@@ -3,9 +3,9 @@ import pymatgen
 from pymatgen.io.vasp.inputs import Incar
 from fireworks import FWorker, Workflow, LaunchPad
 from fireworks.core.rocket_launcher import launch_rocket
-from prlworkflows.prl_fireworks import OptimizeFW
+from prlworkflows.prl_fireworks import PRLOptimizeFW
 from prlworkflows.input_sets import PRLRelaxSet
-from prlworkflows.prl_workflows import wf_gibbs_free_energy, get_wf_robust_optimization
+from prlworkflows.prl_workflows import get_wf_gibbs
 from prlworkflows.utils import update_fws_spec
 import pytest
 import shutil
@@ -84,10 +84,10 @@ def fworker():
     yield FWorker(env={"db_file": os.path.join(MODULE_DIR, "db.json"), 'scratch_dir': scratch_dir})
     shutil.rmtree(scratch_dir)
 
-@pytest.skip
+@pytest.mark.skip
 def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
-    fw = OptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
+    fw = PRLOptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -95,9 +95,9 @@ def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_
     desired_parameters = {'ISIF': 4}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
-@pytest.skip
+@pytest.mark.skip
 def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    fw = OptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
+    fw = PRLOptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -105,10 +105,10 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_
     desired_parameters = {'ISIF': 7}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
-@pytest.skip
+@pytest.mark.skip
 def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     s = PRLRelaxSet(STRUCT)
-    fw = OptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
+    fw = PRLOptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -116,24 +116,24 @@ def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_ps
     desired_parameters = {'ISIF': 5}
     assert all([incar[k] == v for k, v in desired_parameters.items()])
 
-
+@pytest.mark.skip
 def test_fw_spec_modified_by_powerup():
     wf = get_wf_robust_optimization(STRUCT)
     wf = update_fws_spec(wf, {'_preserve_fworker': True})
     assert all([fw.spec['_preserve_fworker'] == True for fw in wf.fws])
 
-@pytest.skip
+@pytest.mark.skip
 def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    wf = wf_gibbs_free_energy(STRUCT, {'VASP_CMD': None})
+    wf = get_wf_gibbs(STRUCT, {'VASP_CMD': None})
     lpad.add_wf(wf)
     os.mkdir('scratch')
     # TODO: make this actually run by using run_no_vasp
     launch_rocket(lpad, fworker=fworker)
 
-@pytest.skip
+@pytest.mark.skip
 def test_prl_gibbs_optimization():
-    without_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
-    with_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
-    with_robust_optimize = wf_gibbs_free_energy(STRUCT, {'OPTIMIZE': True,'ROBUST': True})
+    without_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
+    with_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
+    with_robust_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': True,'ROBUST': True})
     assert len(with_optimize.fws) == len(without_optimize.fws)
     assert len(with_robust_optimize.fws) == len(without_optimize.fws)+2

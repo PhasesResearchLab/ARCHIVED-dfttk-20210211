@@ -7,10 +7,9 @@ from uuid import uuid4
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 
-from prlworkflows.analysis.phonon import create_supercell_displacements
-from prlworkflows.prl_firetasks import CalculatePhononThermalProperties, QHAAnalysis
-from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW, PRLPhononDisplacementFW
-from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet
+from prlworkflows.prl_firetasks import QHAAnalysis
+from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW, PRLPhononFW
+from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet, PRLForceConstantsSet
 
 
 def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.05, vasp_cmd=None, db_file=None, metadata=None, name='EV_Curve'):
@@ -67,51 +66,10 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.05, va
     return Workflow(fws, name=wfname, metadata=metadata)
 
 
-def get_wf_phonon_single_volume(structure, supercell_matrix, smearing_type='auto', displacement_distance=0.01, vasp_cmd=None, name='Phonon', t_min=5, t_max=2000, t_step=5):
-    """
-    A workflow to calculate the phonon vibration properties for a single volume.
-
-    Parameters
-    ----------
-    structure : pymatgen.Structure
-        Input structure. Should be a unitcell, not a supercell.
-    supercell_matrix : numpy.ndarray
-        3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]].
-    smearing_type : str
-        It must be one of 'auto', 'gaussian', 'methfessel-paxton', or 'tetrahedron'. The default
-        is 'auto', which determines whether to use 'methfessel-paxton' or 'tetrahedron' based on the bandgap.
-        'methfessel-paxton', which uses a SIGMA of 0.2 and is well suited for metals,
-        but it should not be used for semiconductors or insulators. Using 'tetrahedron'
-        or 'gaussian' gives a SIGMA of 0.05. Any further customizations should use a custom workflow.
-    displacement_distance : float
-        Distance of each displacement. Defaults to 0.01, consistent with phonopy.
-    vasp_cmd : str
-        Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
-    name : str
-        Name of the workflow
-
-    Returns
-    -------
-    Workflow
-        A workflow for a single volume phonon calculation.
-
-    """
-    vasp_cmd = vasp_cmd or VASP_CMD
-
-    supercells, displacement_dicts = create_supercell_displacements(structure, supercell_matrix, displacement_distance=displacement_distance)
-
-    fws = []
-    for sc, disp_dict in zip(supercells, displacement_dicts):
-        fws.append(PRLPhononDisplacementFW(sc, disp_dict, name="phonon_displacement", smearing_type=smearing_type, vasp_cmd=vasp_cmd))
-
-    thermal_props = Firework([CalculatePhononThermalProperties(t_min=t_min, t_max=t_max, t_step=t_step)], parents=fws, name='CalculateThermalProperties',
-                               spec={'unitcell': structure, 'supercell_matrix': supercell_matrix},)
-    fws = fws + [thermal_props]  # have to add here to create a new object, otherwise the thermal_props parents includes self.
-    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
-    return Workflow(fws, name=wfname)
-
-
-def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1), phonon=False, phonon_supercell_matrix=None, phonon_kwargs=None, t_min=5, t_max=2000, t_step=5, vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
+def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1),
+                 phonon=False, phonon_supercell_matrix=None,
+                 t_min=5, t_max=2000, t_step=5,
+                 vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA'):
     """
     E - V
     curve
@@ -129,8 +87,12 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
         Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
     phonon_supercell_matrix : list
         3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]]. Must be specified if phonon is specified.
-    phonon_kwargs : dict
-        Keyword arguments to send to the GeneratePhononDisplacements Firetask.
+    t_min : float
+        Minimum temperature
+    t_step : float
+        Temperature step size
+    t_max : float
+        Maximum temperature (inclusive)
     vasp_cmd : str
         Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
     db_file : str
@@ -142,14 +104,6 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
     """
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
-    phonon_kwargs = phonon_kwargs or {}
-    # update these to be consistent with the QHA.
-    phonon_kwargs.update({
-        't_min': t_min,
-        't_max': t_max,
-        't_step': t_step,
-        'supercell_matrix': phonon_supercell_matrix,
-    })
 
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
@@ -166,7 +120,9 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
     # 2. ISIF 4
     # 3. Static
     fws = []
-    static_calcs = []
+    qha_calcs = []
+    # for each FW, we set the structure to the original structure to verify to ourselves that the
+    # volume deformed structure is set by input set.
     for i, deformation in enumerate(deformations):
         struct = structure.copy()
         struct.scale_lattice(struct.volume*deformation)
@@ -179,11 +135,21 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
         fws.append(isif_4_fw)
 
         vis = PRLStaticSet(struct)
-        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw, phonon_detour=phonon, phonon_kwargs=phonon_kwargs)
+        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
         fws.append(static)
-        static_calcs.append(static)
 
-    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag), parents=static_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
+        if phonon:
+            vis = PRLForceConstantsSet(struct)
+            phonon_fw = PRLPhononFW(structure, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
+                     name='structure_{}-phonon'.format(i), vasp_input_set=vis,
+                     vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
+                     prev_calc_loc=True, parents=static)
+            fws.append(phonon_fw)
+            qha_calcs.append(phonon_fw)
+        else:
+            qha_calcs.append(static)
+
+    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag), parents=qha_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
     fws.append(qha_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)

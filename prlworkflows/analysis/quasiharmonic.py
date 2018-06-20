@@ -114,8 +114,8 @@ class Quasiharmonic(object):
         """
         for temp_idx in range(self.temperatures.size):
             G_opt, V_opt = self.optimizer(temp_idx)
-            self.gibbs_free_energy.append(G_opt)
-            self.optimum_volumes.append(V_opt)
+            self.gibbs_free_energy.append(float(G_opt))
+            self.optimum_volumes.append(float(V_opt))
 
     def optimizer(self, temp_idx):
         """

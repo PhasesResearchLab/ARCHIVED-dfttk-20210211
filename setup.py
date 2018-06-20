@@ -17,7 +17,7 @@ setup(
     packages=['prlworkflows'],
     description='atomate workflows and scripts for the Phases Research Lab',
     long_description=readme(),
-    install_requires=['atomate', 'tinydb'],
+    install_requires=['atomate', 'tinydb', 'phonopy', 'ase', 'pymatgen', 'numpy'],
     extras_require={
         'dev': [
             'sphinx',
