@@ -176,6 +176,14 @@ class QHAAnalysis(FiretaskBase):
         dos_objs = sort_x_by_y(dos_objs, volumes)
         volumes = sorted(volumes)
 
+
+        qha_result = {}
+        qha_result['structure'] = structure.as_dict()
+        qha_result['formula_pretty'] = structure.composition.reduced_formula
+        qha_result['metadata'] = self.get('metadata', {})
+        qha_result['has_phonon'] = self['phonon']
+
+        # phonon properties
         if self['phonon']:
             # get the vibrational properties from the FW spec
             phonon_calculations = list(vasp_db.db['phonon'].find({'metadata.tag': tag}))
@@ -184,23 +192,24 @@ class QHAAnalysis(FiretaskBase):
             # sort them order of the unit cell volumes
             vol_f_vib = sort_x_by_y(vol_f_vib, vol_vol)
             f_vib = np.vstack(vol_f_vib)
-        else:
-            f_vib = None
+            qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
+                                t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
+                                poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
+            qha_result['phonon'] = qha.get_summary_dict()
+            qha_result['phonon']['temperatures'] = qha_result['phonon']['temperatures'].tolist()
 
-        qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
-                            t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
-                            poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
+        # calculate the Debye model results no matter what
+        qha_debye = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=None,
+                                  t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
+                                  poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
 
-        qha_summary = qha.get_summary_dict()
-        qha_summary['temperatures'] = qha_summary['temperatures'].tolist()
-        qha_summary['phonon'] = self['phonon']
-        qha_summary['structure'] = structure.as_dict()
-        qha_summary['formula_pretty'] = structure.composition.reduced_formula
-        qha_summary['metadata'] = self.get('metadata', {})
+
+        qha_result['debye'] = qha_debye.get_summary_dict()
+        qha_result['debye']['temperatures'] = qha_result['debye']['temperatures'].tolist()
 
         # write to JSON for debugging purposes
         import json
         with open('qha_summary.json', 'w') as fp:
-            json.dump(qha_summary, fp)
+            json.dump(qha_result, fp)
 
-        vasp_db.db['qha'].insert_one(qha_summary)
+        vasp_db.db['qha'].insert_one(qha_result)
