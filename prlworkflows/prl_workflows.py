@@ -51,7 +51,7 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vas
     for i, deformation in enumerate(deformations):
         struct = structure.copy()
         struct.scale_lattice(struct.volume*deformation)
-        vis = PRLRoughStaticSet(struct)
+        vis = PRLStaticSet(struct)
         static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
         fws.append(static)
 
