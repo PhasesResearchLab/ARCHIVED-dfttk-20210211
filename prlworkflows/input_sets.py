@@ -255,9 +255,11 @@ class PRLRoughStaticSet(DictSet):
         "IBRION": -1,
         "LREAL": "AUTO",
         "ALGO": 'FAST',
+        "ISIF": 2,
     })
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
+    CONFIG['INCAR'].pop('ENCUT')
 
     def __init__(self, structure, prev_incar=None, prev_kpoints=None,
                  lepsilon=False, lcalcpol=False, grid_density=2000, **kwargs):
