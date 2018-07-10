@@ -3,6 +3,7 @@ Custom Firetasks for prlworkflows
 """
 from pymatgen import Structure
 from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.analysis.eos import EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
@@ -213,3 +214,65 @@ class QHAAnalysis(FiretaskBase):
             json.dump(qha_result, fp)
 
         vasp_db.db['qha'].insert_one(qha_result)
+
+
+@explicit_serialize
+class EOSAnalysis(FiretaskBase):
+    """
+    Fit results from an E-V curve and enter the results the database
+
+    Required params
+    ---------------
+    eos : str
+        String name of the equation of state to use. See ``pymatgen.analysis.eos.EOS.MODELS`` for options.
+    tag : str
+        Tag to search the database for the volumetric calculations (energies, volumes) from this job.
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+
+    Optional params
+    ---------------
+    metadata : dict
+        Metadata about this workflow. Defaults to an empty dictionary
+
+    """
+
+    required_params = ["eos", "db_file", "tag"]
+    optional_params = ["metadata", ]
+
+    def run_task(self, fw_spec):
+        db_file = env_chk(self.get("db_file"), fw_spec)
+        tag = self["tag"]
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        static_calculations = vasp_db.collection.find({"metadata.tag": tag})
+
+        energies = []
+        volumes = []
+        structure = None  # single Structure for QHA calculation
+        for calc in static_calculations:
+            energies.append(calc['output']['energy'])
+            volumes.append(calc['output']['structure']['lattice']['volume'])
+            if structure is None:
+                structure = Structure.from_dict(calc['output']['structure'])
+
+        eos = EOS(self.get('eos'))
+        ev_eos_fit = eos.fit(volumes, energies)
+        equil_volume = ev_eos_fit.v0
+
+        structure.scale_lattice(equil_volume)
+
+        analysis_result = ev_eos_fit.results
+        analysis_result['b0_GPa'] = float(ev_eos_fit.b0_GPa)
+        analysis_result['structure'] = structure.as_dict()
+        analysis_result['formula_pretty'] = structure.composition.reduced_formula
+        analysis_result['metadata'] = self.get('metadata', {})
+        analysis_result['energies'] = energies
+        analysis_result['volumes'] = volumes
+
+
+        # write to JSON for debugging purposes
+        import json
+        with open('eos_summary.json', 'w') as fp:
+            json.dump(analysis_result, fp)
+
+        vasp_db.db['eos'].insert_one(analysis_result)
