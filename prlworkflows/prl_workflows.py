@@ -12,7 +12,7 @@ from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW, PRLPhononFW
 from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet, PRLForceConstantsSet, PRLRoughStaticSet
 
 
-def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vasp_cmd=None, db_file=None, metadata=None, name='EV_Curve', eos="birch_murnaghan"):
+def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vasp_cmd=None, db_file=None, vasp_input_set=None, metadata=None, name='EV_Curve', eos="birch_murnaghan"):
     """
     Rough E - V curve workflow that can determine approximate minimum volumes
 
@@ -43,22 +43,18 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vas
 
     deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
 
-    # follow a scheme of
-    # 1. ISIF 2
-    # 2. ISIF 4
-    # 3. Static
     fws = []
     for i, deformation in enumerate(deformations):
         struct = structure.copy()
         struct.scale_lattice(struct.volume*deformation)
-        vis = PRLStaticSet(struct)
+        vis = vasp_input_set or PRLStaticSet(struct)
         static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
         fws.append(static)
 
-    eos_fw = Firework(EOSAnalysis(eos=eos, db_file=db_file, tag=tag), parents=fws, name="{}-eos_analysis".format(structure.composition.reduced_formula))
+    eos_fw = Firework(EOSAnalysis(eos=eos, db_file=db_file, tag=tag), parents=fws[:], name="{}-eos_analysis".format(structure.composition.reduced_formula))
     fws.append(eos_fw)
 
-    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+    wfname = "{}:{}".format(tag, name)
 
     return Workflow(fws, name=wfname, metadata=metadata)
 
