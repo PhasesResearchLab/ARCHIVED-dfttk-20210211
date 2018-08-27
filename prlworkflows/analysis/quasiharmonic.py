@@ -16,7 +16,7 @@ from collections import defaultdict
 
 import numpy as np
 from scipy.optimize import minimize
-from pymatgen.analysis.eos import EOS
+from pymatgen.analysis.eos import EOS, EOSError
 
 from prlworkflows.analysis.thermal_electronic import calculate_thermal_electronic_contribution
 from prlworkflows.analysis.debye import DebyeModel
@@ -139,7 +139,10 @@ class Quasiharmonic(object):
         G_V = self.G[:, temp_idx]
 
         # fit equation of state, G(V, T, P)
-        eos_fit = self.eos.fit(self.volumes, G_V)
+        try:
+            eos_fit = self.eos.fit(self.volumes, G_V)
+        except EOSError:
+            return np.nan, np.nan
         # minimize the fit eos wrt volume
         # Note: the ref energy and the ref volume(E0 and V0) not necessarily
         # the same as minimum energy and min volume.
