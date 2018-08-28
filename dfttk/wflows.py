@@ -12,7 +12,7 @@ from dfttk.fworks import OptimizeFW, StaticFW, PhononFW
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, RoughStaticSet
 
 
-def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vasp_cmd=None, db_file=None, vasp_input_set=None, metadata=None, name='EV_Curve', eos="birch_murnaghan"):
+def get_wf_volume_optimization(structure, num_deformations=7, deformation_fraction=0.1, vasp_cmd=None, db_file=None, vasp_input_set=None, metadata=None, name='EV_Curve', eos="birch_murnaghan"):
     """
     Rough E - V curve workflow that can determine approximate minimum volumes
 
