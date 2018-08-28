@@ -18,8 +18,8 @@ import numpy as np
 from scipy.optimize import minimize
 from pymatgen.analysis.eos import EOS, EOSError
 
-from prlworkflows.analysis.thermal_electronic import calculate_thermal_electronic_contribution
-from prlworkflows.analysis.debye import DebyeModel
+from dfttk.analysis.thermal_electronic import calculate_thermal_electronic_contribution
+from dfttk.analysis.debye import DebyeModel
 
 __author__ = "Kiran Mathew, Brandon Bocklund"
 __credits__ = "Cormac Toher"

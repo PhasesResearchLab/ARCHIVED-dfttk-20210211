@@ -11,11 +11,11 @@ def readme():
 
 
 setup(
-    name='prlworkflows',
+    name='dfttk',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=['prlworkflows'],
-    description='atomate workflows and scripts for the Phases Research Lab',
+    packages=['dfttk'],
+    description='Density functional theory workflows for finite temperature thermodynamics based on atomate workflows. Created by the Phases Research Lab',
     long_description=readme(),
     install_requires=['atomate', 'tinydb', 'phonopy', 'ase', 'pymatgen', 'numpy'],
     extras_require={
@@ -28,7 +28,7 @@ setup(
     },
     author='Brandon Bocklund',
     author_email='brandonbocklund@gmail.com',
-    url='https://github.com/phasesresearchlab/prlworkflows',
+    url='https://github.com/phasesresearchlab/dfttk',
     license='MIT',
     classifiers=[
         # How mature is this project? Common values are

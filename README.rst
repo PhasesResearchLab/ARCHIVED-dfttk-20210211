@@ -1,25 +1,44 @@
-=============
-PRL Workflows
-=============
+=====
+DFTTK
+=====
 
 This repo contains the custom workflows developed by the Phases Research Lab that do not fit into the scope of the public atomate repository.
 
 The following workflows are currently implemented:
+- Gibbs energy workflow for stable structures
 
 or under development:
-
-- An implementation of the calculation of the formation of unstable phases with NEB based on A. van de Walle et. al., Nat. Com. 6 (2015)
-
-You can also find some scripts for basic atomate calculations in the `scripts` folder. Simply configure the settings as you want them run the script using Python on a system that is configured to connect to your LaunchPad. The scripts are designed to be flexible enough to run to scaffold basic calculations you might run. The `examples` folder contains real examples of workflows that have been used.
+- Minimum volume finding workflow
 
 Installation
-------------
+============
 
-1. You should ideally download this repo to your codes directory in your atomate installation 
-2. Install it as editable using pip (``pip install -e .``)
+DFTTK requires Python 3. Python 2 support for NumPy ends 2019-01-01.
+
+pip
+---
+
+From the command line, run ``pip install dfttk``
+
+conda
+-----
+
+Anaconda packages of DFTTK are currently not supported. If you are using Anaconda, you should be able to install with pip.
+
+development versions
+--------------------
+
+1. ``git clone https://github.com/phasesresearchlab/dfttk``
+2. ``cd dfttk``
+3. ``pip install -e .``
+
+Use
+===
+
+``from dfttk import get_wf_gibbs``. Examples forthcoming.
 
 Contributing
-------------
+============
 
 See CONTRIBUTING.rst_
 
@@ -28,6 +47,6 @@ See CONTRIBUTING.rst_
 License
 -------
 
-prlworkflows is MIT licensed. See LICENSE_
+DFTTK is MIT licensed. See LICENSE_
 
 .. _LICENSE: LICENSE

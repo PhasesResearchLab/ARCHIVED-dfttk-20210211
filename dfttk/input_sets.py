@@ -19,7 +19,7 @@ POTCAR_UPDATES = {
         'V': 'V_sv',  # 13 electrons, default V_pv (11 electrons)
     }
 
-class PRLRelaxSet(DictSet):
+class RelaxSet(DictSet):
     """
     Set for performing relaxations.
 
@@ -48,10 +48,10 @@ class PRLRelaxSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
-        super(PRLRelaxSet, self).__init__(
-            structure, PRLRelaxSet.CONFIG, **kwargs)
+        super(RelaxSet, self).__init__(
+            structure, RelaxSet.CONFIG, **kwargs)
 
-class PRLForceConstantsSet(DictSet):
+class ForceConstantsSet(DictSet):
     """
     Set for calculating force constants calculations.
 
@@ -88,10 +88,10 @@ class PRLForceConstantsSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
-        super(PRLForceConstantsSet, self).__init__(
-            structure, PRLForceConstantsSet.CONFIG, **kwargs)
+        super(ForceConstantsSet, self).__init__(
+            structure, ForceConstantsSet.CONFIG, **kwargs)
 
-class PRLStaticSet(DictSet):
+class StaticSet(DictSet):
     """Set tuned for metal relaxations (correct smearing).
     Add `isif` parameter to the set to easily allow for overriding ISIF setting.
     Kpoints have a 6000 reciprocal density default.
@@ -123,7 +123,7 @@ class PRLStaticSet(DictSet):
 
     def __init__(self, structure, prev_incar=None, prev_kpoints=None,
                  lepsilon=False, lcalcpol=False, grid_density=8000, **kwargs):
-        super(PRLStaticSet, self).__init__(structure, PRLStaticSet.CONFIG, **kwargs)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
 
         if isinstance(prev_incar, six.string_types):
             prev_incar = Incar.from_file(prev_incar)
@@ -140,7 +140,7 @@ class PRLStaticSet(DictSet):
 
     @property
     def incar(self):
-        parent_incar = super(PRLStaticSet, self).incar
+        parent_incar = super(StaticSet, self).incar
         incar = Incar(self.prev_incar) if self.prev_incar is not None else \
             Incar(parent_incar)
 
@@ -179,7 +179,7 @@ class PRLStaticSet(DictSet):
     @property
     def kpoints(self):
         self._config_dict["KPOINTS"]["grid_density"] = self.grid_density
-        kpoints = super(PRLStaticSet, self).kpoints
+        kpoints = super(StaticSet, self).kpoints
         # Prefer to use k-point scheme from previous run
         if self.prev_kpoints and self.prev_kpoints.style != kpoints.style:
             if self.prev_kpoints.style == Kpoints.supported_modes.Monkhorst:
@@ -233,11 +233,11 @@ class PRLStaticSet(DictSet):
             if gap <= small_gap_multiply[0]:
                 grid_density = grid_density * small_gap_multiply[1]
 
-        return PRLStaticSet(structure=prev_structure, prev_incar=prev_incar,
+        return StaticSet(structure=prev_structure, prev_incar=prev_incar,
             prev_kpoints=prev_kpoints, grid_density=grid_density, **kwargs)
 
 
-class PRLRoughStaticSet(DictSet):
+class RoughStaticSet(DictSet):
     """Set tuned for metal relaxations (correct smearing).
     Add `isif` parameter to the set to easily allow for overriding ISIF setting.
     Kpoints have a 6000 reciprocal density default.
@@ -263,7 +263,7 @@ class PRLRoughStaticSet(DictSet):
 
     def __init__(self, structure, prev_incar=None, prev_kpoints=None,
                  lepsilon=False, lcalcpol=False, grid_density=2000, **kwargs):
-        super(PRLRoughStaticSet, self).__init__(structure, PRLRoughStaticSet.CONFIG, **kwargs)
+        super(RoughStaticSet, self).__init__(structure, RoughStaticSet.CONFIG, **kwargs)
 
         if isinstance(prev_incar, six.string_types):
             prev_incar = Incar.from_file(prev_incar)
@@ -280,7 +280,7 @@ class PRLRoughStaticSet(DictSet):
 
     @property
     def incar(self):
-        parent_incar = super(PRLRoughStaticSet, self).incar
+        parent_incar = super(RoughStaticSet, self).incar
         incar = Incar(self.prev_incar) if self.prev_incar is not None else \
             Incar(parent_incar)
 
@@ -313,7 +313,7 @@ class PRLRoughStaticSet(DictSet):
     @property
     def kpoints(self):
         self._config_dict["KPOINTS"]["grid_density"] = self.grid_density
-        kpoints = super(PRLRoughStaticSet, self).kpoints
+        kpoints = super(RoughStaticSet, self).kpoints
         # Prefer to use k-point scheme from previous run
         if self.prev_kpoints and self.prev_kpoints.style != kpoints.style:
             if self.prev_kpoints.style == Kpoints.supported_modes.Monkhorst:
@@ -367,5 +367,5 @@ class PRLRoughStaticSet(DictSet):
             if gap <= small_gap_multiply[0]:
                 grid_density = grid_density * small_gap_multiply[1]
 
-        return PRLRoughStaticSet(structure=prev_structure, prev_incar=prev_incar,
+        return RoughStaticSet(structure=prev_structure, prev_incar=prev_incar,
             prev_kpoints=prev_kpoints, grid_density=grid_density, **kwargs)

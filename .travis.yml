@@ -1,13 +1,12 @@
 language: python
 python:
-  - 2.7
   - 3.5
   - 3.6
 cache: pip
 install:
   - pip install -e '.[dev]'
 script:
-  - py.test -v prlworkflows/
+  - py.test -v dfttk/
 notifications:
   email: False
 services: mongodb

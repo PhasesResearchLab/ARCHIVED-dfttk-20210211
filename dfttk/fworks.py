@@ -7,11 +7,11 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
-from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet, PRLForceConstantsSet
-from prlworkflows.prl_firetasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet
+from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties
 
 
-class PRLOptimizeFW(Firework):
+class OptimizeFW(Firework):
     """
     Optimize the given structure.
 
@@ -40,7 +40,7 @@ class PRLOptimizeFW(Firework):
 
         metadata = metadata or {}
         override_default_vasp_params = override_default_vasp_params or {}
-        vasp_input_set = vasp_input_set or PRLRelaxSet(structure, force_gamma=force_gamma,
+        vasp_input_set = vasp_input_set or RelaxSet(structure, force_gamma=force_gamma,
                                                        **override_default_vasp_params)
         t = []
         if parents:
@@ -48,17 +48,17 @@ class PRLOptimizeFW(Firework):
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
-            vasp_input_set = vasp_input_set or PRLRelaxSet(structure)
+            vasp_input_set = vasp_input_set or RelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
-        super(PRLOptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
+        super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
 
-class PRLStaticFW(Firework):
+class StaticFW(Firework):
     """
     Standard static calculation Firework - either from a previous location or from a structure.
 
@@ -71,7 +71,7 @@ class PRLStaticFW(Firework):
     name : str
         Name for the Firework.
     vasp_input_set : pymategen.io.vasp.inputs.VaspInputSet
-        Input set to use. Defaults to PRLStaticSet() if None.
+        Input set to use. Defaults to StaticSet() if None.
     vasp_cmd : str
         Command to run vasp.
     prev_calc_loc : (bool or str)
@@ -92,7 +92,7 @@ class PRLStaticFW(Firework):
         # prev_calc_loc jobs. Sometimes it makes appending new FWs to an existing workflow
         # difficult. Maybe think about how to remove this need? -computron
         metadata = metadata or {}
-        vasp_input_set = vasp_input_set or PRLStaticSet(structure)
+        vasp_input_set = vasp_input_set or StaticSet(structure)
 
         t = []
 
@@ -106,11 +106,11 @@ class PRLStaticFW(Firework):
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
-        super(PRLStaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
+        super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 
 
-class PRLPhononFW(Firework):
+class PhononFW(Firework):
     """
     Calculation of phonon thermal properties by direct calculation of force constants.
 
@@ -125,7 +125,7 @@ class PRLPhononFW(Firework):
     name : str
         Name for the Firework.
     vasp_input_set : pymategen.io.vasp.inputs.VaspInputSet
-        Input set to use. Defaults to PRLForceConstantsSet() if None.
+        Input set to use. Defaults to ForceConstantsSet() if None.
     vasp_cmd : str
         Command to run vasp.
     prev_calc_loc : (bool or str)
@@ -150,10 +150,10 @@ class PRLPhononFW(Firework):
         # generate a tag with a warning
         if tag is None:
             tag = str(uuid4())
-            warnings.warn('No ``tag`` was passed explicitly or in ``metadata`` to PRLPhononFW. In order to find this Firework later, you should assign one. This was assigned: {}'.format(tag))
+            warnings.warn('No ``tag`` was passed explicitly or in ``metadata`` to PhononFW. In order to find this Firework later, you should assign one. This was assigned: {}'.format(tag))
             metadata['tag'] = tag
 
-        vasp_input_set = vasp_input_set or PRLForceConstantsSet(structure)
+        vasp_input_set = vasp_input_set or ForceConstantsSet(structure)
 
         t = []
 
@@ -173,5 +173,5 @@ class PRLPhononFW(Firework):
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))
 
-        super(PRLPhononFW, self).__init__(t, parents=parents, name="{}-{}".format(
+        super(PhononFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)

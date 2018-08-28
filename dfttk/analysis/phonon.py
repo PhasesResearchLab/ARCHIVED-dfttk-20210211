@@ -5,7 +5,7 @@ Phonon analysis using phonopy
 from phonopy import Phonopy
 from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen.io.phonopy import get_phonopy_structure
-from prlworkflows.utils import J_per_mol_to_eV_per_atom
+from dfttk.utils import J_per_mol_to_eV_per_atom
 
 
 def get_f_vib_phonopy(structure, supercell_matrix, vasprun_path,

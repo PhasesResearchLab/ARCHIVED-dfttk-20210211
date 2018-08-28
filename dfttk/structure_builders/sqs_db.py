@@ -19,7 +19,7 @@ Later, the database can be constructed again from the path, added to (steps 1-3)
 To use the database, the user calls the `structures_from_database` helper function to generate a list
 of all the SQS that match the endmember symmetry, sublattice model (and site ratios) that define a
 phase. This is intentionally designed to match the syntax used to describe phases in ESPEI. Each of
-the resulting Structure objects can be made concrete using functions in `prlworkflows.sqs`.
+the resulting Structure objects can be made concrete using functions in `dfttk.sqs`.
 """
 
 import json
@@ -29,8 +29,8 @@ from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
 from tinydb import TinyDB
 from tinydb.storages import MemoryStorage
 
-from prlworkflows.structure_builders.sqs import AbstractSQS
-from prlworkflows.utils import recursive_glob
+from dfttk.structure_builders.sqs import AbstractSQS
+from dfttk.utils import recursive_glob
 
 def _parse_atat_lattice(lattice_in):
     """Parse an ATAT-style `lat.in` string.

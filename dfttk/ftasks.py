@@ -1,5 +1,5 @@
 """
-Custom Firetasks for prlworkflows
+Custom Firetasks for the DFTTK
 """
 from pymatgen import Structure
 from pymatgen.io.vasp.outputs import Vasprun
@@ -7,9 +7,9 @@ from pymatgen.analysis.eos import EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
-from prlworkflows.analysis.phonon import get_f_vib_phonopy
-from prlworkflows.analysis.quasiharmonic import Quasiharmonic
-from prlworkflows.utils import sort_x_by_y
+from dfttk.analysis.phonon import get_f_vib_phonopy
+from dfttk.analysis.quasiharmonic import Quasiharmonic
+from dfttk.utils import sort_x_by_y
 import numpy as np
 
 
@@ -23,7 +23,7 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
     Required params:
         structure (Structure): structure
         vasp_input_set (AbstractVaspInputSet or str): Either a VaspInputSet object or a string
-            name for the VASP input set (e.g., "PRLStaticSet").
+            name for the VASP input set (e.g., "StaticSet").
 
     Optional params:
         vasp_input_params (dict): When using a string name for VASP input set, use this as a dict

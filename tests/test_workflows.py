@@ -3,10 +3,10 @@ import pymatgen
 from pymatgen.io.vasp.inputs import Incar
 from fireworks import FWorker, Workflow, LaunchPad
 from fireworks.core.rocket_launcher import launch_rocket
-from prlworkflows.prl_fireworks import PRLOptimizeFW
-from prlworkflows.input_sets import PRLRelaxSet
-from prlworkflows.prl_workflows import get_wf_gibbs
-from prlworkflows.utils import update_fws_spec
+from dfttk.fworks import OptimizeFW
+from dfttk.input_sets import RelaxSet
+from dfttk.wflows import get_wf_gibbs
+from dfttk.utils import update_fws_spec
 import pytest
 import shutil
 import os
@@ -30,7 +30,7 @@ direct
 0.750000 0.500000 0.750000 Si"""
 STRUCT = Structure.from_str(POSCAR_STR, fmt='POSCAR')
 TEST_DIR = os.path.join(MODULE_DIR, 'tmp_fw_test_dir')
-LPAD = LaunchPad.from_dict({'host': 'localhost', 'logdir': None, 'name': 'prlworkflows_unittest', 'password': None, 'port': 27017, 'ssl_ca_file': None, 'strm_lvl': 'DEBUG', 'user_indices': [], 'username': None, 'wf_user_indices': []})
+LPAD = LaunchPad.from_dict({'host': 'localhost', 'logdir': None, 'name': 'dfttk_unittest', 'password': None, 'port': 27017, 'ssl_ca_file': None, 'strm_lvl': 'DEBUG', 'user_indices': [], 'username': None, 'wf_user_indices': []})
 
 # TODO: enable debug mode by having a launchpad that does not reset
 # Can this be done by still having other tests pass?
@@ -86,8 +86,8 @@ def fworker():
 
 @pytest.mark.skip
 def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    s = PRLRelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
-    fw = PRLOptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
+    s = RelaxSet(STRUCT, user_incar_settings={'ISIF': 4})
+    fw = OptimizeFW(STRUCT, vasp_input_set=s, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -97,7 +97,7 @@ def test_full_opt_fw_writes_correct_fw_for_UIS_in_set_constructor(patch_pmg_psp_
 
 @pytest.mark.skip
 def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    fw = PRLOptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
+    fw = OptimizeFW(STRUCT, isif=7, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -107,8 +107,8 @@ def test_full_opt_fw_writes_isif_setting_takes_effect(patch_pmg_psp_dir, launch_
 
 @pytest.mark.skip
 def test_full_opt_fw_writes_isif_setting_does_take_effects_with_VIS(patch_pmg_psp_dir, launch_dir, lpad, fworker):
-    s = PRLRelaxSet(STRUCT)
-    fw = PRLOptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
+    s = RelaxSet(STRUCT)
+    fw = OptimizeFW(STRUCT, vasp_input_set=s, isif=5, job_type='full_opt_run', vasp_cmd=None)
     wf = Workflow([fw])
     lpad.add_wf(wf)
     launch_rocket(lpad, fworker=fworker)
@@ -123,7 +123,7 @@ def test_fw_spec_modified_by_powerup():
     assert all([fw.spec['_preserve_fworker'] == True for fw in wf.fws])
 
 @pytest.mark.skip
-def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
+def test_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     wf = get_wf_gibbs(STRUCT, {'VASP_CMD': None})
     lpad.add_wf(wf)
     os.mkdir('scratch')
@@ -131,7 +131,7 @@ def test_prl_gibbs_wf(patch_pmg_psp_dir, launch_dir, lpad, fworker):
     launch_rocket(lpad, fworker=fworker)
 
 @pytest.mark.skip
-def test_prl_gibbs_optimization():
+def test_gibbs_optimization():
     without_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': False,'ROBUST': False})
     with_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': True,'ROBUST': False})
     with_robust_optimize = get_wf_gibbs(STRUCT, {'OPTIMIZE': True,'ROBUST': True})

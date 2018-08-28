@@ -1,4 +1,4 @@
-"""Custom Phases Research Lab Workflows
+"""Custom DFTTK Workflows
 """
 
 import numpy as np
@@ -7,9 +7,9 @@ from uuid import uuid4
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 
-from prlworkflows.prl_firetasks import QHAAnalysis, EOSAnalysis
-from prlworkflows.prl_fireworks import PRLOptimizeFW, PRLStaticFW, PRLPhononFW
-from prlworkflows.input_sets import PRLRelaxSet, PRLStaticSet, PRLForceConstantsSet, PRLRoughStaticSet
+from dfttk.ftasks import QHAAnalysis, EOSAnalysis
+from dfttk.fworks import OptimizeFW, StaticFW, PhononFW
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, RoughStaticSet
 
 
 def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vasp_cmd=None, db_file=None, vasp_input_set=None, metadata=None, name='EV_Curve', eos="birch_murnaghan"):
@@ -47,8 +47,8 @@ def get_wf_ev_curve(structure, num_deformations=7, deformation_fraction=0.1, vas
     for i, deformation in enumerate(deformations):
         struct = structure.copy()
         struct.scale_lattice(struct.volume*deformation)
-        vis = vasp_input_set or PRLStaticSet(struct)
-        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+        vis = vasp_input_set or StaticSet(struct)
+        static = StaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
         fws.append(static)
 
     eos_fw = Firework(EOSAnalysis(eos=eos, db_file=db_file, tag=tag), parents=fws[:], name="{}-eos_analysis".format(structure.composition.reduced_formula))
@@ -119,21 +119,21 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
     for i, deformation in enumerate(deformations):
         struct = structure.copy()
         struct.scale_lattice(struct.volume*deformation)
-        vis = PRLRelaxSet(struct, user_incar_settings={'ISIF': 2})
-        isif_2_fw = PRLOptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_2'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+        vis = RelaxSet(struct, user_incar_settings={'ISIF': 2})
+        isif_2_fw = OptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_2'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
         fws.append(isif_2_fw)
 
-        vis = PRLRelaxSet(struct, user_incar_settings={'ISIF': 4})
-        isif_4_fw = PRLOptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_4'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_2_fw)
+        vis = RelaxSet(struct, user_incar_settings={'ISIF': 4})
+        isif_4_fw = OptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_4'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_2_fw)
         fws.append(isif_4_fw)
 
-        vis = PRLStaticSet(struct)
-        static = PRLStaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
+        vis = StaticSet(struct)
+        static = StaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
         fws.append(static)
 
         if phonon:
-            vis = PRLForceConstantsSet(struct)
-            phonon_fw = PRLPhononFW(structure, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
+            vis = ForceConstantsSet(struct)
+            phonon_fw = PhononFW(structure, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
                      name='structure_{}-phonon'.format(i), vasp_input_set=vis,
                      vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
                      prev_calc_loc=True, parents=static)

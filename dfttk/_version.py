@@ -42,8 +42,8 @@ def get_config():
     cfg.VCS = "git"
     cfg.style = "pep440"
     cfg.tag_prefix = ""
-    cfg.parentdir_prefix = "prlworkflows-"
-    cfg.versionfile_source = "prlworkflows/_version.py"
+    cfg.parentdir_prefix = "dfttk-"
+    cfg.versionfile_source = "dfttk/_version.py"
     cfg.verbose = False
     return cfg
 
