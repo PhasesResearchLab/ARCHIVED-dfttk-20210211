@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 import versioneer
 
@@ -14,7 +14,7 @@ setup(
     name='dfttk',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    packages=['dfttk'],
+    packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     description='Density functional theory workflows for finite temperature thermodynamics based on atomate workflows. Created by the Phases Research Lab',
     long_description=readme(),
     install_requires=['atomate', 'tinydb', 'phonopy', 'ase', 'pymatgen', 'numpy'],
