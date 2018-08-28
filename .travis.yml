@@ -6,7 +6,7 @@ cache: pip
 install:
   - pip install -e '.[dev]'
 script:
-  - py.test -v dfttk/
+  - py.test -v tests/
 notifications:
   email: False
 services: mongodb
