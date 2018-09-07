@@ -53,7 +53,7 @@ class OptimizeFW(Firework):
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         if symmetry_tolerance is not None:
-            t.append(CheckSymmetry(symmetry_tolerance))
+            t.append(CheckSymmetry(tolerance=symmetry_tolerance))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
@@ -105,7 +105,7 @@ class StaticFW(Firework):
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         if scale_lattice is not None:
-            t.append(ScaleVolumeTransformation(scale_lattice))
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))

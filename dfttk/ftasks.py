@@ -79,7 +79,7 @@ class ScaleVolumeTransformation(FiretaskBase):
     This requires that a POSCAR is present in the current directory.
     """
 
-    required_params = ['scaling_factor']
+    required_params = ['scale_factor']
     def run_task(self, fw_spec):
         cell = Structure.from_file('POSCAR')
 
@@ -87,7 +87,7 @@ class ScaleVolumeTransformation(FiretaskBase):
         cell.to(filename='POSCAR.orig-volume')
 
         # make the supercell and write to file
-        cell.scale_lattice(cell.volume*self['scaling_factor'])
+        cell.scale_lattice(cell.volume*self['scale_factor'])
         cell.to(filename='POSCAR')
 
 
