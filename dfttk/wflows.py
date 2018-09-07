@@ -79,7 +79,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
 
     for i, deformation in enumerate(deformations):
         vis = StaticSet(structure)
-        static = StaticFW(structure, scale_lattice=deformation, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
+        static = StaticFW(structure, scale_lattice=deformation, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=full_relax_fw)
         fws.append(static)
 
         if phonon:
