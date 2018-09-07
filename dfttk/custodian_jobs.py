@@ -1,7 +1,8 @@
 
 import os
 import datetime
-from custodian.custodian import ErrorHandler
+import subprocess
+from custodian.custodian import ErrorHandler, Job
 from custodian.ansible.interpreter import Modder
 from custodian.ansible.actions import FileActions
 
@@ -81,3 +82,14 @@ class ATATWalltimeHandler(ErrorHandler):
         for a in actions:
             m.modify(a["action"], a["file"])
         return {"errors": ["Walltime reached"], "actions": None}
+
+
+class ATATInfDetJob(Job):
+    def __init__(self):
+        self.name = 'ATAT Inflection Detection Job'
+
+    def run(self):
+        with open('ATAT.robustrelax.out', 'w') as f_std, \
+                open('ATAT.robustrelax.err', "w", buffering=1) as f_err:
+            # use line buffering for stderr
+            out = subprocess.run(['robustrelax_vasp', '-id', '-c', '0.05', '-rc', '""', '-vc', '""'], stdout=f_std, stderr=f_err)

@@ -5,6 +5,7 @@ import subprocess
 
 from pymatgen import Structure
 from pymatgen.io.vasp.outputs import Vasprun
+from custodian.custodian import Custodian
 from pymatgen.analysis.eos import EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
@@ -12,6 +13,7 @@ from atomate.vasp.database import VaspCalcDb
 from dfttk.analysis.phonon import get_f_vib_phonopy
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y
+from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
 import numpy as np
 
 
@@ -326,3 +328,24 @@ class EOSAnalysis(FiretaskBase):
             json.dump(analysis_result, fp)
 
         vasp_db.db['eos'].insert_one(analysis_result)
+
+
+@explicit_serialize
+class RunATATInfDetCustodian(FiretaskBase):
+    """
+    Run robustrelax_vasp with custodian.
+    If walltime handler, is found, we can add a new Firework detour to continue running.
+    """
+
+    optional_params = ['walltime']
+    def run_task(self, fw_spec):
+        walltime = self.get('walltime', None)
+
+        jobs = [ATATInfDetJob()]
+        handlers = [ATATWalltimeHandler(wall_time=walltime)]
+        cust = Custodian(handlers, jobs, max_errors=2)
+
+        # TODO: check for errors, if there are errors (walltime) then detour another run ATAT firework
+        return FWAction()
+
+
