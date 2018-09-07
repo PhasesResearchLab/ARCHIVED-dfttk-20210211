@@ -41,7 +41,7 @@ class RelaxSet(DictSet):
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,
-        'PREC': 'HIGH',
+        'PREC': 'Accurate',
         'ALGO': 'NORMAL',
         'LWAVE': True,
         'LCHARG': True,
