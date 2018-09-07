@@ -1,6 +1,8 @@
 """
 Custom Firetasks for the DFTTK
 """
+import subprocess
+
 from pymatgen import Structure
 from pymatgen.io.vasp.outputs import Vasprun
 from pymatgen.analysis.eos import EOS
@@ -67,6 +69,54 @@ class SupercellTransformation(FiretaskBase):
         # make the supercell and write to file
         unitcell.make_supercell(self['supercell_matrix'])
         unitcell.to(filename='POSCAR')
+
+
+@explicit_serialize
+class ScaleVolumeTransformation(FiretaskBase):
+    """
+    Scale the volume of a Structure (as a POSCAR) by a fraction and write to POSCAR.
+
+    This requires that a POSCAR is present in the current directory.
+    """
+
+    required_params = ['scaling_factor']
+    def run_task(self, fw_spec):
+        cell = Structure.from_file('POSCAR')
+
+        # create the unitcell file backup
+        cell.to(filename='POSCAR.orig-volume')
+
+        # make the supercell and write to file
+        cell.scale_lattice(cell.volume*self['scaling_factor'])
+        cell.to(filename='POSCAR')
+
+
+@explicit_serialize
+class CheckSymmetry(FiretaskBase):
+    """
+    Check that the symmetry of
+
+    Converts POSCAR to str.out and CONTCAR to str_relax.out and uses ATAT's checkrelax utility to check.
+    """
+    required_params = ['tolerance']
+    def run_task(self, fw_spec):
+        # unrelaxed cell
+        cell = Structure.from_file('POSCAR')
+        cell.to(filename='str.out', fmt='mcsqs')
+
+        # relaxed cell
+        cell = Structure.from_file('CONTCAR')
+        cell.to(filename='str_relax.out', fmt='mcsqs')
+
+        # check the symmetry
+        out = subprocess.run(['checkrelax', '-1'], capture_output=True)
+        relaxation = float(out.stdout)
+
+        # we relax too much
+        if relaxation > self['tolerance']:
+            # For now: defuse the later fireworks as a sign to rerun.
+            # Later: we'll add a detour of a volume relax FW and a inflection detection FW
+            return FWAction(defuse_children=True)
 
 
 @explicit_serialize

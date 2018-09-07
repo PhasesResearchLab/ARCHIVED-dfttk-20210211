@@ -109,30 +109,28 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
         deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
 
     # follow a scheme of
-    # 1. ISIF 2
-    # 2. ISIF 4
-    # 3. Static
+    # 1. Full relax + symmetry check
+    # 2. If symmetry check fails, detour to 1. Volume relax, 2. inflection detection
+    # 3. Inflection detection
+    # 4. Static EV
+    # 5. Phonon EV
     fws = []
     qha_calcs = []
     # for each FW, we set the structure to the original structure to verify to ourselves that the
     # volume deformed structure is set by input set.
+
+    # Full relax
+    vis = RelaxSet(structure)
+    full_relax_fw = OptimizeFW(structure, symmetry_tolerance=0.05, job_type='normal', name='Full relax'.format(i), prev_calc_loc=False, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+    fws.append(full_relax_fw)
+
     for i, deformation in enumerate(deformations):
-        struct = structure.copy()
-        struct.scale_lattice(struct.volume*deformation)
-        vis = RelaxSet(struct, user_incar_settings={'ISIF': 2})
-        isif_2_fw = OptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_2'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
-        fws.append(isif_2_fw)
-
-        vis = RelaxSet(struct, user_incar_settings={'ISIF': 4})
-        isif_4_fw = OptimizeFW(structure, job_type='normal', name='structure_{}-relax-isif_4'.format(i), prev_calc_loc=True, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_2_fw)
-        fws.append(isif_4_fw)
-
-        vis = StaticSet(struct)
-        static = StaticFW(structure, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
+        vis = StaticSet(structure)
+        static = StaticFW(structure, scale_lattice=deformation, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=isif_4_fw)
         fws.append(static)
 
         if phonon:
-            vis = ForceConstantsSet(struct)
+            vis = ForceConstantsSet(structure)
             phonon_fw = PhononFW(structure, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
                      name='structure_{}-phonon'.format(i), vasp_input_set=vis,
                      vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,

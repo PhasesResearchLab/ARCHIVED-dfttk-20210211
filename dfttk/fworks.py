@@ -8,7 +8,8 @@ from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, InfdetSet
-from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties
+from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
+    CheckSymmetry, ScaleVolumeTransformation
 
 
 class OptimizeFW(Firework):
@@ -34,7 +35,7 @@ class OptimizeFW(Firework):
             Whether to insert the task into the database. Defaults to False.
         \*\*kwargs: Other kwargs that are passed to Firework.__init__.
     """
-    def __init__(self, structure, name="structure optimization", vasp_input_set=None, job_type="normal",
+    def __init__(self, structure, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
                  force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, **kwargs):
 
@@ -51,11 +52,12 @@ class OptimizeFW(Firework):
             vasp_input_set = vasp_input_set or RelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
+        if symmetry_tolerance is not None:
+            t.append(CheckSymmetry(symmetry_tolerance))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
-
 
 
 class StaticFW(Firework):
@@ -85,7 +87,7 @@ class StaticFW(Firework):
     \*\*kwargs : dict
         Other kwargs that are passed to Firework.__init__.
     """
-    def __init__(self, structure, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
+    def __init__(self, structure, scale_lattice=None, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
                  prev_calc_loc=True, db_file=None, parents=None, **kwargs):
 
         # TODO: @computron - I really don't like how you need to set the structure even for
@@ -102,7 +104,8 @@ class StaticFW(Firework):
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
-
+        if scale_lattice is not None:
+            t.append(ScaleVolumeTransformation(scale_lattice))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
