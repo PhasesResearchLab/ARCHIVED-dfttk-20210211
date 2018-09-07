@@ -121,7 +121,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
 
     # Full relax
     vis = RelaxSet(structure)
-    full_relax_fw = OptimizeFW(structure, symmetry_tolerance=0.05, job_type='normal', name='Full relax'.format(i), prev_calc_loc=False, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
+    full_relax_fw = OptimizeFW(structure, symmetry_tolerance=0.05, job_type='normal', name='Full relax', prev_calc_loc=False, vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata)
     fws.append(full_relax_fw)
 
     for i, deformation in enumerate(deformations):
