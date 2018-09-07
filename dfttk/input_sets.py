@@ -1,4 +1,5 @@
 import six
+import os
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.sets import DictSet, get_vasprun_outcar, get_structure_from_prev_run, _load_yaml_config
@@ -25,32 +26,36 @@ class RelaxSet(DictSet):
 
     The smearing must be set to give the correct forces.
     The default is tuned for metal relaxations.
-    Kpoints have a 6000 kpoints per reciprocal atom default.
+    Kpoints have a 8000 kpoints per reciprocal atom default.
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
     # we never are comparing relaxations, only using them for optimizing structures.
     CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
     CONFIG['KPOINTS'].update({
-        'grid_density': 6000,
+        'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].update({
-        'EDIFF_PER_ATOM': 1e-4,
+        'EDIFF_PER_ATOM': 1e-5,
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,
         'PREC': 'HIGH',
         'ALGO': 'NORMAL',
-        "LCHARG": True,
-        "LWAVE": True,
+        'LWAVE': True,
+        'LCHARG': True,
+        'ISIF': 3,
+        'ENCUT': 520,
     })
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
-    def __init__(self, structure, **kwargs):
+    def __init__(self, structure, volume_relax=False, **kwargs):
+        """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
-        super(RelaxSet, self).__init__(
-            structure, RelaxSet.CONFIG, **kwargs)
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, **kwargs)
+        self.incar.update({'ISIF': 7})
+
 
 class ForceConstantsSet(DictSet):
     """
@@ -80,7 +85,7 @@ class ForceConstantsSet(DictSet):
         'POTIM': 0.015,  # displacement distance
         'NFREE': 2,  # how many displacments to do. 2 gives +POTIM and -POTIM
         'NSW': 1,  # backwards compatibility setting
-        'PREC': 'HIGH',
+        'PREC': 'Accurate',
         'ALGO': 'NORMAL',
         'SYMPREC': 1e-4,  # some supercells seem to have issues with primcel VASP algorithm
     })
@@ -91,6 +96,7 @@ class ForceConstantsSet(DictSet):
         self.kwargs = kwargs
         super(ForceConstantsSet, self).__init__(
             structure, ForceConstantsSet.CONFIG, **kwargs)
+
 
 class StaticSet(DictSet):
     """Set tuned for metal relaxations (correct smearing).
@@ -104,7 +110,7 @@ class StaticSet(DictSet):
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
         'EDIFF_PER_ATOM': 1e-6,
-        'ENCUT': 520, # MP compatibility
+        'ENCUT': 520,  # MP compatibility
         'ISMEAR': -5,
         "NSW": 0,
         "IBRION": -1,
@@ -116,6 +122,7 @@ class StaticSet(DictSet):
         "LWAVE": True,
         "LORBIT": 11,
         "LVHAR": True,
+        "LWAVE": True,
         "ICHARG": 0,
         "NEDOS": 5001,
     })
@@ -191,51 +198,44 @@ class StaticSet(DictSet):
                 kpoints = Kpoints.gamma_automatic(kpoints.kpts[0])
         return kpoints
 
-    @classmethod
-    def from_prev_calc(cls, prev_calc_dir, standardize=False, sym_prec=0.1,
-                       international_monoclinic=True, grid_density=8000,
-                       small_gap_multiply=None, **kwargs):
-        """
-        Generate a set of Vasp input files for static calculations from a
-        directory of previous Vasp run.
 
-        Args:
-            prev_calc_dir (str): Directory containing the outputs(
-                vasprun.xml and OUTCAR) of previous vasp run.
-            standardize (float): Whether to standardize to a primitive
-                standard cell. Defaults to False.
-            sym_prec (float): Tolerance for symmetry finding. If not 0,
-                the final structure from the previous run will be symmetrized
-                to get a primitive standard cell. Set to 0 if you don't want
-                that.
-            international_monoclinic (bool): Whether to use international
-                    convention (vs Curtarolo) for monoclinic. Defaults True.
-            grid_density (int): density of k-mesh by reciprocal atom (defaults to 8000)
-            small_gap_multiply ([float, float]): If the gap is less than
-                1st index, multiply the default reciprocal_density by the 2nd
-                index.
-            \\*\\*kwargs: All kwargs supported by MPStaticSet,
-                other than prev_incar and prev_structure and prev_kpoints which
-                are determined from the prev_calc_dir.
-        """
-        vasprun, outcar = get_vasprun_outcar(prev_calc_dir)
+class InfdetSet():
+    """Set tuned for Inflection Detection runs using ATAT with correct smearing for metals.
+    Kpoints have a 8000 reciprocal density default.
 
-        prev_incar = vasprun.incar
-        prev_kpoints = vasprun.kpoints
+    Overrides write_input to write the INCAR, KPPRA, USEPOT and DOSTATIC to the vasp.wrap instead.
+    """
 
-        # We will make a standard structure for the given symprec.
-        prev_structure = get_structure_from_prev_run(
-            vasprun, outcar, sym_prec=standardize and sym_prec,
-            international_monoclinic=international_monoclinic)
+    def __init__(self, structure, grid_density=8000):
+        self.structure = structure
+        self.grid_density = grid_density
 
-        # multiply the reciprocal density if needed:
-        if small_gap_multiply:
-            gap = vasprun.eigenvalue_band_properties[0]
-            if gap <= small_gap_multiply[0]:
-                grid_density = grid_density * small_gap_multiply[1]
 
-        return StaticSet(structure=prev_structure, prev_incar=prev_incar,
-            prev_kpoints=prev_kpoints, grid_density=grid_density, **kwargs)
+    def write_input(self, output_dir):
+        """Write vaspid.wrap"""
+        # TODO: handle magmoms
+        EDIFF_PER_ATOM = 1e-6
+        EDIFF = len(self.structure)*EDIFF_PER_ATOM
+        vaspid_wrap = """[INCAR]
+        EDIFF = {0}
+        PREC = Accurate
+        ALGO = Fast
+        ENCUT = 520
+        ISMEAR = 1
+        SIGMA = 0.2
+        ISPIN = 2
+        NELMIN = 4
+        IBRION = -1
+        ISIF = 2
+        LREAL = False
+        ISYM = 0
+        ICHARG = 1
+        ISTART = 2
+        USEPOT = PBE
+        KPPRA = {1}
+        """.format(EDIFF, self.grid_density)
+        with open(os.path.join(output_dir, 'vaspid.wrap'), 'w') as fp:
+            fp.write(vaspid_wrap)
 
 
 class RoughStaticSet(DictSet):
