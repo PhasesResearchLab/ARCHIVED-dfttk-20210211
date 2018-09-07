@@ -7,7 +7,7 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
-from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, InfdetSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties
 
 
@@ -108,6 +108,50 @@ class StaticFW(Firework):
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
+
+
+class InflectionDetectionFW(Firework):
+    """
+    Inflection detection Firework
+
+    Parameters
+    ----------
+    structure : pymatgen.Structure
+        Input structure. Note that for prev_calc_loc jobs, the structure
+        is only used to set the name of the FW and any structure with the same composition
+        can be used.
+    name : str
+        Name for the Firework.
+    vasp_input_set : pymategen.io.vasp.inputs.VaspInputSet
+        Input set to use. Defaults to StaticSet() if None.
+    vasp_cmd : str
+        Command to run vasp.
+    prev_calc_loc : (bool or str)
+        If true (default), copies outputs from previous calc. If
+        a str value, grabs a previous calculation output by name. If False/None, will create
+        new static calculation using the provided structure.
+    db_file : str
+        Path to file specifying db credentials.
+    parents : Firework
+        Parents of this particular Firework. FW or list of FWS.
+    \*\*kwargs : dict
+        Other kwargs that are passed to Firework.__init__.
+    """
+    def __init__(self, structure, name="infdet", input_set=None, metadata=None,
+                 prev_calc_loc=True, db_file=None, parents=None, **kwargs):
+
+        metadata = metadata or {}
+        input_set = input_set or InfdetSet(structure)
+
+        t = []
+
+        # TODO: Fireworks:
+        # 1. Copy vasp outputs from volume and full relax, write to str_beg.out and str_end.out, respectively
+        # 2. Write the vaspid.wrap file
+        # 3. Run ATAT `robustrelax_vasp -id -c 0.05 -rc "" -vc ""`
+        # 4. Parse outputs and convert str_relax.out to CONTCAR
+
+        raise NotImplementedError()
 
 
 class PhononFW(Firework):
