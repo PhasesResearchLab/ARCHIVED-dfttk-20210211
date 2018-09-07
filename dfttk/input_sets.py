@@ -53,8 +53,10 @@ class RelaxSet(DictSet):
     def __init__(self, structure, volume_relax=False, **kwargs):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
+        self.volume_relax = volume_relax
         super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, **kwargs)
-        self.incar.update({'ISIF': 7})
+        if self.volume_relax:
+            self.incar.update({'ISIF': 7})
 
 
 class ForceConstantsSet(DictSet):
