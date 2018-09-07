@@ -109,7 +109,7 @@ class CheckSymmetry(FiretaskBase):
         cell.to(filename='str_relax.out', fmt='mcsqs')
 
         # check the symmetry
-        out = subprocess.run(['checkrelax', '-1'], capture_output=True)
+        out = subprocess.run(['checkrelax', '-1'], stdout=subprocess.PIPE)
         relaxation = float(out.stdout)
 
         # we relax too much
