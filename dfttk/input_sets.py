@@ -1,5 +1,6 @@
 import six
 import os
+import subprocess
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.sets import DictSet, get_vasprun_outcar, get_structure_from_prev_run, _load_yaml_config
@@ -201,7 +202,7 @@ class StaticSet(DictSet):
         return kpoints
 
 
-class InfdetSet():
+class ATATSet():
     """Set tuned for Inflection Detection runs using ATAT with correct smearing for metals.
     Kpoints have a 8000 reciprocal density default.
 
@@ -214,30 +215,34 @@ class InfdetSet():
 
 
     def write_input(self, output_dir):
-        """Write vaspid.wrap"""
+        """Write vasp.wrap and generate the other commands with robustrelax_vasp -mk"""
         # TODO: handle magmoms
         EDIFF_PER_ATOM = 1e-6
         EDIFF = len(self.structure)*EDIFF_PER_ATOM
-        vaspid_wrap = """[INCAR]
+        vasp_wrap = """[INCAR]
         EDIFF = {0}
         PREC = Accurate
         ALGO = Fast
         ENCUT = 520
         ISMEAR = 1
         SIGMA = 0.2
+        IBRION = 2
+        NSW = 50
         ISPIN = 2
         NELMIN = 4
-        IBRION = -1
-        ISIF = 2
+        ISIF = 3
         LREAL = False
         ISYM = 0
         ICHARG = 1
         ISTART = 2
         USEPOT = PBE
         KPPRA = {1}
+        DOSTATIC
         """.format(EDIFF, self.grid_density)
-        with open(os.path.join(output_dir, 'vaspid.wrap'), 'w') as fp:
-            fp.write(vaspid_wrap)
+        with open(os.path.join(output_dir, 'vasp.wrap'), 'w') as fp:
+            fp.write(vasp_wrap)
+
+        subprocess.run(["robustrelax_vasp", "-mk"])
 
 
 class RoughStaticSet(DictSet):
