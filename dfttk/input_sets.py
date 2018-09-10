@@ -41,7 +41,8 @@ class RelaxSet(DictSet):
         'LREAL': False,
         'PREC': 'HIGH',
         'ALGO': 'NORMAL',
-
+        "LCHARG": True,
+        "LWAVE": True,
     })
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
@@ -112,9 +113,9 @@ class StaticSet(DictSet):
         # other settings from MPStaticSet
         "LAECHG": True,
         "LCHARG": True,
+        "LWAVE": True,
         "LORBIT": 11,
         "LVHAR": True,
-        "LWAVE": False,
         "ICHARG": 0,
         "NEDOS": 5001,
     })

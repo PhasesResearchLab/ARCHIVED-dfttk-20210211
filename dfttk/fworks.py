@@ -45,7 +45,7 @@ class OptimizeFW(Firework):
         t = []
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["CHGCAR", "WAVECAR"]))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             vasp_input_set = vasp_input_set or RelaxSet(structure)
@@ -98,7 +98,7 @@ class StaticFW(Firework):
 
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["CHGCAR", "WAVECAR"]))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
