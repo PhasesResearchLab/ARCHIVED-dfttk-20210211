@@ -46,6 +46,7 @@ class RelaxSet(DictSet):
         'LWAVE': True,
         'LCHARG': True,
         'ISIF': 3,
+        "ICHARG": 1,
         'ENCUT': 520,
     })
     # now we reset the potentials

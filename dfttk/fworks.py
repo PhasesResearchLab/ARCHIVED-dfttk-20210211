@@ -7,7 +7,7 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
-from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, InfdetSet
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
     CheckSymmetry, ScaleVolumeTransformation
 
@@ -46,7 +46,7 @@ class OptimizeFW(Firework):
         t = []
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["CHGCAR", "WAVECAR"]))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["WAVECAR", "CHGCAR"]))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             vasp_input_set = vasp_input_set or RelaxSet(structure)
@@ -100,7 +100,7 @@ class StaticFW(Firework):
 
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["CHGCAR", "WAVECAR"]))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["WAVECAR", "CHGCAR"]))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
@@ -144,7 +144,7 @@ class InflectionDetectionFW(Firework):
                  prev_calc_loc=True, db_file=None, parents=None, **kwargs):
 
         metadata = metadata or {}
-        input_set = input_set or InfdetSet(structure)
+        input_set = input_set or ATATSet(structure)
 
         t = []
 
