@@ -9,7 +9,7 @@ from atomate.vasp.config import VASP_CMD, DB_FILE
 
 from dfttk.ftasks import QHAAnalysis, EOSAnalysis
 from dfttk.fworks import OptimizeFW, StaticFW, PhononFW
-from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, RoughStaticSet
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet
 
 
 def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1),
