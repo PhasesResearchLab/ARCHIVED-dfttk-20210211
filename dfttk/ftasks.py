@@ -331,21 +331,71 @@ class EOSAnalysis(FiretaskBase):
 
 
 @explicit_serialize
-class RunATATInfDetCustodian(FiretaskBase):
+class TransmuteStructureFile(FiretaskBase):
     """
-    Run robustrelax_vasp with custodian.
-    If walltime handler, is found, we can add a new Firework detour to continue running.
+    Copy a file with the input_fname in the input_fmt format to an output_fname with an output_fmt format.
+
+    Parameters
+    ------
+    input_fname : str
+        Filename to read in as a Structure. Defaults to ``POSCAR``.
+    output_fname : str
+        Filename to write out as a Structure. Defaults to ``str.out``.
+    input_fmt : str
+        Format to read the input_fname. Defaults to ``POSCAR``.
+    output_fmt : str
+        Format to read the output_fname. Defaults to ``mcsqs``.
     """
 
-    optional_params = ['walltime']
+    optional_params = ['input_fname', 'output_fname', 'input_fmt', 'output_fmt']
     def run_task(self, fw_spec):
-        walltime = self.get('walltime', None)
+        input_fname = self.get('input_fname', 'POSCAR')
+        output_fname = self.get('output_fname', 'str.out')
+        input_fmt = self.get('input_fname', 'POSCAR')
+        output_fmt = self.get('output_fname', 'mcsqs')
 
-        jobs = [ATATInfDetJob()]
-        handlers = [ATATWalltimeHandler(wall_time=walltime)]
-        cust = Custodian(handlers, jobs, max_errors=2)
-
-        # TODO: check for errors, if there are errors (walltime) then detour another run ATAT firework
+        with open(input_fname) as fp:
+            s = Structure.from_str(fp.read(), fmt=input_fmt)
+        s.to(filename=output_fname, fmt=output_fmt)
         return FWAction()
 
 
+@explicit_serialize
+class CalculatePhononThermalProperties(FiretaskBase):
+    """
+    Phonon-related Firetask to calculate force constants and F_vib.
+
+    This requires that a vasprun.xml from a force constants run and
+    a POSCAR-unitcell be present in the current directory.
+    """
+
+    required_params = ['supercell_matrix', 't_min', 't_max', 't_step', 'db_file', 'tag']
+    optional_params = ['metadata']
+
+    def run_task(self, fw_spec):
+
+        tag = self["tag"]
+        metadata = self.get('metadata', {})
+        metadata['tag'] = tag
+
+        unitcell = Structure.from_file('POSCAR-unitcell')
+        supercell_matrix = self['supercell_matrix']
+        temperatures, f_vib, s_vib, cv_vib, force_constants = get_f_vib_phonopy(unitcell, supercell_matrix, vasprun_path='vasprun.xml', t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'])
+        if isinstance(supercell_matrix, np.ndarray):
+            supercell_matrix = supercell_matrix.tolist()  # make serializable
+        thermal_props_dict = {
+            'volume': unitcell.volume,
+            'F_vib': f_vib.tolist(),
+            'CV_vib': cv_vib.tolist(),
+            'S_vib': s_vib.tolist(),
+            'temperatures': temperatures.tolist(),
+            'force_constants': force_constants.tolist(),
+            'metadata': metadata,
+            'unitcell': unitcell.as_dict(),
+            'supercell_matrix': supercell_matrix,
+        }
+
+        # insert into database
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        vasp_db.db['phonon'].insert_one(thermal_props_dict)

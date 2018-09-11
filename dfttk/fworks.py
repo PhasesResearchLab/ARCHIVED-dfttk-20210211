@@ -9,7 +9,7 @@ from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
-    CheckSymmetry, ScaleVolumeTransformation
+    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile
 
 
 class OptimizeFW(Firework):
@@ -115,7 +115,8 @@ class StaticFW(Firework):
 
 class InflectionDetectionFW(Firework):
     """
-    Inflection detection Firework
+    Inflection detection Firework. Assumes that there are items in the calc_loc
+     of the Firework called 'Full relax' and 'Volume relax'.
 
     Parameters
     ----------
@@ -129,30 +130,40 @@ class InflectionDetectionFW(Firework):
         Input set to use. Defaults to StaticSet() if None.
     vasp_cmd : str
         Command to run vasp.
-    prev_calc_loc : (bool or str)
-        If true (default), copies outputs from previous calc. If
-        a str value, grabs a previous calculation output by name. If False/None, will create
-        new static calculation using the provided structure.
     db_file : str
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
     \*\*kwargs : dict
         Other kwargs that are passed to Firework.__init__.
+
+    Notes
+    -----
+    1. Copy vasp outputs from volume and full relax, write to str_beg.out and str_end.out, respectively
+    2. Write the vaspid.wrap file
+    3. Run ATAT `robustrelax_vasp -id -c 0.05 -rc "" -vc ""`
+    4. Parse outputs and convert str_relax.out to CONTCAR
+
     """
     def __init__(self, structure, name="infdet", input_set=None, metadata=None,
-                 prev_calc_loc=True, db_file=None, parents=None, **kwargs):
-
+                 db_file=None, parents=None, **kwargs):
         metadata = metadata or {}
         input_set = input_set or ATATSet(structure)
 
         t = []
 
-        # TODO: Fireworks:
-        # 1. Copy vasp outputs from volume and full relax, write to str_beg.out and str_end.out, respectively
-        # 2. Write the vaspid.wrap file
-        # 3. Run ATAT `robustrelax_vasp -id -c 0.05 -rc "" -vc ""`
-        # 4. Parse outputs and convert str_relax.out to CONTCAR
+        # Copy the volume relax CONTCAR to POSCAR and the full relax CONTCAR as CONTCAR. Get the CHGCAR and WAVECAR from the fully relaxed structure
+        # There are other ways to do this, but it's important to pay attention
+        # to the order so that work is not destoryed because CopyVaspOutputs
+        # will always give back a POSCAR, KPOINTS, INCAR, POTCAR, OUTCAR, and
+        # vasprun.xml.
+        # What we do here ensures that
+        # 1. We get the the WAVECAR and CHGCAR from the full relax
+        # 2. We do not overwrite the structure that we took from the full relax when we copy the volume relax
+        t.append(CopyVaspOutputs(calc_loc='Full relax', contcar_to_poscar=False, additional_files=["WAVECAR", "CHGCAR", "CONTCAR"]))
+        t.append(CopyVaspOutputs(calc_loc='Volume relax', contcar_to_poscar=True))
+        t.append(TransmuteStructureFile(input_fname='POSCAR', output_fname='str_beg.out'))
+        t.append(TransmuteStructureFile(input_fname='CONTCAR', output_fname='str_end.out'))
 
         raise NotImplementedError()
 
