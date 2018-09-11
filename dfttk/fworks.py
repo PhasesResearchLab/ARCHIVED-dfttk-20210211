@@ -7,9 +7,9 @@ from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
-from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATSet
+from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
-    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile
+    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian
 
 
 class OptimizeFW(Firework):
@@ -134,6 +134,8 @@ class InflectionDetectionFW(Firework):
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
+    continuation : bool
+        Whether this Firework is continuing from a previous run of the InflectionDetection code.
     \*\*kwargs : dict
         Other kwargs that are passed to Firework.__init__.
 
@@ -141,31 +143,43 @@ class InflectionDetectionFW(Firework):
     -----
     1. Copy vasp outputs from volume and full relax, write to str_beg.out and str_end.out, respectively
     2. Write the vaspid.wrap file
-    3. Run ATAT `robustrelax_vasp -id -c 0.05 -rc "" -vc ""`
-    4. Parse outputs and convert str_relax.out to CONTCAR
+    3. Run ATAT's robustrelax_vasp, detouring a continuation of this Firework if we hit the walltime
+    4. Move str_relax.out to CONTCAR
 
     """
     def __init__(self, structure, name="infdet", input_set=None, metadata=None,
-                 db_file=None, parents=None, **kwargs):
+                 db_file=None, parents=None, continuation=False, **kwargs):
         metadata = metadata or {}
-        input_set = input_set or ATATSet(structure)
+        input_set = input_set or ATATIDSet(structure)
 
         t = []
 
-        # Copy the volume relax CONTCAR to POSCAR and the full relax CONTCAR as CONTCAR. Get the CHGCAR and WAVECAR from the fully relaxed structure
-        # There are other ways to do this, but it's important to pay attention
-        # to the order so that work is not destoryed because CopyVaspOutputs
-        # will always give back a POSCAR, KPOINTS, INCAR, POTCAR, OUTCAR, and
-        # vasprun.xml.
-        # What we do here ensures that
-        # 1. We get the the WAVECAR and CHGCAR from the full relax
-        # 2. We do not overwrite the structure that we took from the full relax when we copy the volume relax
-        t.append(CopyVaspOutputs(calc_loc='Full relax', contcar_to_poscar=False, additional_files=["WAVECAR", "CHGCAR", "CONTCAR"]))
-        t.append(CopyVaspOutputs(calc_loc='Volume relax', contcar_to_poscar=True))
-        t.append(TransmuteStructureFile(input_fname='POSCAR', output_fname='str_beg.out'))
-        t.append(TransmuteStructureFile(input_fname='CONTCAR', output_fname='str_end.out'))
+        if not continuation:
+            # Copy the volume relax CONTCAR to POSCAR and the full relax CONTCAR as CONTCAR. Get the CHGCAR and WAVECAR from the fully relaxed structure
+            # There are other ways to do this, but it's important to pay attention
+            # to the order so that work is not destoryed because CopyVaspOutputs
+            # will always give back a POSCAR (or CONTCAR as POSCAR), KPOINTS, INCAR, POTCAR, OUTCAR, and
+            # vasprun.xml.
+            # What we do here ensures that
+            # 1. We get the the WAVECAR and CHGCAR from the full relax
+            # 2. We do not overwrite the structure that we took from the full relax when we copy the volume relax
+            t.append(CopyVaspOutputs(calc_loc='Full relax', contcar_to_poscar=False, additional_files=["WAVECAR", "CHGCAR", "CONTCAR"]))
+            t.append(CopyVaspOutputs(calc_loc='Volume relax', contcar_to_poscar=True))
+            # Move the volume relaxed POSCAR to str_beg.out
+            t.append(TransmuteStructureFile(input_fname='POSCAR', output_fname='str_beg.out'))
+            # Move the fully relaxed CONTCAR to str_end.out
+            t.append(TransmuteStructureFile(input_fname='CONTCAR', output_fname='str_end.out'))
+            # write the vaspid.wrap file
+            t.append(WriteATATFromIOSet(input_set=input_set))
+        else:
+            # Copy all the files from the previous run.
+            raise NotImplementedError()
 
-        raise NotImplementedError()
+        # Run ATAT's inflection detection
+        t.append(RunATATCustodian(continuation=continuation))
+        # TODO: maybe this won't exist if we had to stop ATAT?
+        t.append(TransmuteStructureFile(input_fname='str_relax.out', output_fname='str_end.out'))
+        t.append(PassCalcLocs(name=name))
 
 
 class PhononFW(Firework):

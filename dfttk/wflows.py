@@ -7,7 +7,7 @@ from uuid import uuid4
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 
-from dfttk.ftasks import QHAAnalysis, EOSAnalysis
+from dfttk.ftasks import QHAAnalysis
 from dfttk.fworks import OptimizeFW, StaticFW, PhononFW
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet
 

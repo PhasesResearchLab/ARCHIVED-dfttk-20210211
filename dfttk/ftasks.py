@@ -399,3 +399,38 @@ class CalculatePhononThermalProperties(FiretaskBase):
         db_file = env_chk(self["db_file"], fw_spec)
         vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
         vasp_db.db['phonon'].insert_one(thermal_props_dict)
+
+
+@explicit_serialize
+class WriteATATFromIOSet(FiretaskBase):
+    """
+    Write ATAT input as vaspid.wrap
+
+    Parameters
+    ------
+    input_set : DictSet
+        Input set that supports a ``write_input`` method.
+    """
+
+    required_params = ['input_set']
+    def run_task(self, fw_spec):
+        input_set = self['input_set']
+        input_set.write_input('.')
+
+        return FWAction()
+
+
+@explicit_serialize
+class RunATATCustodian(FiretaskBase):
+    """
+    Run ATAT inflection detection with walltime handler.
+
+    If the walltime handler is triggered, detour another InflectionDetection Firework.
+    """
+
+    optional_params = ['continuation']
+    def run_task(self, fw_spec):
+        continuation = self.get('continuation', False)
+        # TODO: detour the firework pending the result
+        c = Custodian([ATATWalltimeHandler()], [ATATInfDetJob(continuation=continuation)], max_errors=2)
+        c.run()

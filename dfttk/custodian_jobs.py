@@ -85,11 +85,15 @@ class ATATWalltimeHandler(ErrorHandler):
 
 
 class ATATInfDetJob(Job):
-    def __init__(self):
+    def __init__(self, continuation=False):
         self.name = 'ATAT Inflection Detection Job'
+        self.continuation = continuation
 
     def run(self):
+        run_args = ['robustrelax_vasp', '-id', '-c', '0.05', '-rc', '""', '-vc', '""']
+        if self.continuation:
+            run_args.append(['-cip'])
         with open('ATAT.robustrelax.out', 'w') as f_std, \
                 open('ATAT.robustrelax.err', "w", buffering=1) as f_err:
             # use line buffering for stderr
-            out = subprocess.run(['robustrelax_vasp', '-id', '-c', '0.05', '-rc', '""', '-vc', '""'], stdout=f_std, stderr=f_err)
+            out = subprocess.run(run_args, stdout=f_std, stderr=f_err)
