@@ -203,7 +203,7 @@ class StaticSet(DictSet):
         return kpoints
 
 
-class ATATSet():
+class ATATIDSet():
     """Set tuned for Inflection Detection runs using ATAT with correct smearing for metals.
     Kpoints have a 8000 reciprocal density default.
 
@@ -227,21 +227,18 @@ class ATATSet():
         ENCUT = 520
         ISMEAR = 1
         SIGMA = 0.2
-        IBRION = 2
-        NSW = 50
+        IBRION = -1
+        NSW = 1
         ISPIN = 2
         NELMIN = 4
-        ISIF = 3
+        ISIF = 2
         LREAL = False
         ISYM = 0
         ICHARG = 1
         ISTART = 2
-        USEPOT = PBE
+        USEPOT = PAWPBE
         KPPRA = {1}
-        DOSTATIC
         """.format(EDIFF, self.grid_density)
-        with open(os.path.join(output_dir, 'vasp.wrap'), 'w') as fp:
+        with open(os.path.join(output_dir, 'vaspid.wrap'), 'w') as fp:
             fp.write(vasp_wrap)
-
-        subprocess.run(["robustrelax_vasp", "-mk"])
 
