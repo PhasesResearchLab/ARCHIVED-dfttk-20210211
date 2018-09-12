@@ -134,74 +134,9 @@ class StaticSet(DictSet):
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
-    def __init__(self, structure, prev_incar=None, prev_kpoints=None,
-                 lepsilon=False, lcalcpol=False, grid_density=8000, **kwargs):
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
-
-        if isinstance(prev_incar, six.string_types):
-            prev_incar = Incar.from_file(prev_incar)
-        if isinstance(prev_kpoints, six.string_types):
-            prev_kpoints = Kpoints.from_file(prev_kpoints)
-
-        self.prev_incar = prev_incar
-        self.prev_kpoints = prev_kpoints
-        self.grid_density = grid_density
-        self.structure = structure
+    def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
-        self.lepsilon = lepsilon
-        self.lcalcpol = lcalcpol
-
-    @property
-    def incar(self):
-        parent_incar = super(StaticSet, self).incar
-        incar = Incar(self.prev_incar) if self.prev_incar is not None else \
-            Incar(parent_incar)
-
-        incar.update(
-            {"IBRION": -1, "ISMEAR": -5, "LAECHG": True, "LCHARG": True,
-             "LORBIT": 11, "LVHAR": True, "LWAVE": False, "NSW": 0,
-             "ICHARG": 0, "ALGO": "Normal"})
-
-
-        for k in ["MAGMOM", "NUPDOWN"] + list(self.kwargs.get(
-                "user_incar_settings", {}).keys()):
-            # For these parameters as well as user specified settings, override
-            # the incar settings.
-            if parent_incar.get(k, None) is not None:
-                incar[k] = parent_incar[k]
-            else:
-                incar.pop(k, None)
-
-        # use new LDAUU when possible b/c the Poscar might have changed
-        # representation
-        if incar.get('LDAU'):
-            u = incar.get('LDAUU', [])
-            j = incar.get('LDAUJ', [])
-            if sum([u[x] - j[x] for x, y in enumerate(u)]) > 0:
-                for tag in ('LDAUU', 'LDAUL', 'LDAUJ'):
-                    incar.update({tag: parent_incar[tag]})
-            # ensure to have LMAXMIX for GGA+U static run
-            if "LMAXMIX" not in incar:
-                incar.update({"LMAXMIX": parent_incar["LMAXMIX"]})
-
-        # Compare ediff between previous and staticinputset values,
-        # choose the tighter ediff
-        incar["EDIFF"] = min(incar.get("EDIFF", 1), parent_incar["EDIFF"])
-        return incar
-
-    @property
-    def kpoints(self):
-        self._config_dict["KPOINTS"]["grid_density"] = self.grid_density
-        kpoints = super(StaticSet, self).kpoints
-        # Prefer to use k-point scheme from previous run
-        if self.prev_kpoints and self.prev_kpoints.style != kpoints.style:
-            if self.prev_kpoints.style == Kpoints.supported_modes.Monkhorst:
-                k_div = [kp + 1 if kp % 2 == 1 else kp
-                         for kp in kpoints.kpts[0]]
-                kpoints = Kpoints.monkhorst_automatic(k_div)
-            else:
-                kpoints = Kpoints.gamma_automatic(kpoints.kpts[0])
-        return kpoints
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
 
 
 class ATATIDSet():
