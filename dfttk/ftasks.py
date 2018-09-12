@@ -432,5 +432,5 @@ class RunATATCustodian(FiretaskBase):
     def run_task(self, fw_spec):
         continuation = self.get('continuation', False)
         # TODO: detour the firework pending the result
-        c = Custodian([ATATWalltimeHandler()], [ATATInfDetJob(continuation=continuation)], max_errors=2)
+        c = Custodian([ATATWalltimeHandler()], [ATATInfDetJob(continuation=continuation)], monitor_freq=1, polling_time_step=300)
         c.run()
