@@ -46,7 +46,7 @@ class OptimizeFW(Firework):
         t = []
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["WAVECAR", "CHGCAR"]))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             vasp_input_set = vasp_input_set or RelaxSet(structure)
@@ -100,7 +100,7 @@ class StaticFW(Firework):
 
         if parents:
             if prev_calc_loc:
-                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True, additional_files=["WAVECAR", "CHGCAR"]))
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
@@ -163,7 +163,7 @@ class InflectionDetectionFW(Firework):
             # What we do here ensures that
             # 1. We get the the WAVECAR and CHGCAR from the full relax
             # 2. We do not overwrite the structure that we took from the full relax when we copy the volume relax
-            t.append(CopyVaspOutputs(calc_loc='Full relax', contcar_to_poscar=False, additional_files=["WAVECAR", "CHGCAR", "CONTCAR"]))
+            t.append(CopyVaspOutputs(calc_loc='Full relax', contcar_to_poscar=False, additional_files=["CONTCAR"]))
             t.append(CopyVaspOutputs(calc_loc='Volume relax', contcar_to_poscar=True))
             # Move the volume relaxed POSCAR to str_beg.out
             t.append(TransmuteStructureFile(input_fname='POSCAR', output_fname='str_beg.out'))

@@ -43,10 +43,10 @@ class RelaxSet(DictSet):
         'LREAL': False,
         'PREC': 'Accurate',
         'ALGO': 'NORMAL',
-        'LWAVE': True,
-        'LCHARG': True,
+        'LWAVE': False,
+        'LCHARG': False,
         'ISIF': 3,
-        "ICHARG": 1,
+        "ICHARG": 2,
         'ENCUT': 520,
     })
     # now we reset the potentials
@@ -92,6 +92,7 @@ class ForceConstantsSet(DictSet):
         'PREC': 'Accurate',
         'ALGO': 'NORMAL',
         'SYMPREC': 1e-4,  # some supercells seem to have issues with primcel VASP algorithm
+        "ICHARG": 2,
     })
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
@@ -127,7 +128,7 @@ class StaticSet(DictSet):
         "LORBIT": 11,
         "LVHAR": True,
         "LWAVE": True,
-        "ICHARG": 0,
+        "ICHARG": 2,
         "NEDOS": 5001,
     })
     # now we reset the potentials
