@@ -102,6 +102,7 @@ class CheckSymmetry(FiretaskBase):
     Converts POSCAR to str.out and CONTCAR to str_relax.out and uses ATAT's checkrelax utility to check.
     """
     required_params = ['tolerance']
+    optional_params = ['db_file', 'vasp_cmd', 'structure', 'metadata']
     def run_task(self, fw_spec):
         # unrelaxed cell
         cell = Structure.from_file('POSCAR')
@@ -115,11 +116,22 @@ class CheckSymmetry(FiretaskBase):
         out = subprocess.run(['checkrelax', '-1'], stdout=subprocess.PIPE)
         relaxation = float(out.stdout)
 
-        # we relax too much
+        # we relax too much, add a volume relax and inflection detection WF as a detour
         if relaxation > self['tolerance']:
-            # For now: defuse the later fireworks as a sign to rerun.
-            # Later: we'll add a detour of a volume relax FW and a inflection detection FW
-            return FWAction(defuse_children=True)
+            from dfttk.fworks import OptimizeFW, InflectionDetectionFW
+            from fireworks import Workflow
+            from dfttk.input_sets import RelaxSet
+            fws = []
+            vis = RelaxSet(self.get('structure'), volume_relax=True)
+            vol_relax_fw = OptimizeFW(self.get('structure'), symmetry_tolerance=None,
+                                       job_type='normal', name='Volume relax',
+                                       vasp_input_set=vis,
+                                       vasp_cmd=self.get('vasp_cmd'), db_file=self.get('db_file'),
+                                       metadata=self.get('metadata'))
+            fws.append(vol_relax_fw)
+            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw]))
+            infdet_wf = Workflow(fws)
+            return FWAction(detours=[infdet_wf])
 
 
 @explicit_serialize

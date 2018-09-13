@@ -53,7 +53,7 @@ class OptimizeFW(Firework):
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         if symmetry_tolerance is not None:
-            t.append(CheckSymmetry(tolerance=symmetry_tolerance))
+            t.append(CheckSymmetry(tolerance=symmetry_tolerance, vasp_cmd=vasp_cmd, db_file=db_file, structure=structure, metadata=metadata))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
@@ -147,7 +147,7 @@ class InflectionDetectionFW(Firework):
     4. Move str_relax.out to CONTCAR
 
     """
-    def __init__(self, structure, name="infdet", input_set=None, metadata=None, prev_calc_loc=None,
+    def __init__(self, structure, name="infdet", input_set=None, metadata=None, prev_calc_loc=True,
                  db_file=None, parents=None, continuation=False, **kwargs):
         metadata = metadata or {}
         input_set = input_set or ATATIDSet(structure)
