@@ -180,6 +180,9 @@ class InflectionDetectionFW(Firework):
         # TODO: maybe this won't exist if we had to stop ATAT?
         t.append(TransmuteStructureFile(input_fname='str_relax.out', output_fname='str_end.out'))
         t.append(PassCalcLocs(name=name))
+        super(InflectionDetectionFW, self).__init__(t, parents=parents,
+                                                    name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
+
 
 
 class PhononFW(Firework):

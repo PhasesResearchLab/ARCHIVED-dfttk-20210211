@@ -2,6 +2,7 @@
 Custom Firetasks for the DFTTK
 """
 import subprocess
+import os
 
 from pymatgen import Structure
 from pymatgen.io.vasp.outputs import Vasprun
@@ -433,4 +434,15 @@ class RunATATCustodian(FiretaskBase):
         continuation = self.get('continuation', False)
         # TODO: detour the firework pending the result
         c = Custodian([ATATWalltimeHandler()], [ATATInfDetJob(continuation=continuation)], monitor_freq=1, polling_time_step=300)
-        c.run()
+        cust_result = c.run()
+
+        if len(cust_result[0]['corrections']) > 0:
+            # we hit the walltime handler, detour another ID Firework
+            os.remove('stop')
+            from dfttk.fworks import InflectionDetectionFW
+            from fireworks import Workflow
+            infdet_wf = Workflow([InflectionDetectionFW(Structure.from_file('POSCAR'), continuation=True)])
+            return FWAction(detours=[infdet_wf])
+
+
+
