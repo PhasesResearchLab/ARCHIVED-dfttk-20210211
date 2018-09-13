@@ -95,5 +95,5 @@ class ATATInfDetJob(Job):
             run_args.append(['-cip'])
         with open('ATAT.robustrelax.out', 'w') as f_std, \
                 open('ATAT.robustrelax.err', "w", buffering=1) as f_err:
-            # use line buffering for stderr
-            out = subprocess.run(run_args, stdout=f_std, stderr=f_err)
+            # we have to use Popen and return in order for Custodian to be able to monitor the process in real time
+            return subprocess.Popen(run_args, stdout=f_std, stderr=f_err)
