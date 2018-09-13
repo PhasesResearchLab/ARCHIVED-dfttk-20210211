@@ -147,7 +147,7 @@ class InflectionDetectionFW(Firework):
     4. Move str_relax.out to CONTCAR
 
     """
-    def __init__(self, structure, name="infdet", input_set=None, metadata=None,
+    def __init__(self, structure, name="infdet", input_set=None, metadata=None, prev_calc_loc=None,
                  db_file=None, parents=None, continuation=False, **kwargs):
         metadata = metadata or {}
         input_set = input_set or ATATIDSet(structure)
@@ -173,16 +173,19 @@ class InflectionDetectionFW(Firework):
             t.append(WriteATATFromIOSet(input_set=input_set))
         else:
             # Copy all the files from the previous run.
-            raise NotImplementedError()
+            files_needed = ['CONTCAR', 'str_beg.out', 'str_end.out', 'str_relax.out', 'epipos.out', 'epidir.out',
+                            'epipos.out', 'infdet.log', 'str_current.out']
+            t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=False, additional_files=files_needed))
 
+        # Unfortunately, it seems that PassCalcLocs must happen before
+        # running ATAT because it can return a FW action that is dynamic and will
+        # skip the remaining Firetasks. We don't really want to do this (I think)
+        # because if this fizzles, the calc_locs will still be changed if this is rerun.
+        t.append(PassCalcLocs(name=name))
         # Run ATAT's inflection detection
         t.append(RunATATCustodian(continuation=continuation))
-        # TODO: maybe this won't exist if we had to stop ATAT?
-        t.append(TransmuteStructureFile(input_fname='str_relax.out', output_fname='str_end.out'))
-        t.append(PassCalcLocs(name=name))
         super(InflectionDetectionFW, self).__init__(t, parents=parents,
                                                     name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
-
 
 
 class PhononFW(Firework):
