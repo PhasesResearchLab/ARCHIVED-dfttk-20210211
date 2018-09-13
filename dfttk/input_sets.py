@@ -135,6 +135,13 @@ class StaticSet(DictSet):
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, **kwargs):
+        # pop the old kwargs, backwards compatibility from the complex StaticSet
+        old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
+        for k in old_kwargs:
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
         self.kwargs = kwargs
         super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
 
