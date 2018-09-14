@@ -52,11 +52,12 @@ class OptimizeFW(Firework):
             vasp_input_set = vasp_input_set or RelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
-        if symmetry_tolerance is not None:
-            t.append(CheckSymmetry(tolerance=symmetry_tolerance, vasp_cmd=vasp_cmd, db_file=db_file, structure=structure, metadata=metadata))
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
+        # This has to happen at the end because dynamically adding Fireworks if the symmetry breaks skips the rest of the tasks in the Firework.
+        if symmetry_tolerance is not None:
+            t.append(CheckSymmetry(tolerance=symmetry_tolerance, vasp_cmd=vasp_cmd, db_file=db_file, structure=structure, metadata=metadata))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
