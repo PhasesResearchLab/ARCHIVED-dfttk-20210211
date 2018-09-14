@@ -17,14 +17,14 @@ from dfttk.utils import sort_x_by_y
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
 
 
-def extend_calc_locs(firetask, fw_spec):
+def extend_calc_locs(name, fw_spec):
     """
     Get the calc_locs from the FW spec and
 
     Parameters
     ----------
-    firetask : FiretaskBase
-        Firetask subclass, used to get the name and other environment variables
+    name : str
+        Name of the calc_loc
     fw_spec : dict
         Dictionary of the current Firework spec containing calc_locs.
 
@@ -34,9 +34,9 @@ def extend_calc_locs(firetask, fw_spec):
         List of extended calc_locs
     """
     calc_locs = list(fw_spec.get("calc_locs", []))
-    calc_locs.append({"name": firetask["name"],
-                      "filesystem": env_chk(firetask.get('filesystem', None), fw_spec),
-                      "path": firetask.get("path", os.getcwd())})
+    calc_locs.append({"name": name,
+                      "filesystem": None,
+                      "path": os.getcwd()})
     return calc_locs
 
 
@@ -124,7 +124,7 @@ class CheckSymmetry(FiretaskBase):
     Converts POSCAR to str.out and CONTCAR to str_relax.out and uses ATAT's checkrelax utility to check.
     """
     required_params = ['tolerance']
-    optional_params = ['db_file', 'vasp_cmd', 'structure', 'metadata']
+    optional_params = ['db_file', 'vasp_cmd', 'structure', 'metadata', 'name']
     def run_task(self, fw_spec):
         # unrelaxed cell
         cell = Structure.from_file('POSCAR')
@@ -156,7 +156,7 @@ class CheckSymmetry(FiretaskBase):
 
             # we have to add the calc locs for this calculation by hand
             # because the detour action seems to disable spec mods
-            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw], spec={'calc_locs': extend_calc_locs(self, fw_spec)}))
+            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw], spec={'calc_locs': extend_calc_locs(self.get('name', 'Full relax'), fw_spec)}))
             infdet_wf = Workflow(fws)
             return FWAction(detours=[infdet_wf])
 
@@ -468,7 +468,7 @@ class RunATATCustodian(FiretaskBase):
     If the walltime handler is triggered, detour another InflectionDetection Firework.
     """
 
-    optional_params = ['continuation']
+    optional_params = ['continuation', 'name']
     def run_task(self, fw_spec):
         continuation = self.get('continuation', False)
         # TODO: detour the firework pending the result
@@ -482,7 +482,7 @@ class RunATATCustodian(FiretaskBase):
             from fireworks import Workflow
             # we have to add the calc locs for this calculation by hand
             # because the detour action seems to disable spec mods
-            infdet_wf = Workflow([InflectionDetectionFW(Structure.from_file('POSCAR'), continuation=True, spec={'calc_locs': extend_calc_locs(self, fw_spec)})])
+            infdet_wf = Workflow([InflectionDetectionFW(Structure.from_file('POSCAR'), continuation=True, spec={'calc_locs': extend_calc_locs(self.get('name', 'InfDet'), fw_spec)})])
             return FWAction(detours=[infdet_wf])
 
 
