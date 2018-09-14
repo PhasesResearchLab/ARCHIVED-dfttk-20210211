@@ -4,8 +4,8 @@ Custom Firetasks for the DFTTK
 import subprocess
 import os
 
+import numpy as np
 from pymatgen import Structure
-from pymatgen.io.vasp.outputs import Vasprun
 from custodian.custodian import Custodian
 from pymatgen.analysis.eos import EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
@@ -15,7 +15,29 @@ from dfttk.analysis.phonon import get_f_vib_phonopy
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
-import numpy as np
+
+
+def extend_calc_locs(firetask, fw_spec):
+    """
+    Get the calc_locs from the FW spec and
+
+    Parameters
+    ----------
+    firetask : FiretaskBase
+        Firetask subclass, used to get the name and other environment variables
+    fw_spec : dict
+        Dictionary of the current Firework spec containing calc_locs.
+
+    Returns
+    -------
+    list
+        List of extended calc_locs
+    """
+    calc_locs = list(fw_spec.get("calc_locs", []))
+    calc_locs.append({"name": firetask["name"],
+                      "filesystem": env_chk(firetask.get('filesystem', None), fw_spec),
+                      "path": firetask.get("path", os.getcwd())})
+    return calc_locs
 
 
 @explicit_serialize
@@ -121,15 +143,20 @@ class CheckSymmetry(FiretaskBase):
             from dfttk.fworks import OptimizeFW, InflectionDetectionFW
             from fireworks import Workflow
             from dfttk.input_sets import RelaxSet
+
             fws = []
             vis = RelaxSet(self.get('structure'), volume_relax=True)
             vol_relax_fw = OptimizeFW(self.get('structure'), symmetry_tolerance=None,
                                        job_type='normal', name='Volume relax',
                                        vasp_input_set=vis,
                                        vasp_cmd=self.get('vasp_cmd'), db_file=self.get('db_file'),
-                                       metadata=self.get('metadata'))
+                                       metadata=self.get('metadata'),
+                                      )
             fws.append(vol_relax_fw)
-            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw]))
+
+            # we have to add the calc locs for this calculation by hand
+            # because the detour action seems to disable spec mods
+            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw], spec={'calc_locs': extend_calc_locs(self, fw_spec)}))
             infdet_wf = Workflow(fws)
             return FWAction(detours=[infdet_wf])
 
@@ -453,7 +480,9 @@ class RunATATCustodian(FiretaskBase):
             os.remove('stop')
             from dfttk.fworks import InflectionDetectionFW
             from fireworks import Workflow
-            infdet_wf = Workflow([InflectionDetectionFW(Structure.from_file('POSCAR'), continuation=True)])
+            # we have to add the calc locs for this calculation by hand
+            # because the detour action seems to disable spec mods
+            infdet_wf = Workflow([InflectionDetectionFW(Structure.from_file('POSCAR'), continuation=True, spec={'calc_locs': extend_calc_locs(self, fw_spec)})])
             return FWAction(detours=[infdet_wf])
 
 
