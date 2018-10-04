@@ -93,7 +93,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
         else:
             qha_calcs.append(static)
 
-    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag), parents=qha_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
+    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), parents=qha_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
     fws.append(qha_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
