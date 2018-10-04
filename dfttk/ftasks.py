@@ -276,6 +276,9 @@ class QHAAnalysis(FiretaskBase):
         qha_result['metadata'] = self.get('metadata', {})
         qha_result['has_phonon'] = self['phonon']
 
+        poisson = self.get('poisson', 0.25)
+        bp2gru = self.get('bp2gru', 1)
+
         # phonon properties
         if self['phonon']:
             # get the vibrational properties from the FW spec
@@ -287,18 +290,26 @@ class QHAAnalysis(FiretaskBase):
             f_vib = np.vstack(vol_f_vib)
             qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
                                 t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
-                                poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
+                                poisson=poisson, bp2gru=bp2gru)
             qha_result['phonon'] = qha.get_summary_dict()
             qha_result['phonon']['temperatures'] = qha_result['phonon']['temperatures'].tolist()
 
         # calculate the Debye model results no matter what
         qha_debye = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=None,
                                   t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
-                                  poisson=self.get('poisson', 0.25), bp2gru=self.get('bp2gru', 1))
+                                  poisson=poisson, bp2gru=bp2gru)
 
 
         qha_result['debye'] = qha_debye.get_summary_dict()
+        qha_result['debye']['poisson'] = poisson
+        qha_result['debye']['bp2gru'] = bp2gru
         qha_result['debye']['temperatures'] = qha_result['debye']['temperatures'].tolist()
+
+        qha_result['energies'] = energies
+        qha_result['volumes'] = volumes
+        qha_result['eos'] = 'vinet'
+        qha_result['launch_dir'] = str(os.getcwd())
+
 
         # write to JSON for debugging purposes
         import json
