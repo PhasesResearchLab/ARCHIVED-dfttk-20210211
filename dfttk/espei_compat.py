@@ -105,9 +105,11 @@ def make_dataset(phase_name, prop, subl_site_ratios, configurations,
     dataset_dict['conditions'] = conditions
     dataset_dict['solver']['sublattice_site_ratios'] = subl_site_ratios
     dataset_dict['solver']['sublattice_configurations'] = configurations
+    dataset_dict['solver']['mode'] = 'manual'
+    dataset_dict['reference'] = "DFTTK calculation"
     if occupancies is not None:
         dataset_dict['solver']['sublattice_occupancies'] = occupancies
     if tag is not None:
-        dataset_dict['reference'] = "DFTTK calculation. tag: >>{}<<".format(tag)
+        dataset_dict['comment'] = "DFTTK tag: >>{}<<".format(tag)
     return dataset_dict
 
