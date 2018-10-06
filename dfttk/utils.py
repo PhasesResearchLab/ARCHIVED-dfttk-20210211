@@ -229,3 +229,9 @@ def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
 
     return optimal_sc_shape
 
+def recursive_flatten(l):
+    if l == []:
+        return l
+    if isinstance(l[0], list):
+        return recursive_flatten(l[0]) + recursive_flatten(l[1:])
+    return l[:1] + recursive_flatten(l[1:])

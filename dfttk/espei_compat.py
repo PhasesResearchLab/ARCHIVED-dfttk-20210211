@@ -1,3 +1,5 @@
+from dfttk.utils import recursive_flatten
+
 def to_element_case(el):
     """Convert an uppercase elemnt to element case, e.g. FE to Fe, V to V."""
     return el[0].upper() + el[1:].lower()
@@ -54,3 +56,58 @@ def espei_occupancies_to_dfttk(occupancies):
             # this sublattice is an interacting sublattice, e.g. [0.5, 0.5]
             dfttk_occupancies.append([f for f in subl])
     return dfttk_occupancies
+
+
+def make_dataset(phase_name, prop, subl_site_ratios, configurations,
+                        conditions, values, occupancies=None, tag=None):
+    """
+
+    Parameters
+    ----------
+    phase_name : str
+        Name of the phase, e.g. 'FCC_A1'
+    prop : str
+        Name of the property, e.g. 'HM_FORM', 'SM_MIX'
+    tag : str
+        UUID tag as a string, e.g. '389ng-n3nal3ih-andjladf'
+    subl_site_ratios : list
+        List of sublattice site ratios corresponding to the sublattice model, e.g. [1.0, 1.0, 3.0].
+    configurations : list
+        List of ESPEI-style sublattice configurations.
+    conditions : dict
+        Dictionary of condition lists. Conditions should be scalars or 1-d arrays (not broadcasted).
+    values : numpy.array
+        Multidimensional (broadcasted) array of values. Should conform to
+        ESPEI datasets shape of (P, T, configurations).
+    occupancies : optional, list
+        List of ESPEI-style sublattice occupancies. Only required for
+        configurations that have interactions (not endmembers).
+
+    Returns
+    -------
+    dict
+        ESPEI dataset dict
+
+    Notes
+    -----
+    See description of ESPEI's single phase datasets for what the outputs should
+    be: http://espei.org/en/latest/input_data.html#single-phase-data
+    """
+    components = sorted(set(recursive_flatten(configurations)))
+
+    dataset_dict = {}
+    dataset_dict['solver'] = {}
+    dataset_dict['output'] = prop
+    dataset_dict['components'] = components
+    dataset_dict['phases'] = [phase_name]
+    dataset_dict['conditions'] = conditions
+    dataset_dict['values'] = values.tolist()
+    dataset_dict['conditions'] = conditions
+    dataset_dict['solver']['sublattice_site_ratios'] = subl_site_ratios
+    dataset_dict['solver']['sublattice_configurations'] = configurations
+    if occupancies is not None:
+        dataset_dict['solver']['sublattice_occupancies'] = occupancies
+    if tag is not None:
+        dataset_dict['reference'] = "DFTTK calculation. tag: >>{}<<".format(tag)
+    return dataset_dict
+
