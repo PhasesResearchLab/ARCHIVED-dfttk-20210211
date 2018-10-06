@@ -4,7 +4,90 @@
 Recipes
 =======
 
-Make ESPEI datasets from a QHA database, optionally writing the (nicely named) files to dict.
+
+Construct a series of Debye workflows by substituting into a template structure
+===============================================================================
+
+   ##############
+   # User Input #
+   ##############
+
+   DRY_RUN = True  # Don't submit the workflows
+   VERBOSE = True   # Turn on printing of substitutions
+
+   # Filename of the template structure to use, usually a dilute or SQS structure
+   TEMPLATE_STRUCTURE_FILENAME = 'structures/FCC_A1.sqs.12Ni-4Fe.POSCAR'
+
+   # sublattice configuration of the template structure.
+   # This will be substitued exactly, this does not need to be sorted,
+   # however the individual configurations to build should be sorted.
+   TEMPLATE_SUBLATTICE_CONFIGURATION = [['Fe', 'Ni']]
+   TEMPLATE_SUBLATTICE_OCCUPANCIES = [[0.25, 0.75]]
+
+   PHASE_NAME = 'FCC_A1'
+
+   configurations_to_build = [  # list of sublattice configurations in DFTTK format
+   [['Cr', 'Ni']],
+   [['Fe', 'Ni']],
+   # [['V', 'Ni']],  # should not use this because it's out of order, make a second script with the templates flipped
+   ]
+
+   # Dictionary of densities for each pure element.
+   DENSITY_DICT = {
+       'V': 6.313,  # bcc
+       'Cr': 7.463,  # bcc
+       'Ni': 9.03,  # fcc
+       'Ti': 4.58,  # hcp
+       'Fe': 8.028  # bcc
+   }
+
+
+   ##########
+   # SCRIPT #
+   ##########
+
+   # Should not need to edit below this line.
+
+   from pymatgen import Structure
+   from fireworks import LaunchPad
+   from dfttk import get_wf_gibbs
+   from dfttk.structure_builders.substitutions import substitute_configuration_with_metadata
+
+   workflows = []
+
+   temp_struct = Structure.from_file(TEMPLATE_STRUCTURE_FILENAME)
+
+   for config in configurations_to_build:
+       struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, DENSITY_DICT, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME)
+       if VERBOSE:
+           print("PHASE: {}    CONFIGURATION: {}    OCCUPANCIES: {}    STRUCTURE: {}".format(PHASE_NAME, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, struct.composition.hill_formula))
+       workflows.append(get_wf_gibbs(struct, deformation_fraction=(-0.05,0.10), phonon=False, num_deformations=11, t_max=2000, metadata=meta))
+
+
+   ################################################################################
+   # Load everything in the LaunchPad
+   ################################################################################
+
+   if VERBOSE:
+       print("{} workflows.".format(len(workflows)))
+
+   if DRY_RUN:
+       exit()
+
+   if VERBOSE:
+       print('Adding workflows to LaunchPad')
+
+   lpad = LaunchPad.auto_load()
+
+   for workflow in workflows:
+       lpad.add_wf(workflow)
+
+
+ESPEI datasets from a QHA database
+==================================
+
+The following code snippet will take ESPEI datasets from a QHA database,
+optionally writing the (nicely named) files to dict.
 The QHA database requires the following metadata schema:
 
 .. code-block:: json
