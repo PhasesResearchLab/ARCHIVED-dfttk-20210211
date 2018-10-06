@@ -311,6 +311,7 @@ class QHAAnalysis(FiretaskBase):
         qha_result['launch_dir'] = str(os.getcwd())
         # TODO: get root mean square of the EOS fit at 0K
         # TODO: add EOS fit properties from 0K
+        # TODO: add elements
 
 
         # write to JSON for debugging purposes
