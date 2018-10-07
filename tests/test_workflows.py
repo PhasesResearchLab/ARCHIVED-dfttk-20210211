@@ -2,7 +2,7 @@ from pymatgen import Structure
 import pymatgen
 from pymatgen.io.vasp.inputs import Incar
 from fireworks import FWorker, Workflow, LaunchPad
-from dfttk import get_wf_gibbs, get_wf_volume_optimization
+from dfttk import get_wf_gibbs
 from dfttk.utils import update_fws_spec
 import pytest
 import shutil
@@ -91,13 +91,8 @@ def test_fw_spec_modified_by_powerup():
 def test_gibbs_wf_fireworks_graph():
     """Test that the graph of Fireworks is correct for a Gibbs workflow."""
     wf_phonon = get_wf_gibbs(STRUCT, phonon=True, num_deformations=11)
-    assert len(wf_phonon.fws) == 45
+    assert len(wf_phonon.fws) == 24
     wf_debye = get_wf_gibbs(STRUCT, num_deformations=11, phonon=False)
-    assert len(wf_debye.fws) == 34
+    assert len(wf_debye.fws) == 13
 
-
-def test_volume_optimization_graph():
-    """Test that the graph of Fireworks is correct for a volume optimization workflow."""
-    wf_opt = get_wf_volume_optimization(STRUCT, num_deformations=9)
-    assert len(wf_opt.fws) == 10
 
