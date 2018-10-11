@@ -92,7 +92,7 @@ def substitute_configuration(template_structure, template_config, config, densit
 
 
 
-def substitute_configuration_with_metadata(template_structure, template_config, config, density_dict, occupation, phase_name):
+def substitute_configuration_with_metadata(template_structure, template_config, config, density_dict, occupation, phase_name, site_ratios):
     """
     Replace the species in the template structure by switching the template_config elements for the config elements.
 
@@ -116,6 +116,8 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
         DFTTK style occupancy fractions. Must match the shape to config and template_config.
     phase_name : str
         Name of the phase
+    site_ratios : list
+        Sublattice site ratios, 1-d list.
 
     Returns
     -------
@@ -123,5 +125,5 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
         Tuple of a new Structure object (the original is not modified so it can be reused in loops) and a dict of metadata
     """
     struct = substitute_configuration(template_structure, template_config, config, density_dict)
-    metadata = {'phase_name': phase_name, 'sublattice': {'configuration': config, 'occupancies': occupation}}
+    metadata = {'phase_name': phase_name, 'sublattice': {'configuration': config, 'occupancies': occupation, 'site_ratios': site_ratios}}
     return struct, metadata

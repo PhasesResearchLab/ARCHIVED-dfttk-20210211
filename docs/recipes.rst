@@ -23,6 +23,7 @@ Construct a series of Debye workflows by substituting into a template structure
    # however the individual configurations to build should be sorted.
    TEMPLATE_SUBLATTICE_CONFIGURATION = [['Fe', 'Ni']]
    TEMPLATE_SUBLATTICE_OCCUPANCIES = [[0.25, 0.75]]
+   SUBLATTICE_SITE_RATIOS = [1.0]
 
    PHASE_NAME = 'FCC_A1'
 
@@ -58,7 +59,7 @@ Construct a series of Debye workflows by substituting into a template structure
    temp_struct = Structure.from_file(TEMPLATE_STRUCTURE_FILENAME)
 
    for config in configurations_to_build:
-       struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, DENSITY_DICT, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME)
+       struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, DENSITY_DICT, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME, SUBLATTICE_SITE_RATIOS)
        if VERBOSE:
            print("PHASE: {}    CONFIGURATION: {}    OCCUPANCIES: {}    STRUCTURE: {}".format(PHASE_NAME, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, struct.composition.hill_formula))
        workflows.append(get_wf_gibbs(struct, deformation_fraction=(-0.05,0.10), phonon=False, num_deformations=11, t_max=2000, metadata=meta))
