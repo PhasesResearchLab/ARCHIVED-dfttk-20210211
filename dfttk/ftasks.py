@@ -7,7 +7,7 @@ import os
 import numpy as np
 from pymatgen import Structure
 from custodian.custodian import Custodian
-from pymatgen.analysis.eos import EOS
+from pymatgen.analysis.eos import Vinet, EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
@@ -273,6 +273,7 @@ class QHAAnalysis(FiretaskBase):
         qha_result = {}
         qha_result['structure'] = structure.as_dict()
         qha_result['formula_pretty'] = structure.composition.reduced_formula
+        qha_result['elements'] = sorted([el.name for el in structure.composition.elements])
         qha_result['metadata'] = self.get('metadata', {})
         qha_result['has_phonon'] = self['phonon']
 
@@ -299,20 +300,31 @@ class QHAAnalysis(FiretaskBase):
                                   t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
                                   poisson=poisson, bp2gru=bp2gru)
 
+        # fit 0 K EOS for good measure
+        eos = Vinet(volumes, energies)
+        eos.fit(volumes, energies)
+        errors = eos.func(volumes) - energies
+        sum_square_error = float(np.sum(np.square(errors)))
+        eos_res = {}
+        eos_res['b0_GPa'] = float(eos.b0_GPa)
+        eos_res['b0'] = float(eos.b0)
+        eos_res['b1'] = float(eos.b1)
+        eos_res['eq_volume'] = float(eos.v0)
+        eos_res['eq_energy'] = float(eos.e0)
+        eos_res['energies'] = energies
+        eos_res['volumes'] = volumes
+        eos_res['name'] = 'Vinet'
+        eos_res['error'] = {}
+        eos_res['error']['difference'] = errors.tolist()  # volume by volume differences
+        eos_res['error']['sum_square_error'] = sum_square_error
+        qha_result['eos'] = eos_res
 
         qha_result['debye'] = qha_debye.get_summary_dict()
         qha_result['debye']['poisson'] = poisson
         qha_result['debye']['bp2gru'] = bp2gru
         qha_result['debye']['temperatures'] = qha_result['debye']['temperatures'].tolist()
 
-        qha_result['energies'] = energies
-        qha_result['volumes'] = volumes
-        qha_result['eos'] = 'vinet'
         qha_result['launch_dir'] = str(os.getcwd())
-        # TODO: get root mean square of the EOS fit at 0K
-        # TODO: add EOS fit properties from 0K
-        # TODO: add elements
-
 
         # write to JSON for debugging purposes
         import json
