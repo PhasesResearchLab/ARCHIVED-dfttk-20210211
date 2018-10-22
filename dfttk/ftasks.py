@@ -302,7 +302,7 @@ class QHAAnalysis(FiretaskBase):
 
         # fit 0 K EOS for good measure
         eos = Vinet(volumes, energies)
-        eos.fit(volumes, energies)
+        eos.fit()
         errors = eos.func(volumes) - energies
         sum_square_error = float(np.sum(np.square(errors)))
         eos_res = {}
