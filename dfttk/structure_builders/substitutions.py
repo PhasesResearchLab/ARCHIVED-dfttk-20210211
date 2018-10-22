@@ -3,7 +3,47 @@ Tools for substituting structures and generating metadata
 """
 
 from copy import deepcopy
+from dfttk.utils import sort_x_by_y
 
+def canonicalize_config(configuration, occupancies):
+    """
+    Return canonicalized (sorted) configurations and occupancies.
+
+    Parameters
+    ----------
+    configuration : list of lists
+        DFTTK-style configuration
+    occupancies :
+        DFFTK-style occupancies
+
+    Returns
+    -------
+    tuple
+        Tuple of canonical (configuration, occupancies)
+
+    Notes
+    -----
+    The sublattice ordering is preserved, but the species within a sublattice are sorted.
+
+    Examples
+    --------
+    >>> canonicalize_config([['Fe', 'Ni'], ['Fe']], [[0.25, 0.75], [1.0]])  # already canonical
+    ([['Fe', 'Ni'], ['Fe']], [[0.25, 0.75], [1.0]])
+    >>> canonicalize_config([['Cu'], ['Mg']], [[1.0], [1.0]])  # already canonical
+    ([['Cu'], ['Mg']], [[1.0], [1.0]])
+    >>> canonicalize_config([['Cu', 'Mg']], [[0.9, 0.1]])  # already canonical
+    ([['Cu', 'Mg']], [[0.9, 0.1]])
+    >>> canonicalize_config([['Cu', 'Mg']], [[0.1, 0.9]])  # already canonical
+    ([['Cu', 'Mg']], [[0.1, 0.9]])
+    >>> canonicalize_config([['Ni', 'Fe'], ['Fe']], [[0.75, 0.25], [1.0]])
+    ([['Fe', 'Ni'], ['Fe']], [[0.25, 0.75], [1.0]])
+    >>> canonicalize_config([['Ni', 'Fe'], ['Fe', 'Cr', 'Ni']], [[0.75, 0.25], [0.1, 0.2, 0.7]])
+    ([['Fe', 'Ni'], ['Cr', 'Fe', 'Ni']], [[0.25, 0.75], [0.2, 0.1, 0.7]])
+
+    """
+    new_occupancies = [sort_x_by_y(occ, config) for occ, config in zip(occupancies, configuration)]
+    new_configuration = [sorted(config) for config in configuration]
+    return (new_configuration, new_occupancies)
 
 def scale_struct(struct, density_dict):
     """Scale the structure according to the weighted average density of each element.
@@ -125,5 +165,6 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
         Tuple of a new Structure object (the original is not modified so it can be reused in loops) and a dict of metadata
     """
     struct = substitute_configuration(template_structure, template_config, config, density_dict)
+    config, occupation = canonicalize_config(config, occupation)
     metadata = {'phase_name': phase_name, 'sublattice': {'configuration': config, 'occupancies': occupation, 'site_ratios': site_ratios}}
     return struct, metadata
