@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fireworks import Firework
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
-from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet
+from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
 from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
@@ -51,6 +51,7 @@ class OptimizeFW(Firework):
         else:
             vasp_input_set = vasp_input_set or RelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+        t.append(ModifyIncar(incar_update=">>incar_update<<"))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         if db_insert:
@@ -107,6 +108,7 @@ class StaticFW(Firework):
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         if scale_lattice is not None:
             t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
+        t.append(ModifyIncar(incar_update=">>incar_update<<"))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
@@ -248,6 +250,7 @@ class PhononFW(Firework):
 
         t.append(SupercellTransformation(supercell_matrix=supercell_matrix))
         t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
+        t.append(ModifyIncar(incar_update=">>incar_update<<"))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))
