@@ -164,7 +164,7 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
     (pymatgen.Structure, dict)
         Tuple of a new Structure object (the original is not modified so it can be reused in loops) and a dict of metadata
     """
-    struct = substitute_configuration(template_structure, template_config, config, density_dict)
+    struct = substitute_configuration(template_structure, template_config, config, density_dict, check_sorting=False)
     config, occupation = canonicalize_config(config, occupation)
     metadata = {'phase_name': phase_name, 'sublattice': {'configuration': config, 'occupancies': occupation, 'site_ratios': site_ratios}}
     return struct, metadata
