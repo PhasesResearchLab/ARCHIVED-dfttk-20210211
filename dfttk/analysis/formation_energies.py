@@ -1,6 +1,6 @@
 import numpy as np
 from pymatgen import Structure
-from dfttk.utils import eV_per_atom_to_J_per_mol
+from dfttk.utils import eV_per_atom_to_J_per_mol, mget
 
 def get_thermal_props(qha_result):
     """
@@ -16,9 +16,8 @@ def get_thermal_props(qha_result):
         Dictionary of thermal properties. Dictionary keys are GM, HM, SM, CPM, and T.
     """
     struct = Structure.from_dict(qha_result['structure'])
-    G = np.array(qha_result['debye'][
-                     'gibbs_free_energy']) * eV_per_atom_to_J_per_mol / struct.composition.num_atoms
-    T = np.array(qha_result['debye']['temperatures'])
+    G = np.array(mget(qha_result, 'debye.gibbs_free_energy')) * eV_per_atom_to_J_per_mol / struct.composition.num_atoms
+    T = np.array(mget(qha_result, 'debye.temperatures'))
     dT = T[1] - T[0]
     Cp = -T * np.gradient(np.gradient(G, dT), dT)
     S = - np.gradient(G, dT)

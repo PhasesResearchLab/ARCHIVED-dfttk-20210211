@@ -237,7 +237,7 @@ def recursive_flatten(l):
     return l[:1] + recursive_flatten(l[1:])
 
 
-def mongo_get(d, path):
+def mget(d, path):
     """Get from a dict using dot notation
 
     Parameters
@@ -255,7 +255,7 @@ def mongo_get(d, path):
     Examples
     --------
     >>> nested_dict = {'top_level': {'second_level': 'my_value'}}
-    >>> mongo_get(nested_dict, 'top_level.second_level')
+    >>> mget(nested_dict, 'top_level.second_level')
     'my_value'
 
     """
