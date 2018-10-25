@@ -235,3 +235,42 @@ def recursive_flatten(l):
     if isinstance(l[0], list):
         return recursive_flatten(l[0]) + recursive_flatten(l[1:])
     return l[:1] + recursive_flatten(l[1:])
+
+
+def mongo_get(d, path):
+    """Get from a dict using dot notation
+
+    Parameters
+    ----------
+    d : dict
+        Nested dictionary structure
+    path : str
+        Dot separated property, e.g. output.structure.lattice.volume
+
+    Returns
+    -------
+    Object
+        Value of the dictionary
+
+    Examples
+    --------
+    >>> nested_dict = {'top_level': {'second_level': 'my_value'}}
+    >>> mongo_get(nested_dict, 'top_level.second_level')
+    'my_value'
+
+    """
+
+    keys = path.split('.')
+    current_path = ""
+    curr_dict = d
+    for k in keys:
+        if not isinstance(curr_dict, dict):
+            raise ValueError("Object at path \"{}\" (type: {}) is not a dictionary and \"{}\" in path \"{}\" cannot be looked up.".format(current_path[:-1], type(curr_dict), k, path))
+        current_path += k
+        try:
+            curr_dict = curr_dict[k]
+        except KeyError:
+            raise KeyError("Cannot access key \"{}\" in path \"{}\". Possible keys are [{}].".format(k, current_path, ", ".join(curr_dict.keys())))
+
+        current_path += "."
+    return curr_dict
