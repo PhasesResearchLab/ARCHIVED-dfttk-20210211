@@ -53,7 +53,7 @@ class DebyeModel(object):
     pressure : float
         Pressure to apply to the E-V curve/Gibbs energies in GPa. Defaults to 0.
     poisson : float
-        Poisson ratio, defaults to 0.25
+        Poisson ratio, defaults to 0.363615, corresponding to the cubic scaling factor of 0.617 by Moruzzi
     gruneisen : bool
         Whether to use the Debye-Gruneisen model. Defaults to True.
     bp2gru : float
@@ -63,7 +63,7 @@ class DebyeModel(object):
         Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
     """
     def __init__(self, energies, volumes, structure, t_min=5, t_step=5,
-                 t_max=2000.0, eos="vinet", poisson=0.25,
+                 t_max=2000.0, eos="vinet", poisson=0.363615,
                  gruneisen=True, bp2gru=1., mass_average_mode='arithmetic'):
         self.energies = energies
         self.volumes = volumes

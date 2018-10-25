@@ -277,7 +277,7 @@ class QHAAnalysis(FiretaskBase):
         qha_result['metadata'] = self.get('metadata', {})
         qha_result['has_phonon'] = self['phonon']
 
-        poisson = self.get('poisson', 0.25)
+        poisson = self.get('poisson', 0.363615)
         bp2gru = self.get('bp2gru', 1)
 
         # phonon properties
