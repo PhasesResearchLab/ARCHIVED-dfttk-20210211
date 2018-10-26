@@ -1,5 +1,6 @@
 import warnings
 from uuid import uuid4
+from copy import deepcopy
 
 from fireworks import Firework
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
@@ -43,11 +44,13 @@ class OptimizeFW(Firework):
         override_default_vasp_params = override_default_vasp_params or {}
         vasp_input_set = vasp_input_set or RelaxSet(structure, force_gamma=force_gamma,
                                                        **override_default_vasp_params)
+        site_properties = deepcopy(structure).site_properties
+
         t = []
         if parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
-            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
             vasp_input_set = vasp_input_set or RelaxSet(structure)
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
@@ -97,13 +100,14 @@ class StaticFW(Firework):
         # difficult. Maybe think about how to remove this need? -computron
         metadata = metadata or {}
         vasp_input_set = vasp_input_set or StaticSet(structure)
+        site_properties = deepcopy(structure).site_properties
 
         t = []
 
         if parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
-            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
         if scale_lattice is not None:
@@ -236,6 +240,10 @@ class PhononFW(Firework):
 
         vasp_input_set = vasp_input_set or ForceConstantsSet(structure)
 
+        supercell_structure = deepcopy(structure)
+        supercell_structure.make_supercell(supercell_matrix)
+        supercell_site_properties = deepcopy(supercell_structure.site_properties)
+
         t = []
 
         # We need to get the POSCAR from the previous run or from the passed Structure
@@ -249,7 +257,7 @@ class PhononFW(Firework):
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
 
         t.append(SupercellTransformation(supercell_matrix=supercell_matrix))
-        t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set))
+        t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=supercell_site_properties))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))

@@ -58,10 +58,12 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
             to change the user_incar_settings, you should provide: {"user_incar_settings": ...}.
             This setting is ignored if you provide the full object representation of a VaspInputSet
             rather than a String.
+        site_properties : dict
+            Dictionary of {site_property: values} in pymatgen style. Will be applied if passed.
     """
 
     required_params = ["vasp_input_set"]
-    optional_params = ["vasp_input_params"]
+    optional_params = ["vasp_input_params", "site_properties"]
 
     def run_task(self, fw_spec):
         struct = Structure.from_file('POSCAR')
@@ -73,6 +75,9 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
         else:
             vis_cls = load_class("pymatgen.io.vasp.sets", self["vasp_input_set"])
             vis = vis_cls(struct, **self.get("vasp_input_params", {}))
+        # add site properties if they were added
+        for prop, vals in fw_spec.get("site_properties", dict()).items():
+            vis.structure.add_site_properties(prop, vals)
         vis.write_input(".")
 
 
