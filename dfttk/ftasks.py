@@ -76,7 +76,7 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
             vis_cls = load_class("pymatgen.io.vasp.sets", self["vasp_input_set"])
             vis = vis_cls(struct, **self.get("vasp_input_params", {}))
         # add site properties if they were added
-        for prop, vals in fw_spec.get("site_properties", dict()).items():
+        for prop, vals in self.get("site_properties", dict()).items():
             vis.structure.add_site_properties(prop, vals)
         vis.write_input(".")
 
