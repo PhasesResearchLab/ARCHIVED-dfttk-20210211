@@ -2,13 +2,16 @@ import numpy as np
 from pymatgen import Structure
 from dfttk.utils import eV_per_atom_to_J_per_mol, mget
 
-def get_thermal_props(qha_result):
+def get_thermal_props(qha_result, phonon=True):
     """
     Return a dictionary of thermal properties in J/mol-atom from a QHA analysis.
 
     Parameters
     ----------
     qha_result : Dictionary of a QHA summary dict
+    phonon : bool
+        Whether to get the phonon data (True) or Debye data (False). Defaults to True.
+        If the has_phonon key is False, it will fall back to Debye automatically.
 
     Returns
     -------
@@ -16,8 +19,12 @@ def get_thermal_props(qha_result):
         Dictionary of thermal properties. Dictionary keys are GM, HM, SM, CPM, and T.
     """
     struct = Structure.from_dict(qha_result['structure'])
-    G = np.array(mget(qha_result, 'debye.gibbs_free_energy')) * eV_per_atom_to_J_per_mol / struct.composition.num_atoms
-    T = np.array(mget(qha_result, 'debye.temperatures'))
+    if phonon and qha_result['has_phonon']:
+        G = np.array(mget(qha_result, 'phonon.gibbs_free_energy')) * eV_per_atom_to_J_per_mol / struct.composition.num_atoms
+        T = np.array(mget(qha_result, 'phonon.temperatures'))
+    else:
+        G = np.array(mget(qha_result, 'debye.gibbs_free_energy')) * eV_per_atom_to_J_per_mol / struct.composition.num_atoms
+        T = np.array(mget(qha_result, 'debye.temperatures'))
     dT = T[1] - T[0]
     Cp = -T * np.gradient(np.gradient(G, dT), dT)
     S = - np.gradient(G, dT)
