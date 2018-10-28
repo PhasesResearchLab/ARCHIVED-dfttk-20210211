@@ -77,7 +77,7 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
             vis = vis_cls(struct, **self.get("vasp_input_params", {}))
         # add site properties if they were added
         for prop, vals in self.get("site_properties", dict()).items():
-            vis.structure.add_site_properties(prop, vals)
+            vis.structure.add_site_property(prop, vals)
         vis.write_input(".")
 
 
