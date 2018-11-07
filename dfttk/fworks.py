@@ -2,7 +2,7 @@ import warnings
 from uuid import uuid4
 from copy import deepcopy
 
-from fireworks import Firework
+from fireworks import Firework, PyTask
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
 from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar
 from atomate.common.firetasks.glue_tasks import PassCalcLocs
@@ -10,7 +10,7 @@ from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
-    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian
+    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate
 
 
 class OptimizeFW(Firework):
@@ -258,7 +258,10 @@ class PhononFW(Firework):
 
         t.append(SupercellTransformation(supercell_matrix=supercell_matrix))
         t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=supercell_site_properties))
-        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
+        t.append(RunVaspCustodianNoValidate(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
+        # we skipped the validation so we can potentially fix the vasprun.xml file.
+        # Fix and validate here.
+        t.append(PyTask(func='dfttk.vasprun_fix.fix_vasprun', args=['vasprun.xml']))
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))
 

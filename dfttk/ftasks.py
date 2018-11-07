@@ -7,6 +7,11 @@ import os
 import numpy as np
 from pymatgen import Structure
 from custodian.custodian import Custodian
+from custodian.vasp.handlers import VaspErrorHandler, AliasingErrorHandler, \
+    MeshSymmetryErrorHandler, UnconvergedErrorHandler, PotimErrorHandler, \
+    FrozenJobErrorHandler, NonConvergingErrorHandler, PositiveEnergyErrorHandler, \
+    StdErrHandler, DriftErrorHandler
+from custodian.vasp.jobs import VaspJob
 from pymatgen.analysis.eos import Vinet, EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
@@ -520,4 +525,75 @@ class RunATATCustodian(FiretaskBase):
             return FWAction(detours=[infdet_wf])
 
 
+@explicit_serialize
+class RunVaspCustodianNoValidate(FiretaskBase):
+    """
+    Run VASP using custodian without validation, used in Phonon calcualations where xmls are fixed
+
+    Required params:
+        vasp_cmd (str): the name of the full executable for running VASP. Supports env_chk.
+
+    Optional params:
+        job_type: (str) - choose from "normal" (default), "double_relaxation_run" (two consecutive
+            jobs), "full_opt_run" (multiple optimizations), and "neb"
+        handler_group: (str) - group of handlers to use. See handler_groups dict in the code for
+            the groups and complete list of handlers in each group.
+        max_force_threshold: (float) - if >0, adds MaxForceErrorHandler. Not recommended for
+            nscf runs.
+        scratch_dir: (str) - if specified, uses this directory as the root scratch dir.
+            Supports env_chk.
+        gzip_output: (bool) - gzip output (default=T)
+        max_errors: (int) - maximum # of errors to fix before giving up (default=5)
+        ediffg: (float) shortcut for setting EDIFFG in special custodian jobs
+        auto_npar: (bool) - use auto_npar (default=F). Recommended set to T
+            for single-node jobs only. Supports env_chk.
+        gamma_vasp_cmd: (str) - cmd for Gamma-optimized VASP compilation.
+            Supports env_chk.
+        wall_time (int): Total wall time in seconds. Activates WalltimeHandler if set.
+        half_kpts_first_relax (bool): Use half the k-points for the first relaxation
+    """
+    required_params = ["vasp_cmd"]
+    optional_params = ["job_type", "handler_group", "max_force_threshold", "scratch_dir",
+                       "gzip_output", "max_errors", "ediffg", "auto_npar", "gamma_vasp_cmd",
+                       "wall_time","half_kpts_first_relax"]
+
+    def run_task(self, fw_spec):
+
+        handler_groups = {
+            "default": [VaspErrorHandler(), MeshSymmetryErrorHandler(), UnconvergedErrorHandler(),
+                        NonConvergingErrorHandler(),PotimErrorHandler(),
+                        PositiveEnergyErrorHandler(), FrozenJobErrorHandler(), StdErrHandler(),
+                        DriftErrorHandler()],
+            "strict": [VaspErrorHandler(), MeshSymmetryErrorHandler(), UnconvergedErrorHandler(),
+                       NonConvergingErrorHandler(),PotimErrorHandler(),
+                       PositiveEnergyErrorHandler(), FrozenJobErrorHandler(),
+                       StdErrHandler(), AliasingErrorHandler(), DriftErrorHandler()],
+            "md": [VaspErrorHandler(), NonConvergingErrorHandler()],
+            "no_handler": []
+            }
+
+        vasp_cmd = env_chk(self["vasp_cmd"], fw_spec)
+
+        if isinstance(vasp_cmd, six.string_types):
+            vasp_cmd = os.path.expandvars(vasp_cmd)
+            vasp_cmd = shlex.split(vasp_cmd)
+
+        # initialize variables
+        scratch_dir = env_chk(self.get("scratch_dir"), fw_spec)
+        gzip_output = self.get("gzip_output", True)
+        max_errors = self.get("max_errors", 5)
+        auto_npar = env_chk(self.get("auto_npar"), fw_spec, strict=False, default=False)
+        gamma_vasp_cmd = env_chk(self.get("gamma_vasp_cmd"), fw_spec, strict=False, default=None)
+
+        jobs = [VaspJob(vasp_cmd, auto_npar=auto_npar, gamma_vasp_cmd=gamma_vasp_cmd)]
+
+        # construct handlers
+        handlers = handler_groups[self.get("handler_group", "default")]
+
+        validators = []
+
+        c = Custodian(handlers, jobs, validators=validators, max_errors=max_errors,
+                      scratch_dir=scratch_dir, gzipped_output=gzip_output)
+
+        c.run()
 
