@@ -5,6 +5,8 @@ import subprocess
 import os
 
 import numpy as np
+import six
+import shlex
 from pymatgen import Structure
 from custodian.custodian import Custodian
 from custodian.vasp.handlers import VaspErrorHandler, AliasingErrorHandler, \
