@@ -432,8 +432,8 @@ class TransmuteStructureFile(FiretaskBase):
     def run_task(self, fw_spec):
         input_fname = self.get('input_fname', 'POSCAR')
         output_fname = self.get('output_fname', 'str.out')
-        input_fmt = self.get('input_fname', 'POSCAR')
-        output_fmt = self.get('output_fname', 'mcsqs')
+        input_fmt = self.get('input_fmt', 'POSCAR')
+        output_fmt = self.get('output_fmt', 'mcsqs')
 
         with open(input_fname) as fp:
             s = Structure.from_str(fp.read(), fmt=input_fmt)
