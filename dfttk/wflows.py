@@ -68,7 +68,8 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
     # 4. Static EV
     # 5. Phonon EV
     fws = []
-    qha_calcs = []
+    static_calcs = []
+    phonon_calcs = []
     # for each FW, we set the structure to the original structure to verify to ourselves that the
     # volume deformed structure is set by input set.
 
@@ -81,6 +82,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
         vis = StaticSet(structure)
         static = StaticFW(structure, scale_lattice=deformation, name='structure_{}-static'.format(i), vasp_input_set=vis, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, parents=full_relax_fw)
         fws.append(static)
+        static_calcs.append(static)
 
         if phonon:
             vis = ForceConstantsSet(structure)
@@ -89,12 +91,16 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.05, 0.1
                      vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
                      prev_calc_loc=True, parents=static)
             fws.append(phonon_fw)
-            qha_calcs.append(phonon_fw)
-        else:
-            qha_calcs.append(static)
+            phonon_calcs.append(static)
+            phonon_calcs.append(phonon_fw)
 
-    qha_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), parents=qha_calcs, name="{}-qha_analysis".format(structure.composition.reduced_formula))
-    fws.append(qha_fw)
+    # always do a Debye after the static calculations. That way we can set up a phonon calculation, do a Debye fitting, then do the phonon if we want.
+    debye_fw = Firework(QHAAnalysis(phonon=False, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), parents=static_calcs, name="{}-qha_analysis-Debye".format(structure.composition.reduced_formula))
+    fws.append(debye_fw)
+    if phonon:
+        # do a Debye run before the phonon, so they can be done in stages.
+        phonon_fw = Firework(QHAAnalysis(phonon=True, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), parents=phonon_calcs, name="{}-qha_analysis-phonon".format(structure.composition.reduced_formula))
+        fws.append(phonon_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
 
