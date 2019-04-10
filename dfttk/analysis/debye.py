@@ -61,6 +61,7 @@ class DebyeModel(object):
         value and 1 is the low temperature value. Defaults to 1.
     mass_average_mode : str
         Either 'arithmetic' or 'geometric'. Default is 'arithmetic'
+
     """
     def __init__(self, energies, volumes, structure, t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", poisson=0.363615,
@@ -120,13 +121,6 @@ class DebyeModel(object):
     def debye_temperature(self, volume):
         """
         Calculates the debye temperature.
-        Eq(6) in doi.org/10.1016/j.comphy.2003.12.001. Thanks to Joey.
-
-        Eq(6) above is equivalent to Eq(3) in doi.org/10.1103/PhysRevB.37.790
-        which does not consider anharmonic effects. Eq(20) in the same paper
-        and Eq(18) in doi.org/10.1016/j.commatsci.2009.12.006 both consider
-        anharmonic contributions to the Debye temperature through the Gruneisen
-        parameter at 0K (Gruneisen constant).
 
         The anharmonic contribution is toggled by setting the anharmonic_contribution
         to True or False in the QuasiharmonicDebyeApprox constructor.
@@ -136,7 +130,19 @@ class DebyeModel(object):
 
         Returns:
             float: debye temperature in K
-         """
+
+        Notes
+        -----
+        The original code from pymatgen cites Toher [1], however the code here
+        does not match the equation in that paper (the derivation seems
+        incorrect). Chen and Sundman [2] have a clearer derivation in agreement
+        with this work, except that their final equation is in terms of
+        interatomic radii rather than volume.
+
+        [1] Toher, Phys. Rev. B 90, 174107 (2014) doi:10.1016/j.comphy.2003.12.001
+        [2] Chen and Sundman, Acta Materialia 49, 947--961 (2001) doi:10.1016/S1359-6454(01)00002-7
+
+        """
         term1 = (2./3. * (1. + self.poisson) / (1. - 2. * self.poisson))**1.5
         term2 = (1./3. * (1. + self.poisson) / (1. - self.poisson))**1.5
         f = (3. / (2. * term1 + term2))**(1. / 3.)
