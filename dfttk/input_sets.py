@@ -124,10 +124,9 @@ class StaticSet(DictSet):
         # other settings from MPStaticSet
         "LAECHG": True,
         "LCHARG": True,
-        "LWAVE": True,
+        "LWAVE": False,
         "LORBIT": 11,
         "LVHAR": True,
-        "LWAVE": True,
         "ICHARG": 2,
         "NEDOS": 5001,
     })
@@ -203,11 +202,10 @@ class ForcesSet(DictSet):
         'LREAL': False,
         'ALGO': 'NORMAL',
         # other settings from MPStaticSet
-        "LCHARG": True,
-        "LWAVE": True,
+        "LCHARG": False,
         "LORBIT": 11,
         "LVHAR": True,
-        "LWAVE": True,
+        "LWAVE": False,
         "ICHARG": 2,
         "NEDOS": 5001,
     })
