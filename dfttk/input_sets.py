@@ -61,6 +61,49 @@ class RelaxSet(DictSet):
             self.incar.update({'ISIF': 7})
 
 
+class PreStaticSet(DictSet):
+    """Set tuned for metal relaxations (correct smearing).
+    Add `isif` parameter to the set to easily allow for overriding ISIF setting.
+    Kpoints have a 6000 reciprocal density default.
+    """
+    CONFIG = _load_yaml_config("MPRelaxSet")
+    CONFIG['KPOINTS'].update({
+        'grid_density': 1000,
+    })
+    CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
+    CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-5,
+        'ENCUT': 520,  # MP compatibility
+        'ISMEAR': 1,
+        "NSW": 0,
+        "IBRION": -1,
+        'LREAL': False,
+        'ALGO': 'NORMAL',
+        # other settings from MPStaticSet
+        "LAECHG": True,
+        "LCHARG": False,
+        "LWAVE": False,
+        "LORBIT": 11,
+        "LVHAR": True,
+        "ICHARG": 2,
+        "NEDOS": 5001,
+    })
+    # now we reset the potentials
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
+
+    def __init__(self, structure, **kwargs):
+        # pop the old kwargs, backwards compatibility from the complex StaticSet
+        old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
+        for k in old_kwargs:
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
+        self.kwargs = kwargs
+        super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, **kwargs)
+
+
+
 class ForceConstantsSet(DictSet):
     """
     Set for calculating force constants calculations.
@@ -222,5 +265,6 @@ class ForcesSet(DictSet):
                 pass
         self.kwargs = kwargs
         super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, **kwargs)
+
 
 

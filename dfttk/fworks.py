@@ -1,7 +1,6 @@
 import warnings
 from uuid import uuid4
 from copy import deepcopy
-
 from fireworks import Firework, PyTask
 from atomate.vasp.firetasks.parse_outputs import VaspToDb
 from atomate.vasp.firetasks.write_inputs import WriteVaspFromIOSet, ModifyIncar
@@ -10,7 +9,10 @@ from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
-    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate
+    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate, \
+    Record_relax_running_path, Record_PreStatic_result
+from atomate import __version__ as atomate_ver
+from dfttk import __version__ as dfttk_ver
 
 
 class OptimizeFW(Firework):
@@ -36,9 +38,10 @@ class OptimizeFW(Firework):
             Whether to insert the task into the database. Defaults to False.
         \*\*kwargs: Other kwargs that are passed to Firework.__init__.
     """
-    def __init__(self, structure, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
-                 vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
-                 force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, **kwargs):
+    def __init__(self, structure, scale_lattice=None, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
+                 vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, modify_incar=None,
+                 force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, run_isif2=False, pass_isif4=False, 
+                 modify_incar_params = {}, modify_kpoints_params = {}, **kwargs):
 
         metadata = metadata or {}
         override_default_vasp_params = override_default_vasp_params or {}
@@ -47,21 +50,32 @@ class OptimizeFW(Firework):
         site_properties = deepcopy(structure).site_properties
 
         t = []
-        if parents:
+        # Avoids delivery (prev_calc_loc == '' (instead by True))
+        if type(prev_calc_loc) == str:
+            t.append(CopyVaspOutputs(calc_dir=prev_calc_loc, contcar_to_poscar=True))
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
+        elif parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
-            vasp_input_set = vasp_input_set or RelaxSet(structure)
+        #vasp_input_set = vasp_input_set or RelaxSet(structure)  # ??
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+        if scale_lattice is not None:
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
+        if modify_incar != None:
+             t.append(ModifyIncar(incar_update=modify_incar))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
+        if record_path:
+            t.append(Record_relax_running_path(db_file = db_file, metadata = metadata, run_isif2=run_isif2, pass_isif4=pass_isif4))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
         # This has to happen at the end because dynamically adding Fireworks if the symmetry breaks skips the rest of the tasks in the Firework.
         if symmetry_tolerance is not None:
-            t.append(CheckSymmetry(tolerance=symmetry_tolerance, vasp_cmd=vasp_cmd, db_file=db_file, structure=structure, metadata=metadata, name=name))
+            t.append(CheckSymmetry(tolerance=symmetry_tolerance, vasp_cmd=vasp_cmd, db_file=db_file, structure=structure, metadata=metadata, name=name,
+                                   modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, run_isif2=run_isif2, pass_isif4=pass_isif4))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
@@ -93,7 +107,7 @@ class StaticFW(Firework):
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
-                 prev_calc_loc=True, db_file=None, parents=None, **kwargs):
+                 prev_calc_loc=True, Prestatic=False, modify_incar=None, db_file=None, parents=None, **kwargs):
 
         # TODO: @computron - I really don't like how you need to set the structure even for
         # prev_calc_loc jobs. Sometimes it makes appending new FWs to an existing workflow
@@ -101,21 +115,30 @@ class StaticFW(Firework):
         metadata = metadata or {}
         vasp_input_set = vasp_input_set or StaticSet(structure)
         site_properties = deepcopy(structure).site_properties
-
+        
+        # Avoids delivery (prev_calc_loc == '' (instead by True))
         t = []
-
-        if parents:
+        if type(prev_calc_loc) == str:
+            t.append(CopyVaspOutputs(calc_dir=prev_calc_loc, contcar_to_poscar=True))
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
+        elif parents:
             if prev_calc_loc:
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
             t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
-        if scale_lattice is not None:
+        if (scale_lattice is not None) and not Prestatic:
             t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
+        if modify_incar != None:
+             t.append(ModifyIncar(incar_update=modify_incar))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
         t.append(PassCalcLocs(name=name))
-        t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata},))
+        if Prestatic:
+            t.append(Record_PreStatic_result(db_file = db_file, metadata = metadata, structure = structure, scale_lattice = scale_lattice))
+        else:
+            t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata, 
+                                "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True},))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 
@@ -155,7 +178,7 @@ class InflectionDetectionFW(Firework):
 
     """
     def __init__(self, structure, name="infdet", input_set=None, metadata=None, prev_calc_loc=True,
-                 db_file=None, parents=None, continuation=False, **kwargs):
+                 db_file=None, parents=None, continuation=False, run_isif2=False, pass_isif4=False, **kwargs):
         metadata = metadata or {}
         input_set = input_set or ATATIDSet(structure)
 
@@ -191,6 +214,7 @@ class InflectionDetectionFW(Firework):
         t.append(PassCalcLocs(name=name))
         # Run ATAT's inflection detection
         t.append(RunATATCustodian(continuation=continuation, name=name))
+        t.append(Record_relax_running_path(db_file = db_file, metadata = metadata, run_isif2=run_isif2, pass_isif4=pass_isif4))
         super(InflectionDetectionFW, self).__init__(t, parents=parents,
                                                     name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 

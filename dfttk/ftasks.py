@@ -22,6 +22,8 @@ from dfttk.analysis.phonon import get_f_vib_phonopy
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
+from atomate import __version__ as atomate_ver
+from dfttk import __version__ as dfttk_ver
 
 
 def extend_calc_locs(name, fw_spec):
@@ -77,7 +79,7 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
         # if a full VaspInputSet object was provided
         if hasattr(self['vasp_input_set'], 'write_input'):
             vis = self['vasp_input_set']
-            vis.structure = struct
+            vis._structure = struct
         # if VaspInputSet String + parameters was provided
         else:
             vis_cls = load_class("pymatgen.io.vasp.sets", self["vasp_input_set"])
@@ -135,8 +137,9 @@ class CheckSymmetry(FiretaskBase):
 
     Converts POSCAR to str.out and CONTCAR to str_relax.out and uses ATAT's checkrelax utility to check.
     """
-    required_params = ['tolerance']
-    optional_params = ['db_file', 'vasp_cmd', 'structure', 'metadata', 'name']
+    required_params = ['tolerance', 'db_file']
+    optional_params = ['vasp_cmd', 'structure', 'metadata', 'name', 'modify_incar_params', 'modify_kpoints_params',
+                       'run_isif2', 'pass_isif4']
     def run_task(self, fw_spec):
         # unrelaxed cell
         cell = Structure.from_file('POSCAR')
@@ -155,21 +158,31 @@ class CheckSymmetry(FiretaskBase):
             from dfttk.fworks import OptimizeFW, InflectionDetectionFW
             from fireworks import Workflow
             from dfttk.input_sets import RelaxSet
+            from dfttk.utils import add_modify_incar_by_FWname, add_modify_kpoints_by_FWname
 
             fws = []
             vis = RelaxSet(self.get('structure'), volume_relax=True)
             vol_relax_fw = OptimizeFW(self.get('structure'), symmetry_tolerance=None,
-                                       job_type='normal', name='Volume relax',
-                                       vasp_input_set=vis,
+                                       job_type='normal', name='Volume relax', #record_path = True, 
+                                       vasp_input_set=vis, modify_incar = {'ISIF': 7},
                                        vasp_cmd=self.get('vasp_cmd'), db_file=self.get('db_file'),
-                                       metadata=self.get('metadata'),
+                                       metadata=self.get('metadata'), run_isif2=self.get('run_isif2'), 
+                                       pass_isif4=self.get('pass_isif4')
                                       )
             fws.append(vol_relax_fw)
+            
+            modify_incar_params = self.get('modify_incar_params')
+            modify_kpoints_params = self.get('modify_kpoints_params')
 
             # we have to add the calc locs for this calculation by hand
             # because the detour action seems to disable spec mods
-            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw], spec={'calc_locs': extend_calc_locs(self.get('name', 'Full relax'), fw_spec)}))
+            fws.append(InflectionDetectionFW(self.get('structure'), parents=[vol_relax_fw], 
+                                             run_isif2=self.get('run_isif2'), pass_isif4=self.get('pass_isif4'),
+                                             metadata=self.get('metadata'), db_file=self.get('db_file'),
+                                             spec={'calc_locs': extend_calc_locs(self.get('name', 'Full relax'), fw_spec)}))
             infdet_wf = Workflow(fws)
+            add_modify_incar_by_FWname(infdet_wf, modify_incar_params = modify_incar_params)
+            add_modify_kpoints_by_FWname(infdet_wf, modify_kpoints_params = modify_kpoints_params)
             return FWAction(detours=[infdet_wf])
 
 
@@ -206,6 +219,7 @@ class CalculatePhononThermalProperties(FiretaskBase):
             'metadata': metadata,
             'unitcell': unitcell.as_dict(),
             'supercell_matrix': supercell_matrix,
+            'adopted' : True,
         }
 
         # insert into database
@@ -260,7 +274,7 @@ class QHAAnalysis(FiretaskBase):
         vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
 
         # get the energies, volumes and DOS objects by searching for the tag
-        static_calculations = vasp_db.collection.find({"metadata.tag": tag})
+        static_calculations = vasp_db.collection.find({'$and':[ {'metadata.tag': tag}, {'adopted': True} ]})
 
         energies = []
         volumes = []
@@ -281,7 +295,6 @@ class QHAAnalysis(FiretaskBase):
         dos_objs = sort_x_by_y(dos_objs, volumes)
         volumes = sorted(volumes)
 
-
         qha_result = {}
         qha_result['structure'] = structure.as_dict()
         qha_result['formula_pretty'] = structure.composition.reduced_formula
@@ -295,7 +308,7 @@ class QHAAnalysis(FiretaskBase):
         # phonon properties
         if self['phonon']:
             # get the vibrational properties from the FW spec
-            phonon_calculations = list(vasp_db.db['phonon'].find({'metadata.tag': tag}))
+            phonon_calculations = list(vasp_db.db['phonon'].find({'$and':[ {'metadata.tag': tag}, {'adopted': True} ]}))
             vol_vol = [calc['volume'] for calc in phonon_calculations]  # these are just used for sorting and will be thrown away
             vol_f_vib = [calc['F_vib'] for calc in phonon_calculations]
             # sort them order of the unit cell volumes
@@ -336,7 +349,18 @@ class QHAAnalysis(FiretaskBase):
         qha_result['debye']['bp2gru'] = bp2gru
         qha_result['debye']['temperatures'] = qha_result['debye']['temperatures'].tolist()
 
-        qha_result['launch_dir'] = str(os.getcwd())
+        qha_result['version_atomate'] = atomate_ver
+        qha_result['version_dfttk'] = dfttk_ver
+        volumes_false = []
+        energies_false = []
+        static_falses = vasp_db.collection.find({'$and':[ {'metadata.tag': tag}, {'adopted': False} ]})
+        for static_false in static_falses:
+            volumes_false.append(static_false['output']['structure']['lattice']['volume'])
+            energies_false.append(static_false['output']['energy'])
+        qha_result['Volumes_fitting_false'] = volumes_false
+        qha_result['Energies_fitting_false'] = energies_false
+        print('Volumes_fitting_false : %s' %volumes_false)
+        print('Energies_fitting_false: %s' %energies_false)
 
         # write to JSON for debugging purposes
         import json
@@ -442,47 +466,6 @@ class TransmuteStructureFile(FiretaskBase):
 
 
 @explicit_serialize
-class CalculatePhononThermalProperties(FiretaskBase):
-    """
-    Phonon-related Firetask to calculate force constants and F_vib.
-
-    This requires that a vasprun.xml from a force constants run and
-    a POSCAR-unitcell be present in the current directory.
-    """
-
-    required_params = ['supercell_matrix', 't_min', 't_max', 't_step', 'db_file', 'tag']
-    optional_params = ['metadata']
-
-    def run_task(self, fw_spec):
-
-        tag = self["tag"]
-        metadata = self.get('metadata', {})
-        metadata['tag'] = tag
-
-        unitcell = Structure.from_file('POSCAR-unitcell')
-        supercell_matrix = self['supercell_matrix']
-        temperatures, f_vib, s_vib, cv_vib, force_constants = get_f_vib_phonopy(unitcell, supercell_matrix, vasprun_path='vasprun.xml', t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'])
-        if isinstance(supercell_matrix, np.ndarray):
-            supercell_matrix = supercell_matrix.tolist()  # make serializable
-        thermal_props_dict = {
-            'volume': unitcell.volume,
-            'F_vib': f_vib.tolist(),
-            'CV_vib': cv_vib.tolist(),
-            'S_vib': s_vib.tolist(),
-            'temperatures': temperatures.tolist(),
-            'force_constants': force_constants.tolist(),
-            'metadata': metadata,
-            'unitcell': unitcell.as_dict(),
-            'supercell_matrix': supercell_matrix,
-        }
-
-        # insert into database
-        db_file = env_chk(self["db_file"], fw_spec)
-        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
-        vasp_db.db['phonon'].insert_one(thermal_props_dict)
-
-
-@explicit_serialize
 class WriteATATFromIOSet(FiretaskBase):
     """
     Write ATAT input as vaspid.wrap
@@ -495,7 +478,9 @@ class WriteATATFromIOSet(FiretaskBase):
 
     required_params = ['input_set']
     def run_task(self, fw_spec):
-        input_set = self['input_set']
+        # To resolve input_set recoginized as str
+        from dfttk.input_sets import ATATIDSet
+        input_set = ATATIDSet(self['input_set'])
         input_set.write_input('.')
 
         return FWAction()
@@ -599,3 +584,85 @@ class RunVaspCustodianNoValidate(FiretaskBase):
 
         c.run()
 
+
+@explicit_serialize
+class Record_relax_running_path(FiretaskBase):
+    """
+    To record relax running path for static calculation
+
+    Required params:
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+
+    """
+    required_params = ["db_file", "metadata", 'run_isif2', 'pass_isif4']
+
+    def run_task(self, fw_spec):
+        from atomate.vasp.database import VaspCalcDb
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        content = {}
+        content["metadata"] = self.get('metadata', {})
+        content["path"] = fw_spec["calc_locs"][-1]["path"]
+        content["run_isif2"] = self.get('run_isif2')
+        content["pass_isif4"] = self.get('pass_isif4')
+        vasp_db.db["relax"].insert_one(content)
+
+
+@explicit_serialize
+class Record_PreStatic_result(FiretaskBase):
+    """
+    To record relax running path for static calculation
+
+    Required params:
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+
+    """
+    required_params = ["db_file", "metadata", "structure", "scale_lattice"]
+
+    def run_task(self, fw_spec):
+        from atomate.vasp.database import VaspCalcDb
+        from pymatgen.io.vasp.outputs import Outcar
+        outcar = Outcar('OUTCAR')
+        db_file = env_chk(self.get('db_file'), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        content = {}
+        content["metadata"] = self.get('metadata', {})
+        structure = self.get('structure', {})
+        content["structure"] = structure.as_dict()
+        content["path"] = fw_spec["calc_locs"][-1]["path"]
+        content["energy"] = outcar.final_energy
+        content["scale_lattice"] = self.get('scale_lattice', 0)
+        vasp_db.db["PreStatic"].insert_one(content)
+
+
+@explicit_serialize
+class empty_task(FiretaskBase):
+    """
+    The class used for generate a nothong todo task to avoid KeyError infw_spec["calc_locs"]
+    """
+
+    def run_task(self, fw_spec):
+        pass
+
+
+@explicit_serialize
+class ModifyKpoints(FiretaskBase):
+    """
+    Modify an KPOINTS file.
+
+    Required params:
+        modify_kpoints_params: like [[3, 3, 3]]
+    """
+
+    required_params = ['modify_kpoints_params']
+
+    def run_task(self, fw_spec):
+        from pymatgen.io.vasp import Kpoints
+        modify_kpoints_params = self.get('modify_kpoints_params')
+        kpoint = Kpoints.from_file('KPOINTS')
+        if 'kpts' in modify_kpoints_params.keys():
+            kpoint.kpts = modify_kpoints_params['kpts']
+        kpoint.write_file('KPOINTS')
+    
