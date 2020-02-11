@@ -124,8 +124,6 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
     return wf
 
 
-
-
 def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1),
                  phonon=False, phonon_supercell_matrix=None, run_isif2=False, pass_isif4=False,
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
