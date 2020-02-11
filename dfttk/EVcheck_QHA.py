@@ -18,10 +18,10 @@ def gen_volenergdos(num, volumes, energies, dos_objs=None):
     """
     Extract volume, energies and dos_obj according to the index (num)
     """
-    volume = extract_accord_index(num, volumes)
-    energy = extract_accord_index(num, energies)
-    if dos_objs is None:
-        dos_obj = extract_accord_index(num, dos_objs)
+    volume = extract_accord_index(index=num, p_in=volumes)
+    energy = extract_accord_index(index=num, p_in=energies)
+    if dos_objs:
+        dos_obj = extract_accord_index(index=num, p_in=dos_objs)
         return volume, energy, dos_obj
     return volume, energy
 
@@ -133,7 +133,7 @@ def cal_stderr(value, ref=None):
     if ref is None:
         ref = [0. for i in range(n)]
     for i in range(n):
-        stderr += mat.pow((value[i] - ref[i]), 2)
+        stderr += math.pow((value[i] - ref[i]), 2)
     stderr = stderr / n
     return stderr
 
@@ -456,6 +456,8 @@ class EVcheck_QHA(FiretaskBase):
                 print('Combinations in "%s"...' %len_comb)
                 combination = combinations(comb_source, len_comb)
                 for combs in combination:
+                    print(volumes)
+                    print(energies)
                     volume, energy = gen_volenergdos(combs, volumes, energies)
                     try:
                         self.check_fit(volume, energy)
