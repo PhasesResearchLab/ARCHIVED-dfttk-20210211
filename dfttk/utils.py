@@ -230,6 +230,15 @@ def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
     return optimal_sc_shape
 
 def recursive_flatten(l):
+    """
+    Flat list(the elements of which may contain multi-layer list) into a single-layer list recursively
+
+    Parameter
+    ---------
+        l: multi-layer list, e.g. l = [[2, 3, 4], 5, [[[6, 7, 8]]]]
+    Returns
+        single-layer list, e.g. [2, 3, 4, 5, 6, 7, 8]
+    """
     if l == []:
         return l
     if isinstance(l[0], list):
