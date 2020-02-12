@@ -45,6 +45,29 @@ def canonicalize_config(configuration, occupancies):
     new_configuration = [sorted(config) for config in configuration]
     return (new_configuration, new_occupancies)
 
+def get_density_from_pt(ele_list):
+    """
+    Get density from periodictable package
+
+    Parameters
+    ----------
+        ele_list : list
+            The list of elements, e.g. ['Nb', 'Ti']
+    Returns
+    -------
+        density_dict : dict
+            Dictionary of {element: density}, e.g. {'Nb': 8.57, 'Ti': 4.54}. 
+    Examples
+    --------
+    >>> get_density_from_pt(['Nb', 'Ti'])
+    {'Nb': 8.57, 'Ti': 4.54}
+    """
+    import periodictable as pt
+    density_dict = {}
+    for ele in ele_list:
+        density_dict[ele] = eval("pt." + ele + ".density")
+    return density_dict
+
 def scale_struct(struct, density_dict):
     """Scale the structure according to the weighted average density of each element.
 
