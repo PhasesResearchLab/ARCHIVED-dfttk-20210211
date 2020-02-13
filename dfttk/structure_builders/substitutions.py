@@ -90,7 +90,7 @@ def scale_struct(struct, density_dict):
     current_density = struct.density
     current_volume = struct.volume
     expected_volume = current_volume/expected_density*current_density
-    struct.scale_lattice(expected_volume)
+    struct.scale_lattice(float(expected_volume))
     return struct
 
 def gen_replacement_dict(old_config, new_config):
