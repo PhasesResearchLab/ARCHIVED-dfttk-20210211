@@ -62,10 +62,11 @@ def get_density_from_pt(ele_list):
     >>> get_density_from_pt(['Nb', 'Ti'])
     {'Nb': 8.57, 'Ti': 4.54}
     """
-    import periodictable as pt
+    from pymatgen.core.periodic_table import Element
+    #import periodictable as pt
     density_dict = {}
     for ele in ele_list:
-        density_dict[ele] = eval("pt." + ele + ".density")
+        density_dict[ele] = float(Element(ele).density_of_solid)/1000.
     return density_dict
 
 def scale_struct(struct, density_dict):
