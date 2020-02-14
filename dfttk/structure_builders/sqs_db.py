@@ -110,7 +110,8 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     sqs = AbstractSQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
               sublattice_model=sublattice_model,
               sublattice_names=sublattice_names)
-    sqs.modify_lattice(Lattice(lattice))
+    sqs.lattice = Lattice(lattice)
+    #sqs.modify_lattice(Lattice(lattice))  #This will be deprecated in v2020
 
     return sqs
 

@@ -9,7 +9,7 @@ sys.path.append(dfttkhome)
 from dfttk.structure_builders.substitutions import get_density_from_pt
 
 
-print(get_density_from_pt(['Nb', 'Ti']))
+print(get_density_from_pt(['Fe', 'Ni']))
 
 Fe = Element("Ti").density_of_solid
 print(Fe)

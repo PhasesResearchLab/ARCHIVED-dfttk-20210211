@@ -47,20 +47,20 @@ def canonicalize_config(configuration, occupancies):
 
 def get_density_from_pt(ele_list):
     """
-    Get density from periodictable package
+    Get density(g/cm^3) from periodictable package
 
     Parameters
     ----------
-        ele_list : list
-            The list of elements, e.g. ['Nb', 'Ti']
+        ele_list : list/dict
+            The list of elements, e.g. ['Nb', 'Ti']/{'Nb': 3, 'Ti': 1}
     Returns
     -------
         density_dict : dict
-            Dictionary of {element: density}, e.g. {'Nb': 8.57, 'Ti': 4.54}. 
+            Dictionary of {element: density}, e.g. {'Nb': 8.57, 'Ti': 4.507}. 
     Examples
     --------
     >>> get_density_from_pt(['Nb', 'Ti'])
-    {'Nb': 8.57, 'Ti': 4.54}
+    {'Nb': 8.57, 'Ti': 4.507}
     """
     from pymatgen.core.periodic_table import Element
     #import periodictable as pt
@@ -69,15 +69,34 @@ def get_density_from_pt(ele_list):
         density_dict[ele] = float(Element(ele).density_of_solid)/1000.
     return density_dict
 
-def scale_struct(struct, density_dict):
+def get_ele_list_from_struct(struct):
+    """
+    Get elements list from pymatgen structure objective
+
+    Parameters
+    ----------
+        struct : pymatgen objective
+            The structure
+    Returns
+    -------
+        ele_list : [str]
+            The list of elements
+    """
+    ele_list = []
+    for ele in struct.species:
+        ele_list.append(str(ele))
+    return ele_list
+
+def scale_struct(struct):
     """Scale the structure according to the weighted average density of each element.
 
     Parameters
     ----------
     struct : pymatgen.Structure
-    density_dict : dict
-        Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
-        not matter as long as the densities in the dict are internally consistent.
+    #density_dict : dict
+    #    Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
+    #    not matter as long as the densities in the dict are internally consistent.
+    # This parameters is canceled by using periodictable module in pymatgen.core
 
     Returns
     -------
@@ -86,6 +105,7 @@ def scale_struct(struct, density_dict):
 
     """
     species_amnt_dict = struct.composition.get_el_amt_dict()  # dict of {'V': 10.0, 'Ni': 30.0}
+    density_dict = get_density_from_pt(species_amnt_dict)
     # densities is dict of densities, {'V': 6.313, 'Ni': 9.03}
     expected_density = float(sum([density_dict[species]*amnt for species, amnt in species_amnt_dict.items()]))/struct.composition.num_atoms
     current_density = struct.density
@@ -118,7 +138,7 @@ def gen_replacement_dict(old_config, new_config):
     return replacement_dict
 
 
-def substitute_configuration(template_structure, template_config, config, density_dict, check_sorting=True):
+def substitute_configuration(template_structure, template_config, config, check_sorting=True):
     """
     Replace the species in the template structure by switching the template_config elements for the config elements.
 
@@ -133,9 +153,9 @@ def substitute_configuration(template_structure, template_config, config, densit
         DFTTK style configuration that will be replaced
     config : list
         DFTTK style configuration that the new structure will have
-    density_dict : dict
-        Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
-        not matter as long as the densities in the dict are internally consistent.
+    #density_dict : dict
+    #    Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
+    #    not matter as long as the densities in the dict are internally consistent.
     check_sorting : bool
         If True, will check that all sublattices are correctly sorted in the target config
 
@@ -151,12 +171,12 @@ def substitute_configuration(template_structure, template_config, config, densit
                                  "See information on DFTTK configurations in the docs.".format(config))
     struct = deepcopy(template_structure)
     struct.replace_species(gen_replacement_dict(template_config, config))
-    scale_struct(struct, density_dict)
+    scale_struct(struct)
     return struct
 
 
 
-def substitute_configuration_with_metadata(template_structure, template_config, config, density_dict, occupation, phase_name, site_ratios):
+def substitute_configuration_with_metadata(template_structure, template_config, config, occupation, phase_name, site_ratios):
     """
     Replace the species in the template structure by switching the template_config elements for the config elements.
 
@@ -173,9 +193,9 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
         DFTTK style configuration that will be replaced
     config : list
         DFTTK style configuration that the new structure will have
-    density_dict : dict
-        Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
-        not matter as long as the densities in the dict are internally consistent.
+    #density_dict : dict
+    #    Dictionary of {element: density}, e.g. {'Fe': 9, 'Ti': 4}. The units do
+    #    not matter as long as the densities in the dict are internally consistent.
     occupation : list
         DFTTK style occupancy fractions. Must match the shape to config and template_config.
     phase_name : str
@@ -188,7 +208,7 @@ def substitute_configuration_with_metadata(template_structure, template_config, 
     (pymatgen.Structure, dict)
         Tuple of a new Structure object (the original is not modified so it can be reused in loops) and a dict of metadata
     """
-    struct = substitute_configuration(template_structure, template_config, config, density_dict, check_sorting=False)
+    struct = substitute_configuration(template_structure, template_config, config, check_sorting=False)
     config, occupation = canonicalize_config(config, occupation)
     metadata = {'phase_name': phase_name, 'sublattice': {'configuration': config, 'occupancies': occupation, 'site_ratios': site_ratios}}
     return struct, metadata
