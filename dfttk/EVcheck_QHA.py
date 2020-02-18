@@ -617,16 +617,8 @@ class PreEV_check(FiretaskBase):
         #vol_adds = check_deformations_in_volumes(deformations, volumes, structure.volume)
         self.check_points(db_file, metadata, tolerance, 0.1, del_limited, volumes, energies, verbose)
         
-        EVcheck_result = {}
-        EVcheck_result['append_run_num'] = run_num
-        EVcheck_result['correct'] = self.correct
-        EVcheck_result['volumes'] = volumes
-        EVcheck_result['energies'] = energies
-        EVcheck_result['tolerance'] = tolerance
-        EVcheck_result['threshold'] = threshold
-        EVcheck_result['vol_spacing'] = vol_spacing
-        EVcheck_result['error'] = self.error
-        EVcheck_result['metadata'] = metadata
+        EVcheck_result = init_evcheck_result(run_num, self.correct, volumes, energies, tolerance, 
+                                             threshold, vol_spacing, self.error, metadata)
 
         structure.scale_lattice(self.minE_value)
         vol_orig = structure.volume
@@ -786,10 +778,7 @@ class PreEV_check(FiretaskBase):
             for m in range(min(len(errors) - threshold, 1)):
                 errors.pop(-1)
                 num.pop(-1)
-            temperror = 0
-            for m in range(len(num)):
-                temperror += math.pow(errors[m], 2) 
-            temperror = math.sqrt(temperror) / len(num)
+            temperror = cal_stderr(errors)
             if verbose:
                 print('Absolutely average offest is: %.4f in %s numbers combination.' %(temperror, len(num)))
             if temperror < error:
@@ -813,11 +802,7 @@ class PreEV_check(FiretaskBase):
                         if verbose:
                             print('Fitting error in: ', comb)
                         continue
-                    fit_value = self.eos_fit.func(volume)
-                    temperror = 0
-                    for m in range(len(volume)):
-                        temperror += math.pow((fit_value[m] - energy[m]), 2) 
-                    temperror = math.sqrt(temperror) / len(volume)
+                    temperror = eosfit_stderr(self.eos_fit, volume, energy)
                     if verbose:
                         print('error = %.4f in %s ' %(temperror, combs))
                     if temperror < error:
