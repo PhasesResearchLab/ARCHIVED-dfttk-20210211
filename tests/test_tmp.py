@@ -7,78 +7,135 @@ import os
 import re
 import json
 from pathlib import Path
+'''
+import dfttk.structure_builders.sqs_db as sqs_db
 
 atat_sqsdb_path = "/storage/home/mjl6505/package/atat/atat/data/sqsdb"
 
-def SQSDatabaseATAT(atat_sqsdb_path):
-    """
-    Generate the SQS database using the build-in sqsdb in ATAT
-    """
-    sqsfilename = "bestsqs.out"
-    for diri in os.listdir(atat_sqsdb_path):
-        sqsgen_path = os.path.join(atat_sqsdb_path, diri)
-        if os.path.isdir(sqsgen_path):
-            # prototype = [name_prototype, Strukturbericht_mark]
-            prototype = diri.split("_")
-            for atatsqs_path in os.listdir(sqsgen_path):
-                sqs_path = os.path.join(sqsgen_path, atatsqs_path)
-                if os.path.isdir(sqs_path):
-                    sqs_config = parse_atatsqs_path(atatsqs_path)
-                    sqsfile_fullpath = os.path.join(sqs_path, sqsfilename)
-                    if os.path.exists(sqsfile_fullpath):
-                        with open(sqsfile_fullpath, "r") as fid:
-                            #sqs_str = fid.read()
-                            sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
-                            print(sqs_dict)
-            '''
-            sqs_folders, sqs_config = read_sqsgen_in(sqsgen_path)
-            for sqs_folder in sqs_folders:
-                sqsfile_fullpath = os.path.join(sqsgen_path, sqs_folder, sqsfilename)
-                print(sqsfile_fullpath)
-                if os.path.exists(sqsfile_fullpath):
-                    with open(sqsfile_fullpath, "r") as fid:
-                        #sqs_str = fid.read()
-                        sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
-                        print(sqs_dict)
-            '''
-
-def parse_atatsqs_path(atatsqs_path):
-    """
-    Parse the path of atat sqsdb
-
-    Parameters
-    ----------
-        atatsqs_path: str
-            The path of atat sqsdb, e.g. sqsdb_lev=2_a=0.5,0.5_f=0.5,0.5
-    Return
-    ------
-        sqs_config: dict
-            The dict of the configuration of sqs
-            It contains the following keys:
-                level: The level of sqs, usually 0 for pure elements, 1 for 50%-50%, ...
-                configuration: The configuration of sqs, e.g. ['a', 'c']
-                occupancies: The occupancies of sqs, e.g. [0.5, 0.5]
-    """
-    sqs_config = {}
-    configuration = []
-    occupancies = []
-    path_list = atatsqs_path.split("_")
-    for path_param in path_list:
-        path_val = path_param.split("=")
-        if path_val[0] == "sqsdb":
-            pass
-        elif path_val[0] == "lev":
-            level = path_val[1]
-        else:
-            configuration.append(path_val[0])
-            occupancies.append(path_val[1].split(","))
-    sqs_config["level"] = level
-    sqs_config["configuration"] = configuration
-    sqs_config["occupancies"] = occupancies
-    return sqs_config
-
-SQSDatabaseATAT(atat_sqsdb_path)
+#sqs_db.SQSDatabaseATAT(atat_sqsdb_path)
 #
 
+atat_lattice_in = """3.078900 0.000000 0.000000
+0.000000 3.078900 0.000000
+0.000000 0.000000 3.078900
+-0.500000 0.500000 -0.500000
+-0.500000 -0.500000 0.500000
+-0.000000 1.000000 1.000000
+-0.644000 0.356000 0.042000 g2_A
+-0.644000 0.356000 1.042000 g2_B
+-0.356000 0.644000 1.042000 g2_A
+-0.356000 0.644000 0.042000 g2_A
+-0.356000 0.356000 -0.042000 g2_B
+-0.356000 0.356000 0.958000 g2_B
+-0.644000 0.644000 0.958000 g2_A
+-0.644000 0.644000 -0.042000 g2_B
+-0.958000 0.356000 0.356000 g2_B
+-0.458000 0.856000 0.856000 g2_B
+-0.958000 0.644000 0.644000 g2_B
+-0.458000 0.144000 0.144000 g2_A
+-0.542000 1.144000 0.856000 g2_A
+-0.542000 0.144000 0.856000 g2_B
+-0.542000 0.856000 1.144000 g2_B
+-0.542000 0.856000 0.144000 g2_B
+-0.644000 0.042000 0.356000 g2_A
+-0.644000 1.042000 0.356000 g2_A
+-0.356000 1.042000 0.644000 g2_A
+-0.356000 0.042000 0.644000 g2_B
+-0.644000 0.958000 0.644000 g2_A
+-0.644000 -0.042000 0.644000 g2_A
+-0.356000 -0.042000 0.356000 g2_A
+-0.356000 0.958000 0.356000 g2_B
+-1.000000 1.000000 1.000000 ac_A
+-0.500000 0.500000 0.500000 ac_A
+-0.683000 0.317000 0.317000 ac_A
+-0.183000 0.817000 0.817000 ac_A
+-0.817000 1.183000 0.817000 ac_A
+-0.317000 0.683000 0.317000 ac_A
+-0.817000 0.817000 1.183000 ac_A
+-0.317000 0.317000 0.683000 ac_A
+-0.683000 0.683000 0.683000 ac_A
+-0.183000 0.183000 0.183000 ac_A
+-0.411000 0.589000 -0.222000 g1_A
+-0.411000 0.589000 0.778000 g1_A
+-0.589000 0.411000 -0.222000 g1_A
+-0.589000 0.411000 0.778000 g1_A
+-0.589000 0.589000 1.222000 g1_A
+-0.589000 0.589000 0.222000 g1_A
+-0.411000 0.411000 1.222000 g1_A
+-0.411000 0.411000 0.222000 g1_A
+-0.722000 0.089000 0.089000 g1_A
+-0.222000 0.589000 0.589000 g1_A
+-0.722000 0.911000 0.911000 g1_A
+-0.222000 0.411000 0.411000 g1_A
+-0.278000 0.911000 1.089000 g1_A
+-0.778000 0.411000 0.589000 g1_A
+-0.278000 1.089000 0.911000 g1_A
+-0.778000 0.589000 0.411000 g1_A
+-0.411000 -0.222000 0.589000 g1_A
+-0.411000 0.778000 0.589000 g1_A
+-0.589000 -0.222000 0.411000 g1_A
+-0.589000 0.778000 0.411000 g1_A
+-0.411000 1.222000 0.411000 g1_A
+-0.411000 0.222000 0.411000 g1_A
+-0.589000 1.222000 0.589000 g1_A
+-0.589000 0.222000 0.589000 g1_A"""
 
+atat_lattice_in2 = """1.000000 0.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 0.000000 1.000000
+-0.000000 1.000000 2.000000
+0.000000 1.000000 -2.000000
+-2.000000 0.000000 0.000000
+-1.000000 1.500000 -0.500000 c_B
+-2.000000 1.500000 -0.500000 c_A
+-1.000000 0.500000 0.500000 c_B
+-2.000000 0.500000 0.500000 c_A
+-1.000000 1.500000 0.500000 c_B
+-2.000000 1.500000 0.500000 c_B
+-1.000000 0.500000 -0.500000 c_A
+-2.000000 0.500000 -0.500000 c_A
+-0.500000 1.000000 1.500000 c_A
+-1.500000 1.000000 1.500000 c_A
+-0.500000 1.000000 0.500000 c_A
+-1.500000 1.000000 0.500000 c_A
+-0.500000 1.000000 -1.500000 c_B
+-1.500000 1.000000 -1.500000 c_B
+-0.500000 1.000000 -0.500000 c_B
+-1.500000 1.000000 -0.500000 c_B
+-0.500000 1.500000 -1.000000 a_B
+-1.500000 1.500000 -1.000000 a_A
+-0.500000 0.500000 0.000000 a_B
+-1.500000 0.500000 0.000000 a_A
+-0.500000 1.500000 0.000000 a_B
+-1.500000 1.500000 0.000000 a_A
+-0.500000 1.500000 1.000000 a_B
+-1.500000 1.500000 1.000000 a_A
+-1.000000 1.000000 -1.000000 a_B
+-2.000000 1.000000 -1.000000 a_A
+-1.000000 2.000000 0.000000 a_A
+-2.000000 2.000000 0.000000 a_B
+-1.000000 1.000000 0.000000 a_A
+-2.000000 1.000000 0.000000 a_B
+-1.000000 1.000000 1.000000 a_B
+-2.000000 1.000000 1.000000 a_A
+"""
+parsed_data = sqs_db._parse_atat_lattice(atat_lattice_in2)
+atat_coord_system = parsed_data[0]
+atat_lattice = parsed_data[1]
+atat_atoms = parsed_data[2]
 
+print(atat_coord_system)
+print(atat_lattice)
+print(atat_atoms)
+'''
+
+a = 'a1'
+print(a.replace('l','Q'))
+print(a.replace('1',chr(97)))
+print(a.replace('world','apple'))
+print(chr(97))
+
+s = re.findall("\d+",a)
+print(s)
+print(a)
+print(a.replace(re.findall("\d+", a)[0], chr(96+int(re.findall("\d+", a)[0]))))

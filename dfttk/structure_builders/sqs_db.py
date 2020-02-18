@@ -27,7 +27,7 @@ import os
 import re
 
 from pymatgen import Lattice
-from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
+from pyparsing import Regex, Word, alphas, alphanums, OneOrMore, LineEnd, Suppress, Group
 from tinydb import TinyDB
 from tinydb.storages import MemoryStorage
 
@@ -46,7 +46,7 @@ def _parse_atat_lattice(lattice_in):
     vector_line = vector + Suppress(LineEnd())
     coord_sys = Group((vector_line + vector_line + vector_line) | (vector + angles + Suppress(LineEnd())))
     lattice = Group(vector + vector + vector)
-    atom = Group(vector + Group(OneOrMore(Word(alphas + '_'))))
+    atom = Group(vector + Group(OneOrMore(Word(alphas, alphanums + '_'))))
     atat_lattice_grammer = coord_sys + lattice + Group(OneOrMore(atom))
     # parse the input string and convert it to a POSCAR string
     return atat_lattice_grammer.parseString(lattice_in)
@@ -67,7 +67,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     SQS
         Abstract SQS.
     """
-    # TODO: handle numeric species, e.g. 'g1'.
+    # TODO: handle numeric species, e.g. 'g1'. Fixed
     # Problems: parser has trouble with matching next line and we have to rename it so pymatgen
     # doesn't think it's a charge.
     # parse the data
@@ -81,7 +81,10 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         coord_system = Lattice(list(atat_coord_system)).matrix
     else:
         # we have length and angles
-        coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
+        #coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
+        (lat_a, lat_b, lat_c) = list(atat_coord_system[0])
+        (lat_alpha, lat_beta, lat_gamma) = list(atat_coord_system[1])
+        coord_system = Lattice.from_parameters(lat_a, lat_b, lat_c, lat_alpha, lat_beta, lat_gamma).matrix
     direct_lattice = Lattice(list(atat_lattice))
     lattice = coord_system.dot(direct_lattice.matrix)
     # create the list of atoms, converted to the right coordinate system
@@ -101,6 +104,10 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
             raise NotImplementedError('Cannot rename because the atom name and sublattice name may be ambigous.')
         # add the abstract atom to the sublattice model
         subl = atom[0]
+        #Replace the digital by alphas, 1->a, 2->b, 3->c, ...
+        rep_items = re.findall("\d+", subl)
+        for rep_item in rep_items:
+            subl = subl.replace(rep_item, chr(96 + int(rep_item)))
         subl_atom = atom[1]
         subl_model[subl] = subl_model.get(subl, set()).union({subl_atom})
         # add the species and position to the lists
@@ -156,24 +163,13 @@ def SQSDatabaseATAT(atat_sqsdb_path):
             for atatsqs_path in os.listdir(sqsgen_path):
                 sqs_path = os.path.join(sqsgen_path, atatsqs_path)
                 if os.path.isdir(sqs_path):
-                    sqs_config = parse_atatsqs_path(atatsqs_path)
+                    #sqs_config = parse_atatsqs_path(atatsqs_path)
                     sqsfile_fullpath = os.path.join(sqs_path, sqsfilename)
                     if os.path.exists(sqsfile_fullpath):
                         with open(sqsfile_fullpath, "r") as fid:
                             #sqs_str = fid.read()
                             sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
-                            print(sqs_dict)
-            '''
-            sqs_folders, sqs_config = read_sqsgen_in(sqsgen_path)
-            for sqs_folder in sqs_folders:
-                sqsfile_fullpath = os.path.join(sqsgen_path, sqs_folder, sqsfilename)
-                print(sqsfile_fullpath)
-                if os.path.exists(sqsfile_fullpath):
-                    with open(sqsfile_fullpath, "r") as fid:
-                        #sqs_str = fid.read()
-                        sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
-                        print(sqs_dict)
-            '''
+                            #print(sqs_dict)
 
 def parse_atatsqs_path(atatsqs_path):
     """
