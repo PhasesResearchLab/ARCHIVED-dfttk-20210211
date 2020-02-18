@@ -150,10 +150,30 @@ def SQSDatabase(path, name_constraint=''):
                 raise ValueError('JSON Error in {}: {}'.format(fname, e))
     return db
 
-def SQSDatabaseATAT(atat_sqsdb_path):
+def SQSDatabaseATAT(atat_sqsdb_path, db_save_path=None):
     """
     Generate the SQS database using the build-in sqsdb in ATAT
+
+    Parameters
+    ----------
+        atat_sqsdb_path: str
+            The path of ATAT's sqsdb, usually it is stored at ATAT_HOME/data/sqsdb
+        db_save_path: str
+            The path to store the ATAT's SQS database
+                Default: None (The path of the sqs_db.py(DFTTK) file)
+                MemoryStorage: store in the memory
+    Return
+    ------
+        db: TinyDB
+            Database of abstract SQS.
     """
+    if db_save_path == "MemoryStorage":
+        db = TinyDB(storage=MemoryStorage)
+    else:
+        if db_save_path is None:
+            db_save_path = os.path.dirname(__file__)
+        sqsdb_fullpath = db_save_path + "/ATAT_SQSDB.json"
+        db = TinyDB(sqsdb_fullpath)
     sqsfilename = "bestsqs.out"
     for diri in os.listdir(atat_sqsdb_path):
         sqsgen_path = os.path.join(atat_sqsdb_path, diri)
@@ -169,8 +189,11 @@ def SQSDatabaseATAT(atat_sqsdb_path):
                         with open(sqsfile_fullpath, "r") as fid:
                             #sqs_str = fid.read()
                             sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
-                            #print(sqs_dict)
+                            sqs_dict["prototype"] = prototype
+                            db.insert(sqs_dict)
+    return db
 
+#Not used
 def parse_atatsqs_path(atatsqs_path):
     """
     Parse the path of atat sqsdb
@@ -206,7 +229,7 @@ def parse_atatsqs_path(atatsqs_path):
     sqs_config["occupancies"] = occupancies
     return sqs_config
 
-
+#Not used
 def read_sqsgen_in(sqsgen_path):
     """
     Read sqsgen.in file in the ATAT's SQS database
