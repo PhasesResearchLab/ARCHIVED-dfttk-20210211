@@ -162,6 +162,8 @@ def SQSDatabaseATAT(atat_sqsdb_path, db_save_path=None):
             The path to store the ATAT's SQS database
                 Default: None (The path of the sqs_db.py(DFTTK) file)
                 MemoryStorage: store in the memory
+            Note: compared with the default SQS database, one more key is provided in
+                  the ATAT's SQS database (prototype: [name_prototype, Strukturbericht_mark])
     Return
     ------
         db: TinyDB
@@ -174,20 +176,16 @@ def SQSDatabaseATAT(atat_sqsdb_path, db_save_path=None):
             db_save_path = os.path.dirname(__file__)
         sqsdb_fullpath = db_save_path + "/ATAT_SQSDB.json"
         db = TinyDB(sqsdb_fullpath)
-    sqsfilename = "bestsqs.out"
     for diri in os.listdir(atat_sqsdb_path):
         sqsgen_path = os.path.join(atat_sqsdb_path, diri)
         if os.path.isdir(sqsgen_path):
-            # prototype = [name_prototype, Strukturbericht_mark]
             prototype = diri.split("_")
             for atatsqs_path in os.listdir(sqsgen_path):
                 sqs_path = os.path.join(sqsgen_path, atatsqs_path)
                 if os.path.isdir(sqs_path):
-                    #sqs_config = parse_atatsqs_path(atatsqs_path)
-                    sqsfile_fullpath = os.path.join(sqs_path, sqsfilename)
+                    sqsfile_fullpath = os.path.join(sqs_path, "bestsqs.out")
                     if os.path.exists(sqsfile_fullpath):
                         with open(sqsfile_fullpath, "r") as fid:
-                            #sqs_str = fid.read()
                             sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
                             sqs_dict["prototype"] = prototype
                             db.insert(sqs_dict)
