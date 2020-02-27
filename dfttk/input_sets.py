@@ -56,7 +56,7 @@ class RelaxSet(DictSet):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
         self.volume_relax = volume_relax
-        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, **kwargs)
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
         if self.volume_relax:
             self.incar.update({'ISIF': 7})
 
@@ -100,7 +100,7 @@ class PreStaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, **kwargs)
+        super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
 
@@ -143,7 +143,7 @@ class ForceConstantsSet(DictSet):
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
         super(ForceConstantsSet, self).__init__(
-            structure, ForceConstantsSet.CONFIG, **kwargs)
+            structure, ForceConstantsSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class StaticSet(DictSet):
@@ -185,7 +185,7 @@ class StaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class ATATIDSet():
@@ -264,7 +264,7 @@ class ForcesSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, **kwargs)
+        super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, sort_structure=False, **kwargs)
 
 
 
