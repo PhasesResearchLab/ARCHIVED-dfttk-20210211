@@ -23,9 +23,11 @@ the resulting Structure objects can be made concrete using functions in `dfttk.s
 """
 
 import json
+import os
+import re
 
 from pymatgen import Lattice
-from pyparsing import Regex, Word, alphas, OneOrMore, LineEnd, Suppress, Group
+from pyparsing import Regex, Word, alphas, alphanums, OneOrMore, LineEnd, Suppress, Group
 from tinydb import TinyDB
 from tinydb.storages import MemoryStorage
 
@@ -44,7 +46,7 @@ def _parse_atat_lattice(lattice_in):
     vector_line = vector + Suppress(LineEnd())
     coord_sys = Group((vector_line + vector_line + vector_line) | (vector + angles + Suppress(LineEnd())))
     lattice = Group(vector + vector + vector)
-    atom = Group(vector + Group(OneOrMore(Word(alphas + '_'))))
+    atom = Group(vector + Group(OneOrMore(Word(alphas, alphanums + '_'))))
     atat_lattice_grammer = coord_sys + lattice + Group(OneOrMore(atom))
     # parse the input string and convert it to a POSCAR string
     return atat_lattice_grammer.parseString(lattice_in)
@@ -65,7 +67,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     SQS
         Abstract SQS.
     """
-    # TODO: handle numeric species, e.g. 'g1'.
+    # TODO: handle numeric species, e.g. 'g1'. Fixed
     # Problems: parser has trouble with matching next line and we have to rename it so pymatgen
     # doesn't think it's a charge.
     # parse the data
@@ -79,7 +81,10 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         coord_system = Lattice(list(atat_coord_system)).matrix
     else:
         # we have length and angles
-        coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
+        #coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
+        (lat_a, lat_b, lat_c) = list(atat_coord_system[0])
+        (lat_alpha, lat_beta, lat_gamma) = list(atat_coord_system[1])
+        coord_system = Lattice.from_parameters(lat_a, lat_b, lat_c, lat_alpha, lat_beta, lat_gamma).matrix
     direct_lattice = Lattice(list(atat_lattice))
     lattice = coord_system.dot(direct_lattice.matrix)
     # create the list of atoms, converted to the right coordinate system
@@ -99,6 +104,10 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
             raise NotImplementedError('Cannot rename because the atom name and sublattice name may be ambigous.')
         # add the abstract atom to the sublattice model
         subl = atom[0]
+        #Replace the digital by alphas, 1->a, 2->b, 3->c, ...
+        rep_items = re.findall("\d+", subl)
+        for rep_item in rep_items:
+            subl = subl.replace(rep_item, chr(96 + int(rep_item)))
         subl_atom = atom[1]
         subl_model[subl] = subl_model.get(subl, set()).union({subl_atom})
         # add the species and position to the lists
@@ -110,7 +119,8 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     sqs = AbstractSQS(direct_lattice, species_list, species_positions, coords_are_cartesian=True,
               sublattice_model=sublattice_model,
               sublattice_names=sublattice_names)
-    sqs.modify_lattice(Lattice(lattice))
+    sqs.lattice = Lattice(lattice)
+    #sqs.modify_lattice(Lattice(lattice))  #This will be deprecated in v2020
 
     return sqs
 
@@ -140,6 +150,128 @@ def SQSDatabase(path, name_constraint=''):
                 raise ValueError('JSON Error in {}: {}'.format(fname, e))
     return db
 
+def SQSDatabaseATAT(atat_sqsdb_path, db_save_path=None):
+    """
+    Generate the SQS database using the build-in sqsdb in ATAT
+
+    Parameters
+    ----------
+        atat_sqsdb_path: str
+            The path of ATAT's sqsdb, usually it is stored at ATAT_HOME/data/sqsdb
+        db_save_path: str
+            The path to store the ATAT's SQS database
+                Default: None (The path of the sqs_db.py(DFTTK) file)
+                MemoryStorage: store in the memory
+            Note: compared with the default SQS database, one more key is provided in
+                  the ATAT's SQS database (prototype: [name_prototype, Strukturbericht_mark])
+    Return
+    ------
+        db: TinyDB
+            Database of abstract SQS.
+    """
+    if db_save_path == "MemoryStorage":
+        db = TinyDB(storage=MemoryStorage)
+    else:
+        if db_save_path is None:
+            db_save_path = os.path.dirname(__file__)
+        sqsdb_fullpath = db_save_path + "/ATAT_SQSDB.json"
+        db = TinyDB(sqsdb_fullpath)
+    for diri in os.listdir(atat_sqsdb_path):
+        sqsgen_path = os.path.join(atat_sqsdb_path, diri)
+        if os.path.isdir(sqsgen_path):
+            prototype = diri.split("_")
+            for atatsqs_path in os.listdir(sqsgen_path):
+                sqs_path = os.path.join(sqsgen_path, atatsqs_path)
+                if os.path.isdir(sqs_path):
+                    sqsfile_fullpath = os.path.join(sqs_path, "bestsqs.out")
+                    if os.path.exists(sqsfile_fullpath):
+                        with open(sqsfile_fullpath, "r") as fid:
+                            sqs_dict = lat_in_to_sqs(fid.read()).as_dict()
+                            sqs_dict["prototype"] = prototype
+                            db.insert(sqs_dict)
+    return db
+
+#Not used
+def parse_atatsqs_path(atatsqs_path):
+    """
+    Parse the path of atat sqsdb
+
+    Parameters
+    ----------
+        atatsqs_path: str
+            The path of atat sqsdb, e.g. sqsdb_lev=2_a=0.5,0.5_f=0.5,0.5
+    Return
+    ------
+        sqs_config: dict
+            The dict of the configuration of sqs
+            It contains the following keys:
+                level: The level of sqs, usually 0 for pure elements, 1 for 50%-50%, ...
+                configuration: The configuration of sqs, e.g. ['a', 'c']
+                occupancies: The occupancies of sqs, e.g. [0.5, 0.5]
+    """
+    sqs_config = {}
+    configuration = []
+    occupancies = []
+    path_list = atatsqs_path.split("_")
+    for path_param in path_list:
+        path_val = path_param.split("=")
+        if path_val[0] == "sqsdb":
+            pass
+        elif path_val[0] == "lev":
+            level = path_val[1]
+        else:
+            configuration.append(path_val[0])
+            occupancies.append(path_val[1].split(","))
+    sqs_config["level"] = level
+    sqs_config["configuration"] = configuration
+    sqs_config["occupancies"] = occupancies
+    return sqs_config
+
+#Not used
+def read_sqsgen_in(sqsgen_path):
+    """
+    Read sqsgen.in file in the ATAT's SQS database
+
+    Parameters
+    ----------
+        sqsgen_path: str 
+            The path of sqsgen.in
+    Returns
+    -------
+        sqs_folder: str
+            The folder name of bestsqs.out file
+        sqs_config: dict
+            The dict of the configuration of sqs
+            It contains the following keys:
+                n: The number of ith sqs structure
+            The value is a dict too, it has following keys:
+                level: The level of sqs, usually 0 for pure elements, 1 for 50%-50%, ...
+                configuration: The configuration of sqs, e.g. ['a', 'c']
+                occupancies: The occupancies of sqs, e.g. [0.5, 0.5]
+    """
+    f_count = 0
+    sqs_folders = []
+    sqs_config = {}
+    with open(os.path.join(sqsgen_path, "sqsgen.in"), "r+") as fid:
+        for eachline in fid:
+            eachline = re.split('\s+', eachline.strip("\n"))
+            configuration = []
+            occupancies = []
+            for linei in eachline:
+                line_list = linei.split("=")
+                if line_list[0] == "level":
+                    leveli = line_list[1]
+                else:
+                    configuration.append(line_list[0])
+                    occupancies.append(line_list[1].split(","))
+            sqs_config[f_count] = {}
+            sqs_config[f_count]["level"] = leveli
+            sqs_config[f_count]["configuration"] = configuration
+            sqs_config[f_count]["occupancies"] = occupancies
+            sqs_folder = "_".join(eachline)
+            sqs_folders.append("sqsdb_" + sqs_folder)
+            f_count += 1
+    return sqs_folders, sqs_config
 
 def get_structures_from_database(db, symmetry, subl_model, subl_site_ratios):
     """Returns a list of Structure objects from the db that match the criteria.

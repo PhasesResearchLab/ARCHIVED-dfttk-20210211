@@ -100,7 +100,7 @@ class AbstractSQS(Structure):
                 temp = pmg.Element(component).data['Density of solid']
                 density = float(temp.split(' ')[0])
                 estimated_density += (fractional_comp[component] * density)/1000
-            self_copy.scale_lattice((self_copy.volume/estimated_density)*self_copy.density)
+            self_copy.scale_lattice(float((self_copy.volume/estimated_density)*self_copy.density))
 
         # finally we will construct the SQS object and set the values for the canonicalized
         # sublattice configuration, site ratios, and site occupancies
@@ -139,7 +139,7 @@ class AbstractSQS(Structure):
         # we need to replace the abstract names with real names of species.
         endmember_speices = {specie for subl in endmember_subl for specie in subl}
         real_species_dict = {abstract_specie: real_specie for abstract_specie, real_specie in
-                             zip(endmember_speices, pmg.periodic_table._pt_data.keys())}
+                             zip(endmember_speices, pmg.core.periodic_table._pt_data.keys())}
         # replace them
         endmember_subl = [[real_species_dict[specie] for specie in subl] for subl in endmember_subl]
         # get the structure and spacegroup info

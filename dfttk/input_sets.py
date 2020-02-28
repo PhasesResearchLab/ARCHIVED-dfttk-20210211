@@ -56,9 +56,52 @@ class RelaxSet(DictSet):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
         self.volume_relax = volume_relax
-        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, **kwargs)
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
         if self.volume_relax:
             self.incar.update({'ISIF': 7})
+
+
+class PreStaticSet(DictSet):
+    """Set tuned for metal relaxations (correct smearing).
+    Add `isif` parameter to the set to easily allow for overriding ISIF setting.
+    Kpoints have a 6000 reciprocal density default.
+    """
+    CONFIG = _load_yaml_config("MPRelaxSet")
+    CONFIG['KPOINTS'].update({
+        'grid_density': 1000,
+    })
+    CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
+    CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-5,
+        'ENCUT': 520,  # MP compatibility
+        'ISMEAR': 1,
+        "NSW": 0,
+        "IBRION": -1,
+        'LREAL': False,
+        'ALGO': 'NORMAL',
+        # other settings from MPStaticSet
+        "LAECHG": True,
+        "LCHARG": False,
+        "LWAVE": False,
+        "LORBIT": 11,
+        "LVHAR": True,
+        "ICHARG": 2,
+        "NEDOS": 5001,
+    })
+    # now we reset the potentials
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
+
+    def __init__(self, structure, **kwargs):
+        # pop the old kwargs, backwards compatibility from the complex StaticSet
+        old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
+        for k in old_kwargs:
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
+        self.kwargs = kwargs
+        super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, sort_structure=False, **kwargs)
+
 
 
 class ForceConstantsSet(DictSet):
@@ -100,7 +143,7 @@ class ForceConstantsSet(DictSet):
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
         super(ForceConstantsSet, self).__init__(
-            structure, ForceConstantsSet.CONFIG, **kwargs)
+            structure, ForceConstantsSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class StaticSet(DictSet):
@@ -142,7 +185,7 @@ class StaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, **kwargs)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class ATATIDSet():
@@ -221,6 +264,7 @@ class ForcesSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, **kwargs)
+        super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, sort_structure=False, **kwargs)
+
 
 
