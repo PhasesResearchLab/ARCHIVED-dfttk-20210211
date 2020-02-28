@@ -34,13 +34,14 @@ Construct a series of Debye workflows by substituting into a template structure
    ]
 
    # Dictionary of densities for each pure element.
-   DENSITY_DICT = {
-       'V': 6.313,  # bcc
-       'Cr': 7.463,  # bcc
-       'Ni': 9.03,  # fcc
-       'Ti': 4.58,  # hcp
-       'Fe': 8.028  # bcc
-   }
+   # Not necessary, using the peridic_table in pymatgen instead
+   #DENSITY_DICT = {
+   #    'V': 6.313,  # bcc
+   #    'Cr': 7.463,  # bcc
+   #    'Ni': 9.03,  # fcc
+   #    'Ti': 4.58,  # hcp
+   #    'Fe': 8.028  # bcc
+   #}
 
 
    ##########
@@ -59,7 +60,7 @@ Construct a series of Debye workflows by substituting into a template structure
    temp_struct = Structure.from_file(TEMPLATE_STRUCTURE_FILENAME)
 
    for config in configurations_to_build:
-       struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, DENSITY_DICT, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME, SUBLATTICE_SITE_RATIOS)
+       struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME, SUBLATTICE_SITE_RATIOS)
        if VERBOSE:
            print("PHASE: {}    CONFIGURATION: {}    OCCUPANCIES: {}    STRUCTURE: {}".format(PHASE_NAME, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, struct.composition.hill_formula))
        workflows.append(get_wf_gibbs(struct, deformation_fraction=(-0.05,0.10), phonon=False, num_deformations=11, t_max=2000, metadata=meta))
