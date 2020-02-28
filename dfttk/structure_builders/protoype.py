@@ -37,12 +37,7 @@ def build_str_from_prototype(prototype, prototype_type="s"):
     struct = []
     for proto_i in AFLOW_PROTOTYPE_LIBRARY:
         if prototype == proto_i['tags'][prototype_type]:
-            print(proto_i['snl'].structure.species)
+            #print(proto_i['tags']["mineral"])
             struct.append(proto_i['snl'].structure)
             #proto_i['snl'].structure.to(fmt="POSCAR", filename="POSCAR")
-    #print(AFLOW_PROTOTYPE_LIBRARY)
-    #print(struct[0])
-    #print(len(struct))
-
-prototype = "B2"
-build_str_from_prototype(prototype, prototype_type="s")
+    return struct
