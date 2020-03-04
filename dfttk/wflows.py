@@ -7,17 +7,60 @@ from uuid import uuid4
 from copy import deepcopy
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
-from dfttk.fworks import OptimizeFW, StaticFW
+from dfttk.fworks import OptimizeFW, StaticFW, RobustOptimizeFW
 from dfttk.input_sets import PreStaticSet, RelaxSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname
+
+
+def _get_deformations(def_frac, num_def):
+    if isinstance(def_frac, (list, tuple)):
+        return np.linspace(1 + def_frac[0], 1 + def_frac[1], num_def)
+    else:
+        return np.linspace(1 - def_frac, 1 + def_frac, num_def)
+
+
+def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
+                  num_deformations=11, override_symmetry_tolerances=None):
+    """
+    Perform an E-V curve, robustly relaxating all structures on the curve.
+
+    Parameters
+    ----------
+    structure : pymatgen.Structure
+
+    deformation_fraction : tuple, optional
+        Min and max volume scaling factors
+    num_deformations : int, optional
+        Number of volumes on the E-V curve
+    override_symmetry_tolerances : Dict, optional
+        See ``tol_X`` below.
+    tol_energy : float, optional
+        Symmetry is considered broken if the energy decrease for a relaxation
+        step exceeds this value.
+    tol_strain : float, optional
+        Symmetry is considered broken if the the non-isotropic strain for a
+        relaxation step exceeds this value.
+    tol_bond : float, optional
+        Symmetry is considered broken if the bond length per atom change for a
+        relaxation step exceeds this value.
+
+    """
+    deformations = _get_deformations(deformation_fraction, num_deformations)
+
+    fws = []
+    full_relax_fw = RobustOptimizeFW(structure, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
+    fws.append(full_relax_fw)
+    wfname = "{}:{}".format(structure.composition.reduced_formula, '')
+    wf = Workflow(fws, name=wfname, metadata=metadata)
+    return wf
 
 
 def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), run_isif2=False,
                  phonon=False, phonon_supercell_matrix=None, pass_isif4=False,
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
-                 passinitrun=False, relax_path='', modify_incar_params={}, 
+                 passinitrun=False, relax_path='', modify_incar_params={},
                  modify_kpoints_params={}, verbose=False):
     """
     E - V
@@ -76,18 +119,18 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
 
     if isinstance(deformation_fraction, (list, tuple)):
         deformations = np.linspace(1+deformation_fraction[0], 1+deformation_fraction[1], num_deformations)
-        vol_spacing = max((deformation_fraction[1] - deformation_fraction[0]) / (num_deformations - 0.999999) + 0.001, 
+        vol_spacing = max((deformation_fraction[1] - deformation_fraction[0]) / (num_deformations - 0.999999) + 0.001,
                           volume_spacing_min)
     else:
         deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
-        vol_spacing = max(deformation_fraction / (num_deformations - 0.999999) * 2 + 0.001, 
+        vol_spacing = max(deformation_fraction / (num_deformations - 0.999999) * 2 + 0.001,
                           volume_spacing_min)
-            
+
     fws = []
     if 'tag' not in metadata.keys():
         metadata['tag'] = tag
     relax_path, run_isif2, pass_isif4 = check_relax_path(relax_path, db_file, tag, run_isif2, pass_isif4)
-    
+
     if (relax_path == ''):
         # follow a scheme of
         # 1. Full relax + symmetry check
@@ -97,22 +140,22 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
         # 5. Phonon EV
         # for each FW, we set the structure to the original structure to verify to ourselves that the
         # volume deformed structure is set by input set.
-    
+
         vis_relax = RelaxSet(structure)
         print('Full relax will be running ...')
-        full_relax_fw = OptimizeFW(structure, symmetry_tolerance=symmetry_tolerance, job_type='normal', name='Full relax', 
-                                   prev_calc_loc=False, vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file, 
+        full_relax_fw = OptimizeFW(structure, symmetry_tolerance=symmetry_tolerance, job_type='normal', name='Full relax',
+                                   prev_calc_loc=False, vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file,
                                    metadata=metadata, record_path = True, run_isif2=run_isif2, pass_isif4=pass_isif4,
                                    modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params,
                                    spec={'_preserve_fworker': True})
         fws.append(full_relax_fw)
     else:
         full_relax_fw = None
-    check_result = Firework(EVcheck_QHA(db_file = db_file, tag = tag, relax_path = relax_path, deformations = deformations, 
-                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, 
+    check_result = Firework(EVcheck_QHA(db_file = db_file, tag = tag, relax_path = relax_path, deformations = deformations,
+                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd,
                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
                                         phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, run_isif2=run_isif2, pass_isif4=pass_isif4,
-                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params), 
+                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
                             parents=full_relax_fw, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
     fws.append(check_result)
 
@@ -128,7 +171,7 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
                  phonon=False, phonon_supercell_matrix=None, run_isif2=False, pass_isif4=False,
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
-                 passinitrun=False, relax_path='', modify_incar_params={}, 
+                 passinitrun=False, relax_path='', modify_incar_params={},
                  modify_kpoints_params={}, verbose=False):
     """
     E - V
@@ -187,17 +230,17 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
 
     if isinstance(deformation_fraction, (list, tuple)):
         deformations = np.linspace(1+deformation_fraction[0], 1+deformation_fraction[1], num_deformations)
-        vol_spacing = max((deformation_fraction[1] - deformation_fraction[0]) / (num_deformations - 0.999999) + 0.001, 
+        vol_spacing = max((deformation_fraction[1] - deformation_fraction[0]) / (num_deformations - 0.999999) + 0.001,
                           volume_spacing_min)
     else:
         deformations = np.linspace(1-deformation_fraction, 1+deformation_fraction, num_deformations)
-        vol_spacing = max(deformation_fraction / (num_deformations - 0.999999) * 2 + 0.001, 
+        vol_spacing = max(deformation_fraction / (num_deformations - 0.999999) * 2 + 0.001,
                           volume_spacing_min)
-            
+
     if 'tag' not in metadata.keys():
         metadata['tag'] = tag
     relax_path, run_isif2, pass_isif4 = check_relax_path(relax_path, db_file, tag, run_isif2, pass_isif4)
-    
+
     fws = []
     prestatic_calcs = []
     if relax_path != '':
@@ -207,18 +250,18 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
             structure1 = deepcopy(structure)
             structure1.scale_lattice(deformation * structure.volume)
             vis_PreStatic = PreStaticSet(structure1)
-            prestatic = StaticFW(structure=structure1, scale_lattice=deformation, name='VR_%.3f-PreStatic' %deformation, 
-                               prev_calc_loc=False, vasp_input_set=vis_PreStatic, vasp_cmd=vasp_cmd, db_file=db_file, 
+            prestatic = StaticFW(structure=structure1, scale_lattice=deformation, name='VR_%.3f-PreStatic' %deformation,
+                               prev_calc_loc=False, vasp_input_set=vis_PreStatic, vasp_cmd=vasp_cmd, db_file=db_file,
                                metadata=metadata, Prestatic=True)
-                    
+
             fws.append(prestatic)
             prestatic_calcs.append(prestatic)
 
-    check_result = Firework(PreEV_check(db_file = db_file, tag = tag, relax_path = relax_path, deformations =deformations, structure = structure, 
-                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, run_isif2=run_isif2, 
+    check_result = Firework(PreEV_check(db_file = db_file, tag = tag, relax_path = relax_path, deformations =deformations, structure = structure,
+                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, run_isif2=run_isif2,
                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
                                         phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, pass_isif4=pass_isif4,
-                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params), 
+                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
                             parents=prestatic_calcs, name='%s-PreEV_check' %structure.composition.reduced_formula)
     fws.append(check_result)
 
