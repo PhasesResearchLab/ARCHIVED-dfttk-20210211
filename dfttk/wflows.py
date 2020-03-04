@@ -21,7 +21,7 @@ def _get_deformations(def_frac, num_def):
 
 
 def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
-                  num_deformations=11, override_symmetry_tolerances=None):
+                  num_deformations=11, override_symmetry_tolerances=None, metadata=None):
     """
     Perform an E-V curve, robustly relaxating all structures on the curve.
 

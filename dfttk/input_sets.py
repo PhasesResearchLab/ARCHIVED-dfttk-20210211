@@ -59,11 +59,13 @@ class RelaxSet(DictSet):
         self.isif = isif
         if self.volume_relax and self.isif is not None:
             raise ValueError("isif cannot have a value while volume_relax is True.")
-        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
         if self.volume_relax:
-            self.incar.update({'ISIF': 7})
+            uis = kwargs.get('user_incar_settings', {})
+            uis['ISIF'] = 7
         if self.isif:
-            self.incar.update({'ISIF': self.isif})
+            uis = kwargs.get('user_incar_settings', {})
+            uis['ISIF'] = self.isif
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 
 class PreStaticSet(DictSet):

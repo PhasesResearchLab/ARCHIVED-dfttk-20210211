@@ -21,6 +21,7 @@ from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
 from dfttk.analysis.phonon import get_f_vib_phonopy
+from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
@@ -669,14 +670,6 @@ class ModifyKpoints(FiretaskBase):
         kpoint.write_file('KPOINTS')
 
 
-def get_non_isotropic_strain(input_structure, output_structure):
-    pass
-
-
-def get_bond_distance_change(input_structure, output_structure):
-    pass
-
-
 @explicit_serialize
 class CheckRelaxation(FiretaskBase):
     """Run VASP calculations to get symmetry conserved and symmetry broken structures.
@@ -745,11 +738,11 @@ class CheckRelaxation(FiretaskBase):
         with open('relaxation_check_summary.json', 'w') as fp:
             json.dump(symm_check_data, fp)
 
-        db_file = env_chk(self.get("db_file"), fw_spec)
-        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['relaxations'].insert_one(symm_check_data)
 
-        return FWAction(detours=[self.get_detour_workflow(next_steps)])
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom']))
 
     def check_symmetry(self):
         prev_energy = self["prev_energy"]
@@ -759,13 +752,15 @@ class CheckRelaxation(FiretaskBase):
 
         # Get relevant files as pmg objects
         incar = Incar.from_file("INCAR")
-        vasprun = Vasprun.from_file("vasprun.xml")
+        vasprun = Vasprun("vasprun.xml")
         inp_struct = Structure.from_file("POSCAR")
-        out_struct = Structure.from_file("OSICAR")
+        out_struct = Structure.from_file("CONTCAR")
 
         current_isif = incar['ISIF']
-        final_energy = vasprun.final_energy
-
+        final_energy = float(vasprun.final_energy)/len(out_struct)
+        
+        if prev_energy is None:
+            prev_energy = vasprun.ionic_steps[0]['e_wo_entrp']/len(inp_struct)
         # perform all symmetry breaking checks
         failures = []
         energy_difference = np.abs(final_energy - prev_energy)
@@ -776,7 +771,7 @@ class CheckRelaxation(FiretaskBase):
                 'value': energy_difference,
             }
             failures.append(fail_dict)
-        strain_norm = get_non_isotropic_strain(inp_struct, out_struct)
+        strain_norm = get_non_isotropic_strain(inp_struct.lattice.matrix, out_struct.lattice.matrix)
         if strain_norm > tol_strain:
             fail_dict = {
                 'reason': 'strain',
@@ -792,13 +787,13 @@ class CheckRelaxation(FiretaskBase):
                 'value': bond_distance_change,
             }
             failures.append(fail_dict)
-
+    
         symm_data = {
             "initial_structure": inp_struct.as_dict(),
             "final_structure": out_struct.as_dict(),
             "isif": current_isif,
-            "prev_energy": prev_energy,
-            "final_energy": final_energy,
+            "prev_energy_per_atom": prev_energy,
+            "final_energy_per_atom": final_energy,
             "tolerances": {
                 "energy": tol_energy,
                 "strain": tol_strain,
@@ -856,6 +851,8 @@ class CheckRelaxation(FiretaskBase):
     def get_detour_workflow(self, next_steps, final_energy):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
+        # delayed imports to avoid circular import
+        from fireworks import Workflow
         from .fworks import RobustOptimizeFW, StaticFW
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
@@ -863,13 +860,12 @@ class CheckRelaxation(FiretaskBase):
         symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
 
         # Assume the data for the current step is already in the database
-        db_file = env_chk(self.get("db_file"), fw_spec)
-        db = VaspCalcDb.from_db_file(db_file, admin=True).db['relaxations']
+        db = VaspCalcDb.from_db_file(self.db_file, admin=True).db['relaxations']
 
         def _get_input_structure_for_step(step):
-            # Get the structure of "structure_type" from the "isif" step.
+            # Get the structure of "type" from the "isif" step.
             relax_data = db.find_one({'$and': [{'tag': self["tag"]}, {'isif': step["structure"]["isif"]}]})
-            return Structure.from_dict(relax_data[step["structure"]["structure_type"]])
+            return Structure.from_dict(relax_data[step["structure"]["type"]])
 
         detour_fws = []
         for step in next_steps:
@@ -881,4 +877,4 @@ class CheckRelaxation(FiretaskBase):
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], prev_energy=final_energy, override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
-        detour_wf = Workflow(detour_fws)
+        return detour_fws
