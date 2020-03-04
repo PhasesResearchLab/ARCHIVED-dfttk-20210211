@@ -46,11 +46,14 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
         relaxation step exceeds this value.
 
     """
-    deformations = _get_deformations(deformation_fraction, num_deformations)
+    deformations = _get_deformations(deformation_fraction, num_deformations)*structure.volume
 
     fws = []
-    full_relax_fw = RobustOptimizeFW(structure, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
-    fws.append(full_relax_fw)
+    for defo in deformations:
+        struct = deepcopy(structure)
+        struct.scale_lattice(defo)
+        full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
+        fws.append(full_relax_fw)
     wfname = "{}:{}".format(structure.composition.reduced_formula, '')
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
