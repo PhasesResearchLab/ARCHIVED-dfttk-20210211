@@ -104,7 +104,7 @@ class RobustOptimizeFW(Firework):
     """
     def __init__(self, structure, isif=4, name="structure optimization", override_symmetry_tolerances=None, job_type="normal",
                  vasp_cmd="vasp_std", metadata=None, override_default_vasp_params=None, db_file=None,
-                 prev_calc_loc=True, prev_energy=None, parents=None, db_insert=False, tag=None, **kwargs):
+                 prev_calc_loc=True, parents=None, db_insert=False, tag=None, **kwargs):
 
         metadata = metadata or {}
         metadata = metadata or {}
@@ -134,7 +134,7 @@ class RobustOptimizeFW(Firework):
         common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
         relax_kwargs = {}
         static_kwargs = {}
-        t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, prev_energy=prev_energy,
+        t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag,
                                  common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs,
                                  **override_symmetry_tolerances))
         super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)

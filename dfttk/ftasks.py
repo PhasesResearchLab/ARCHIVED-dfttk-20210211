@@ -714,7 +714,7 @@ class CheckRelaxation(FiretaskBase):
 
     """
 
-    required_params = ["db_file", "tag", "prev_energy", "common_kwargs"]
+    required_params = ["db_file", "tag", "common_kwargs"]
     optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", "static_kwargs", "relax_kwargs"]
 
     def run_task(self, fw_spec):
@@ -745,7 +745,6 @@ class CheckRelaxation(FiretaskBase):
         return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom']))
 
     def check_symmetry(self):
-        prev_energy = self["prev_energy"]
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
         tol_bond = self.get("tol_bond", 0.10)
@@ -757,13 +756,12 @@ class CheckRelaxation(FiretaskBase):
         out_struct = Structure.from_file("CONTCAR")
 
         current_isif = incar['ISIF']
+        initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
         final_energy = float(vasprun.final_energy)/len(out_struct)
-        
-        if prev_energy is None:
-            prev_energy = vasprun.ionic_steps[0]['e_wo_entrp']/len(inp_struct)
+
         # perform all symmetry breaking checks
         failures = []
-        energy_difference = np.abs(final_energy - prev_energy)
+        energy_difference = np.abs(final_energy - initial_energy)
         if energy_difference > tol_energy:
             fail_dict = {
                 'reason': 'energy',
@@ -787,12 +785,12 @@ class CheckRelaxation(FiretaskBase):
                 'value': bond_distance_change,
             }
             failures.append(fail_dict)
-    
+
         symm_data = {
             "initial_structure": inp_struct.as_dict(),
             "final_structure": out_struct.as_dict(),
             "isif": current_isif,
-            "prev_energy_per_atom": prev_energy,
+            "initial_energy_per_atom": initial_energy,
             "final_energy_per_atom": final_energy,
             "tolerances": {
                 "energy": tol_energy,
@@ -874,7 +872,7 @@ class CheckRelaxation(FiretaskBase):
             if job_type == "static":
                 detour_fws.append(StaticFW(inp_structure, **self["common_kwargs"]))
             elif job_type == "relax":
-                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], prev_energy=final_energy, override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
+                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws
