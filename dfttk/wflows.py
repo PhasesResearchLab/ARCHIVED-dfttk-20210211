@@ -54,7 +54,12 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
         struct.scale_lattice(defo)
         full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
         fws.append(full_relax_fw)
-    wfname = "{}:{}".format(structure.composition.reduced_formula, '')
+    if metadata is not None and all(x in metadata for x in ('phase_name', 'sublattice_configuration')):
+        # create a nicer name for the workflow
+        subl_config = ':'.join(','.join(subl_comps) for subl_comps in metadata['sublattice_configuration'])
+        wfname = f"{metadata['phase_name']}:{subl_config}:{structure.composition.reduced_formula}"
+    else:
+        wfname = f"unknown:{structure.composition.reduced_formula}:unknown"
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
