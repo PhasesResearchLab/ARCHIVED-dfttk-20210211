@@ -5,6 +5,7 @@ import subprocess
 import os
 import json
 import numpy as np
+import copy
 import six
 import shlex
 from pymatgen import Structure
@@ -870,7 +871,11 @@ class CheckRelaxation(FiretaskBase):
             job_type = step["job_type"]
             inp_structure = _get_input_structure_for_step(step)
             if job_type == "static":
-                detour_fws.append(StaticFW(inp_structure, **self["common_kwargs"]))
+                common_copy = copy.deepcopy(self.get("common_kwargs", {}))
+                md = common_copy.get("metadata", {})
+                md['symmetry_type'] = step["symmetry_type"]
+                common_copy["metadata"] = md
+                detour_fws.append(StaticFW(inp_structure, **common_copy))
             elif job_type == "relax":
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
             else:
