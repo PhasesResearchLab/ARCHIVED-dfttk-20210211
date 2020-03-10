@@ -16,7 +16,7 @@ import json
 from pymatgen import Structure
 from urllib.request import urlopen
 
-def gen_proto_dict(struct_dict, aflow_proto, pearson, strukturbericht, mineral, param=None, param_value=None, ref=None):
+def gen_proto_dict(struct_dict, proto_info):
     """
     Generate the dict for a single prototype.
         The formate referanced the format of pymatgen's prototype
@@ -38,6 +38,8 @@ def gen_proto_dict(struct_dict, aflow_proto, pearson, strukturbericht, mineral, 
         proto_dict: dict
             The dict for a single prototype
     """
+    [aflow_proto, sg, pearson, strukturbericht, mineral, param_list, param_value, ref] = proto_info
+    #[aflow_proto, pearson, strukturbericht, mineral, param, param_value, ref] = proto_info
     proto_dict = {}
     timestr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
     about = {"authors": [{"name": "AFLOW Library of Crystallographic Prototypes","email": ""}],
@@ -45,10 +47,10 @@ def gen_proto_dict(struct_dict, aflow_proto, pearson, strukturbericht, mineral, 
                     "Parsed from AFLOW Library of Crystallographic Prototypes. Please cite appropriate AFLOW publication."],
              "history": [],"created_at": {"@module": "datetime","@class": "datetime","string": timestr}}
     struct_dict["about"] = about
-    tags = {"pearson": pearson,"aflow": aflow_proto,"strukturbericht": strukturbericht,"mineral": mineral}
+    tags = {"spacegroup": sg, "pearson": pearson,"aflow": aflow_proto,"strukturbericht": strukturbericht,"mineral": mineral}
     proto_dict["snl"] = struct_dict
     proto_dict["tags"] = tags
-    param = {"param_list":param, "param_value": param_value}
+    param = {"param_list":param_list, "param_value": param_value}
     proto_dict["proto_param"] = param
     return proto_dict
 
@@ -69,27 +71,19 @@ def parse_poscar(poscar_folder="."):
     pos_template = open(poscar_folder + "/POSCAR-tmp", "r")
     pos_file = open(poscar_folder + "/POSCAR-test", "w+")
     pos_count = 0
-    flag_scale = False
     for eachline in pos_template:
         if pos_count == 1:
             scale_factor = eachline.strip("\n").strip()
             if scale_factor == "nan":
                 pos_file.write("1.0\n")
-                flag_scale = True
             else:
                 pos_file.write(eachline)
-                flag_scale = False
         else:
             pos_file.write(eachline)
         pos_count = pos_count + 1
     pos_template.close()
     pos_file.close()
     struct = Structure.from_file('POSCAR-test')
-    if flag_scale:
-        try:
-            struct = scale_struct(struct)
-        except Exception as e:
-            print("Error")
     os.remove(poscar_folder + "/POSCAR-test")
     os.remove(poscar_folder + "/POSCAR-tmp")
     return struct
@@ -193,30 +187,81 @@ def parse_proto_param(poscar):
         ref: str
             The reference of the prototype
     """
-    paramstr = poscar.split("\n")[0].split("&")[1]
+    line1 = poscar.split("\n")[0].split("&")
+    aflow_proto = line1[0].strip()
+    paramstr = line1[1]
     paramstr = multi_replace(paramstr, {"\\a": "a", "\\b": "b", "\\g": "g", "\a": "a", "\b": "b", "\g": "g"})
     param_list = paramstr.split()
     param = param_list[0]
     value = param_list[1].split("=")[-1]
-    ref = poscar.split("\n")[0].split("&")[-1]
-    return param, value, ref
+    sg = int(line1[2].split()[2][1:])
+    pearson = line1[3].strip()
+    strukturbericht = line1[4].strip()
+    mineral = line1[-2].strip()
+    ref = line1[-1].strip()
+    proto_info = [aflow_proto, sg, pearson, strukturbericht, mineral, param, value, ref]
+    return proto_info
+    #return param, value, ref
 
-def parse_aflow_proto_url():
+def parse_aflow_proto_single(url, fmt="url"):
+    """
+    Parsing single aflow prototype
+
+    Parameter
+    ---------
+      url: str
+        The POSCAR url of the prototype, e.g. http://www.aflowlib.org/CrystalDatabase/POSCAR/A_cF4_225_a.poscar
+          Or the poscar str
+      fmt: str
+        the format of url
+          url: the url is a url
+          poscar: the url is a poscar
+    Return
+    ------
+    """
+    if fmt == "url":
+        try:
+            poscar = urlopen(url).read().decode('utf-8')
+        except:
+            print("Warning: Can't parse the provided url: " + url)
+            poscar = ""
+    elif fmt == "poscar":
+        poscar = url
+    else:
+        print("Warning: Current format: " + fmt + " not supported.")
+        poscar = ""
+    try:
+        struct = Structure.from_str(poscar, fmt="POSCAR")
+        struct_dict = struct.as_dict()
+        proto_info = parse_proto_param(poscar)
+        proto_dict = gen_proto_dict(struct_dict, proto_info)
+        print("Successful")
+    except:
+        print("Warning: pymatgen can't parse the following poscar.")
+        print(poscar)
+        proto_dict = None
+    return proto_dict
+
+def parse_aflow_proto_url(write_json=True, write_path="."):
     """
     Parse the aflow prototype lib by parsing the url
 
     Parameter
     ---------
-        None
+        write_json: bool
+            Write out the result as json(True, defalut) or not(False)
+        write_path: str
+            The path to save the result, default(".")
     Return
     ------
-        Generate the aflow_prototype_db.json file
+        proto_list: list[dict]
+            The list of the prototype database, each element in the list is a prototype(dict)
+            If write_json is True, it will generate the aflow_prototype_db.json file
     """
     SERVER = "http://aflow.org/CrystalDatabase/"
     proto_list = []
     filename = os.path.join(os.path.dirname(__file__), "prototype_anrl.all")
     n_count = 0
-    n_count_1 = 0
     special_num = [18, 30, 39, 40, 41, 43, 350]
     with open(filename) as fid:
         for linei in fid:
@@ -227,47 +272,28 @@ def parse_aflow_proto_url():
             linei_list = re.split("\s+", linei)
             #Remove the content after .
             aflow_proto = linei_list[0].split(".")[0]
-            #Get the pearson symbol
-            pearson = linei_list[1]
-            #Parse the struktrubericht symbol
-            strukturbericht = linei_list[3]
-            strukturbericht = re.sub('[\{\}\-]', '', strukturbericht)
-            if not strukturbericht:
-                strukturbericht = None
-            #Parse the mineral
-            mineral = "(".join(" ".join(linei_list[6:]).split("(")[0:-1]).strip()
             formula = linei_list[4]
-            sg = re.findall("[0-9]+", linei_list[5])
-
+            mineral = "(".join(" ".join(linei_list[6:]).split("(")[0:-1]).strip()
             aflow_proto_list = aflow_proto.split("-")
             pre_url = aflow_proto_list[0]
             mid_url = [pre_url, pre_url+"."+formula, pre_url+"."+formula.split("-")[-1]]
-            for url_i in mid_url:
-                if n_count in special_num:
-                    url = SERVER + "POSCAR/" + pre_url + formula_map(n_count) + ".poscar"
-                else:
-                    url = SERVER + "POSCAR/" + url_i + ".poscar"
-                try:
-                    poscar = urlopen(url).read().decode('utf-8')
-                except Exception as e:
-                    print(aflow_proto)
-                    continue
-                if n_count in [67, 252]:
-                    poscar = poscar_map(n_count)
-                try:
-                    struct = Structure.from_str(poscar, fmt="POSCAR")
-                    struct_dict = struct.as_dict()
-                    param_list, param_value, ref = parse_proto_param(poscar)
-                    proto_dict = gen_proto_dict(struct_dict, aflow_proto, pearson, strukturbericht, mineral, param_list, param_value, ref)
-                    print("Successful")
-                    #n_count_1 += 1
-                    #print(n_count_1)
-                    proto_list.append(proto_dict)
-                    break
-                except Exception as e:
-                    print(aflow_proto)
-                    print(poscar)
-            #poscar = urlopen(SERVER + mid_url + ".poscar").read().decode('utf-8')
-    with open('aflow_prototype_db.json', 'w') as f:
-        json.dump(proto_list, f)        
+            if n_count in [67, 252]:
+                poscar = poscar_map(n_count)
+                proto_dict = parse_aflow_proto_single(poscar, fmt="poscar")
+            else:
+                for url_i in mid_url:
+                    if n_count in special_num:
+                        url = SERVER + "POSCAR/" + pre_url + formula_map(n_count) + ".poscar"
+                    else:
+                        url = SERVER + "POSCAR/" + url_i + ".poscar"
+                    proto_dict = parse_aflow_proto_single(url)
+                    if proto_dict is None:
+                        continue
+                    else:
+                        break
+            proto_dict["tags"]["mineral"] = mineral
+            proto_list.append(proto_dict)
+    if write_json:
+        with open(write_path + '/aflow_prototype_db.json', 'w') as f:
+            json.dump(proto_list, f)        
     return proto_list
