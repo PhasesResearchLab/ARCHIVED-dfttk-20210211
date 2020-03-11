@@ -20,7 +20,7 @@ from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
 from dfttk.analysis.phonon import get_f_vib_phonopy
 from dfttk.analysis.quasiharmonic import Quasiharmonic
-from dfttk.utils import sort_x_by_y
+from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
@@ -88,6 +88,8 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
         for prop, vals in self.get("site_properties", dict()).items():
             vis.structure.add_site_property(prop, vals)
         vis.write_input(".")
+        update_pos_by_symbols(vis)
+        update_pot_by_symbols(vis)
 
 
 @explicit_serialize
