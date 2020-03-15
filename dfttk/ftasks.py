@@ -88,8 +88,8 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
         for prop, vals in self.get("site_properties", dict()).items():
             vis.structure.add_site_property(prop, vals)
         vis.write_input(".")
-        update_pos_by_symbols(vis)
-        update_pot_by_symbols(vis)
+        #update_pos_by_symbols(vis)
+        #update_pot_by_symbols(vis)
 
 
 @explicit_serialize

@@ -71,6 +71,8 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
 
+    site_properties = deepcopy(structure).site_properties
+
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
 

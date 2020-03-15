@@ -192,7 +192,7 @@ class EVcheck_QHA(FiretaskBase):
     required_params = ['db_file', 'tag', 'vasp_cmd', 'metadata']
     optional_params = ['deformations', 'relax_path', 'run_num', 'tolerance', 'threshold', 'del_limited', 'vol_spacing', 't_min',
                        't_max', 't_step', 'phonon', 'phonon_supercell_matrix', 'verbose', 'modify_incar_params', 'structure',
-                       'modify_kpoints_params', 'symmetry_tolerance', 'run_isif2', 'pass_isif4']
+                       'modify_kpoints_params', 'symmetry_tolerance', 'run_isif2', 'pass_isif4', 'site_properties']
 
     def run_task(self, fw_spec):
         ''' 
@@ -230,6 +230,7 @@ class EVcheck_QHA(FiretaskBase):
         symmetry_tolerance = self.get('symmetry_tolerance') or None
         run_isif2 = self.get('run_isif2') or None
         pass_isif4 = self.get('pass_isif4') or False
+        site_properties = self.site_properties or None
         run_num += 1
         
         #Some initial checks
@@ -249,6 +250,9 @@ class EVcheck_QHA(FiretaskBase):
             from pymatgen.io.vasp.inputs import Poscar
             poscar = Poscar.from_file(relax_path + '/CONTCAR')
             structure = poscar.structure    
+        if site_properties:
+            for pkey in site_properties:
+                structure.add_site_property(pkey, site_properties[pkey])
         # get original EV curve 
         volumes, energies, dos_objs = self.get_orig_EV(db_file, tag)
         vol_adds = check_deformations_in_volumes(deformations, volumes, structure.volume)
