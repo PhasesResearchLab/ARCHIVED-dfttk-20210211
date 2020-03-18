@@ -78,18 +78,9 @@ def check_deformations_in_volumes(deformations, volumes, orig_vol=None):
                 result.append(deformation)
         return(np.array(result))
 
-def init_evcheck_result(run_num, ev_correct, volumes, energies, tolerance, threshold, vol_spacing, ev_error, metadata):
-    EVcheck_result = {}
-    EVcheck_result['append_run_num'] = run_num
-    EVcheck_result['correct'] = ev_correct
-    EVcheck_result['volumes'] = volumes
-    EVcheck_result['energies'] = energies
-    EVcheck_result['tolerance'] = tolerance
-    EVcheck_result['threshold'] = threshold
-    EVcheck_result['vol_spacing'] = vol_spacing
-    EVcheck_result['error'] = ev_error
-    EVcheck_result['metadata'] = metadata
-    return EVcheck_result
+def init_evcheck_result(**kwargs):
+    #Transform the input parameters into dict
+    return kwargs
 
 def eosfit_stderr(eos_fit, volume, energy):
     """
@@ -137,7 +128,7 @@ def cal_stderr(value, ref=None):
     stderr = stderr / n
     return stderr
 
-def update_err(temperror, error, verbose, ind, temp_ind=None):
+def update_err(temperror, error, verbose, ind, **kwargs):
     """
     Update the error
 
@@ -151,7 +142,7 @@ def update_err(temperror, error, verbose, ind, temp_ind=None):
             I don't know?????
         ind: index list
             previous index
-        temp_ind: index list
+        temp_ind: index list  (**kwargs)
             current index, if it is not provided, it equals to ind
     Return
     ------
@@ -160,15 +151,15 @@ def update_err(temperror, error, verbose, ind, temp_ind=None):
         ind: index list
             if temp_ind is not provided, no such return
     """
-    flag_ind = 1
-    if temp_ind is None:
+    if "temp_ind" not in kwargs:
         temp_ind = ind.copy()
-        flag_ind = 0
+    else:
+        temp_ind = kwargs["temp_ind"]
     if verbose:
         print('error = %.4f in %s ' %(temperror, temp_ind))
     if temperror < error:
         error = temperror
-        if flag_ind:
+        if "temp_ind" in kwargs:
             ind = temp_ind
             return error, ind
     return error
@@ -230,7 +221,8 @@ class EVcheck_QHA(FiretaskBase):
         symmetry_tolerance = self.get('symmetry_tolerance') or None
         run_isif2 = self.get('run_isif2') or None
         pass_isif4 = self.get('pass_isif4') or False
-        site_properties = self.site_properties or None
+        site_properties = self.get('site_properties') or None
+
         run_num += 1
         
         #Some initial checks
@@ -262,8 +254,9 @@ class EVcheck_QHA(FiretaskBase):
             self.correct = True
             self.error = 1e10
         
-        EVcheck_result = init_evcheck_result(run_num, self.correct, volumes, energies, tolerance, 
-                                             threshold, vol_spacing, self.error, metadata)
+        EVcheck_result = init_evcheck_result(append_run_num=run_num, correct=self.correct, volumes=volumes, 
+                         energies=energies, tolerance=tolerance, threshold=threshold, vol_spacing=vol_spacing, 
+                         error=self.error, metadata=metadata)
 
         if self.correct:
             vol_orig = structure.volume
@@ -331,7 +324,7 @@ class EVcheck_QHA(FiretaskBase):
                                                         metadata = metadata, t_min = t_min, t_max = t_max, t_step = t_step, phonon = phonon,
                                                         phonon_supercell_matrix = phonon_supercell_matrix, symmetry_tolerance = symmetry_tolerance,
                                                         modify_incar_params = modify_incar_params, verbose = verbose, pass_isif4=pass_isif4,
-                                                        modify_kpoints_params = modify_kpoints_params), 
+                                                        modify_kpoints_params = modify_kpoints_params, site_properties=site_properties), 
                                             parents = calcs, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
                     fws.append(check_result)
                     strname = "{}:{}".format(structure.composition.reduced_formula, 'EV_QHA_Append')
@@ -467,7 +460,7 @@ class EVcheck_QHA(FiretaskBase):
                         self.check_fit(volume, energy)
                     except:
                         if verbose:
-                            print('Fitting error in: ', comb, '. If you can not achieve QHA result, try to run far negative deformations.')
+                            print('Fitting error in: ', combs, '. If you can not achieve QHA result, try to run far negative deformations.')
                         continue
                     temperror = eosfit_stderr(self.eos_fit, volume, energy)
                     error, comb = update_err(temperror=temperror, error=error, verbose=verbose, ind=comb, temp_ind=combs)
@@ -578,7 +571,7 @@ class PreEV_check(FiretaskBase):
     required_params = ['db_file', 'tag', 'vasp_cmd', 'metadata']
     optional_params = ['deformations', 'relax_path', 'run_num', 'tolerance', 'threshold', 'del_limited', 'vol_spacing', 't_min',
                        't_max', 't_step', 'phonon', 'phonon_supercell_matrix', 'verbose', 'modify_incar_params', 'structure',
-                       'modify_kpoints_params', 'symmetry_tolerance', 'run_isif2', 'pass_isif4']
+                       'modify_kpoints_params', 'symmetry_tolerance', 'run_isif2', 'pass_isif4', 'site_properties']
     
     def run_task(self, fw_spec):
         ''' 
@@ -615,6 +608,7 @@ class PreEV_check(FiretaskBase):
         symmetry_tolerance = self.get('symmetry_tolerance') or None
         run_isif2 = self.get('run_isif2') or None
         pass_isif4 = self.get('pass_isif4') or False
+        site_properties = self.get('site_properties') or None
         run_num += 1
         
         volumes, energies = self.get_orig_EV_structure(db_file, tag)
@@ -625,6 +619,9 @@ class PreEV_check(FiretaskBase):
                                              threshold, vol_spacing, self.error, metadata)
 
         structure.scale_lattice(self.minE_value)
+        if site_properties:
+            for pkey in site_properties:
+                structure.add_site_property(pkey, site_properties[pkey])
         vol_orig = structure.volume
         volume, energy = gen_volenergdos(self.points, volumes, energies)
         vol_adds = self.check_vol_coverage(volume, vol_spacing, vol_orig, run_num, 
@@ -656,7 +653,7 @@ class PreEV_check(FiretaskBase):
                     check_result = Firework(PreEV_check(db_file = db_file, tag = tag, relax_path = relax_path, deformations = deformations, run_isif2=run_isif2,
                                                         tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, pass_isif4=pass_isif4,
                                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
-                                                        phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, 
+                                                        phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, site_properties=site_properties,
                                                         modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params), 
                                             parents=prestatic_calcs, name='%s-PreEV_check%s' %(structure.composition.reduced_formula, run_num))
                     fws.append(check_result)
@@ -690,7 +687,7 @@ class PreEV_check(FiretaskBase):
                                                     metadata = metadata, t_min = t_min, t_max = t_max, t_step = t_step, phonon = phonon, deformations =deformations,
                                                     phonon_supercell_matrix = phonon_supercell_matrix, symmetry_tolerance = symmetry_tolerance,
                                                     modify_incar_params = modify_incar_params, verbose = verbose, pass_isif4=pass_isif4, 
-                                                    modify_kpoints_params = modify_kpoints_params), 
+                                                    modify_kpoints_params = modify_kpoints_params, site_properties=site_properties), 
                                         parents = ps2_relax_fw, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
                 fws.append(check_result)
                 strname = "{}:{}".format(structure.composition.reduced_formula, 'prePS2_Relax')
