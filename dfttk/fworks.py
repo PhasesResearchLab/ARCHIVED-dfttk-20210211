@@ -60,9 +60,9 @@ class OptimizeFW(Firework):
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
         #vasp_input_set = vasp_input_set or RelaxSet(structure)  # ??
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         if scale_lattice is not None:
-            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice, structure=structure))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         if modify_incar != None:
              t.append(ModifyIncar(incar_update=modify_incar))
@@ -126,9 +126,9 @@ class StaticFW(Firework):
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         if (scale_lattice is not None) and not Prestatic:
-            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice, structure=structure))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         if modify_incar != None:
              t.append(ModifyIncar(incar_update=modify_incar))
@@ -278,7 +278,7 @@ class PhononFW(Firework):
         else:
             # write the input set first, just to get the POSCAR file in the directory
             # the other inputs will get overridden by WriteVaspFromIOSetPrevStructure
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
 
         t.append(SupercellTransformation(supercell_matrix=supercell_matrix))
         t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=supercell_site_properties))

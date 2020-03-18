@@ -20,7 +20,7 @@ from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
 from dfttk.analysis.phonon import get_f_vib_phonopy
 from dfttk.analysis.quasiharmonic import Quasiharmonic
-from dfttk.utils import sort_x_by_y
+from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
@@ -53,11 +53,10 @@ def extend_calc_locs(name, fw_spec):
 class WriteVaspFromIOSetPrevStructure(FiretaskBase):
     """
     Create VASP input files using implementations of pymatgen's VaspInputSet, overriding the
-    Structure using a POSCAR in the current directory. An input set
-    can be provided as an object or as a String/parameter combo.
+    Structure using a POSCAR in the current directory(in such case, donot provide structure as an input parameter). 
+    An input set can be provided as an object or as a String/parameter combo.
 
     Required params:
-        structure (Structure): structure
         vasp_input_set (AbstractVaspInputSet or str): Either a VaspInputSet object or a string
             name for the VASP input set (e.g., "StaticSet").
 
@@ -69,13 +68,17 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
             rather than a String.
         site_properties : dict
             Dictionary of {site_property: values} in pymatgen style. Will be applied if passed.
+        structure : pymatgen.Structure
+            If structure is passed, use it, otherwise using the POSCAR in current directory
     """
 
     required_params = ["vasp_input_set"]
-    optional_params = ["vasp_input_params", "site_properties"]
+    optional_params = ["vasp_input_params", "site_properties", "structure"]
 
     def run_task(self, fw_spec):
-        struct = Structure.from_file('POSCAR')
+        struct = self.get("structure", None)
+        if struct is None:
+            struct = Structure.from_file('POSCAR')
         # if a full VaspInputSet object was provided
         if hasattr(self['vasp_input_set'], 'write_input'):
             vis = self['vasp_input_set']
@@ -88,6 +91,8 @@ class WriteVaspFromIOSetPrevStructure(FiretaskBase):
         for prop, vals in self.get("site_properties", dict()).items():
             vis.structure.add_site_property(prop, vals)
         vis.write_input(".")
+        #update_pos_by_symbols(vis)
+        #update_pot_by_symbols(vis)
 
 
 @explicit_serialize
@@ -115,19 +120,23 @@ class ScaleVolumeTransformation(FiretaskBase):
     """
     Scale the volume of a Structure (as a POSCAR) by a fraction and write to POSCAR.
 
-    This requires that a POSCAR is present in the current directory.
+    This requires that a POSCAR is present in the current directory, or pass the structure by structure parameter(optional).
     """
 
     required_params = ['scale_factor']
+    optional_params = ["structure"]
     def run_task(self, fw_spec):
-        cell = Structure.from_file('POSCAR')
+        struct = self.get("structure", None)
+        if struct is None:
+            struct = Structure.from_file('POSCAR')
+        #cell = Structure.from_file('POSCAR')
 
         # create the unitcell file backup
-        cell.to(filename='POSCAR.orig-volume')
+        struct.to(filename='POSCAR.orig-volume')
 
         # make the supercell and write to file
-        cell.scale_lattice(cell.volume*self['scale_factor'])
-        cell.to(filename='POSCAR')
+        struct.scale_lattice(struct.volume*self['scale_factor'])
+        struct.to(filename='POSCAR')
 
 
 @explicit_serialize

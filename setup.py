@@ -15,6 +15,7 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
+    package_data = {'dfttk.structure_builders' : ["prototype_anrl.all", "aflow_prototype_db.json"]},
     description='Density functional theory workflows for finite temperature thermodynamics based on atomate workflows. Created by the Phases Research Lab',
     long_description=readme(),
     install_requires=['atomate', 'tinydb', 'phonopy', 'ase', 'pymatgen', 'numpy'],
@@ -43,10 +44,10 @@ setup(
 
         'License :: OSI Approved :: MIT License',
 
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8'
     ],
 )
