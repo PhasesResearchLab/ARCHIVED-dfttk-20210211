@@ -7,8 +7,10 @@ import fnmatch
 import os
 
 from pymatgen import MPRester
+from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
 from fireworks import LaunchPad
 import numpy as np
+import itertools
 import scipy
 
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
@@ -545,4 +547,90 @@ class metadata_in_POSCAR():
                         return(False)
                     index += 1   
         return(True)
-        
+
+def check_symbol(InputSet):
+    """
+    Check the symbol line in POSCAR and write corresponding POTCAR file
+    Note: there are two ways to write the magmom:
+            site_properties: magmom or other properties?
+                run the after self.write_input, then all the thing is written into INCAR
+            INCAR: parse the magmom or other list-like properties
+    Paramter
+    --------
+        InputSet: VaspInputSet
+            The input set defined by pymatgen, e.g. MPRelaxSet
+    Return
+    ------
+        symbol: list(str)
+        natom: list(str)
+    """
+    struc = InputSet.structure
+    syms = [site.specie.symbol for site in struc]
+    incar_dict = InputSet.incar.as_dict()
+    if "MAGMOM" in incar_dict:
+        magmom = incar_dict["MAGMOM"]
+        syms = [syms[i]+str(magmom[i]) for i in range(len(syms))]
+    symbol = [a[0] for a in itertools.groupby(syms)]
+    symbol = ["".join(re.findall(r"[A-Z][a-z]*", symboli)) for symboli in symbol]
+    natom = [str(len(tuple(a[1]))) for a in itertools.groupby(syms)]
+    return symbol, natom
+
+def update_pos_by_symbols(InputSet, write_file=True,**kwargs):
+    """
+    Update POSCAR by symbols considering the MAGMOM difference
+
+    Parameter
+    ---------
+        InputSet: VaspInputSet
+            The input set defined by pymatgen, e.g. MPRelaxSet
+        write_file: bool
+            Write POSCAR (True) or not (False)
+        kwargs: dict
+            vasp4_compatible: bool
+    Return
+    ------
+        poscar_str: str
+            The str of the POSCAR
+    """
+    symbol, natom = check_symbol(InputSet)
+    poscar_str = InputSet.poscar.get_string(**kwargs)
+    poscar_list = poscar_str.split("\n")
+    if "vasp4_compatible" in kwargs and kwargs["vasp4_compatible"]:
+        poscar_list[5] = " ".join(natom)  #Replace the natom line
+    else:
+        poscar_list[5] = " ".join(symbol)  #Replace the symbol line
+        poscar_list[6] = " ".join(natom)  #Replace the natom line
+    poscar_str = "\n".join(poscar_list)
+    if write_file:
+        with open("POSCAR", "w+") as f:
+            f.write(poscar_str)
+    return poscar_str
+
+def update_pot_by_symbols(InputSet, write_file=True):
+    """
+    Update POTCAR by symbols considering the MAGMOM difference
+
+    Parameter
+    ---------
+        InputSet: VaspInputSet
+            The input set defined by pymatgen, e.g. MPRelaxSet
+        write_file: bool
+            Write POSCAR (True) or not (False)
+    Return
+    ------
+        potcar: Potcar (in pymatgen)
+            The Potcar type defined in pymatgen
+    """
+    symbol, natom = check_symbol(InputSet)
+    potcar_symbols = []
+    settings = InputSet._config_dict["POTCAR"]
+    if isinstance(settings[symbol[-1]], dict):
+        for el in symbol:
+            potcar_symbols.append(settings[el]["symbol"] if el in settings else el)
+    else:
+        for el in symbol:
+            potcar_symbols.append(settings.get(el, el))
+    potcar = Potcar(symbols=potcar_symbols, functional=InputSet.potcar_functional)
+    if write_file:
+        potcar.write_file(filename="POTCAR")
+    return potcar
