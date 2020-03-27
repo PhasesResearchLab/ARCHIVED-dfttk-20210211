@@ -71,7 +71,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
 
-    if db_file == DB_FILE:
+    if db_file == ">>db_file<<":
         #In PengGao's version, some function used the absolute db_file
         from fireworks.fw_config import config_to_dict
         from monty.serialization import loadfn
