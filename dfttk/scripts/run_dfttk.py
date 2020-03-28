@@ -8,6 +8,7 @@ from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
 import os
 import sys
+import shutil
 
 def get_abspath(path):
     # Get the abs path
@@ -16,6 +17,12 @@ def get_abspath(path):
     else:
         path = os.path.abspath(path)
     return path
+
+def creat_folders(folder):
+    if os.path.exists(folder):
+        print("WARNING: " + folder + " exists!")
+    else:
+        os.makedirs(folder)
 
 def get_structure_file(STR_FOLDER=".", RECURSIVE=False, MATCH_PATTERN="*"):
     ## Get the file name of structure file
@@ -183,15 +190,44 @@ def run(args):
             else:
                 os.system("qlaunch rapidfire -m " + str(MAX_JOB))
 
+def config(args):
+    import dfttk.scripts.config_dfttk as dfttkconfig
+    PATH_TO_STORE_CONFIG = get_abspath(args.PATH_TO_STORE_CONFIG)
+    CONFIG_FOLDER = args.CONFIG_FOLDER
+    QUEUE_SCRIPT = args.QUEUE_SCRIPT
+    QUEUE_TYPE = args.QUEUE_TYPE
+    PYMATGEN = args.PYMATGEN
+    VASP_PSP_DIR = args.VASP_PSP_DIR
+    MAPI_KEY = args.MAPI_KEY
+    DEFAULT_FUNCTIONAL = args.DEFAULT_FUNCTIONAL
+    ATOMATE = args.ATOMATE
+    ALL = args.ALL
+    if ALL:
+        ATOMATE = True
+        PYMATGEN = True
+
+    if PATH_TO_STORE_CONFIG is None:
+        PATH_TO_STORE_CONFIG = dfttkconfig.default_path()
+    PATH_TO_STORE_CONFIG = get_abspath(PATH_TO_STORE_CONFIG)
+
+    if ATOMATE:
+        dfttkconfig.config_atomate(path_to_store_config=PATH_TO_STORE_CONFIG, config_folder=CONFIG_FOLDER, 
+            queue_script=QUEUE_SCRIPT, queue_type=QUEUE_TYPE)
+
+    if PYMATGEN:
+        dfttkconfig.config_pymatgen(psp_dir=VASP_PSP_DIR, def_fun=DEFAULT_FUNCTIONAL, 
+            mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"))
 
 def run_dfttk():
     from dfttk._version import get_versions
     print("DFTTK version: " + get_versions()["version"])
-    print("Copyright \u00a9 Phases Research Lab (https://www.phaseslab.com/)")
+    print("Copyright \u00a9 Phases Research Lab (https://www.phaseslab.com/)\n")
 
     parser = argparse.ArgumentParser(description='Run DFTTK jobs.')
-
+    
     subparsers = parser.add_subparsers()
+
+    #SUB-PROCESS: run
     prun = subparsers.add_parser("run", help="Run dfttk.")
     prun.add_argument("-f", "--structure_folder", dest="STRUCTURE_FOLDER", type=str, default=".",
                       help="The folder/file containing the structure,\n"
@@ -222,6 +258,34 @@ def run_dfttk():
     prun.add_argument("-o", "--write_out_wf", dest="WRITE_OUT_WF", action="store_true",
                       help="Write out the workflow")
     prun.set_defaults(func=run)
+
+    #SUB-PROCESS: config
+    pconfig = subparsers.add_parser("config", help="Config dfttk.")
+    pconfig.add_argument("-all", "--all", dest="ALL", action="store_true",
+                         help="Configure atomate and pymatgen.")
+    pconfig.add_argument("-p", "--prefix", dest="PATH_TO_STORE_CONFIG", default=".",
+                         help="The folder to store the config files.\n"
+                              "Default: . (current folder)")
+    pconfig.add_argument("-a", "--atomate", dest="ATOMATE", action="store_true",
+                         help="Configure atomate.")
+    pconfig.add_argument("-c", "--config_folder", dest="CONFIG_FOLDER", default=".",
+                         help="The folder containing config files, "
+                              "at least contain db.json and my_launchpad.yaml. Default: '.'")
+    pconfig.add_argument("-q", "--queue_script", dest="QUEUE_SCRIPT", default="vaspjob.pbs",
+                         help="The filename of the script for sumitting vasp job. "
+                              "It will search in current folder and sub-folders. Default: vaspjob.pbs")
+    pconfig.add_argument("-qt", "--queue_type", dest="QUEUE_TYPE", type=str, default="pbs",
+                         help="The type of queue system. Note, only pbs is supported now. Default: pbs")
+    pconfig.add_argument("-mp", "--pymatgen", dest="PYMATGEN", action="store_true",
+                         help="Configure pymatgen.")
+    pconfig.add_argument("-psp", "--vasp_psp_dir", dest="VASP_PSP_DIR", type=str, default="psp",
+                         help="The path of pseudopotentials. Default: psp")
+    pconfig.add_argument("-mapi", "--mapi_key", dest="MAPI_KEY", type=str,
+                         help="The API key of Materials Projects")
+    pconfig.add_argument("-df", "--default_functional", dest="DEFAULT_FUNCTIONAL", type=str, default="PBE",
+                         help="The default functional. Default: PBE")
+    pconfig.set_defaults(func=config)
+
 
     args = parser.parse_args()
 
