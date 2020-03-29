@@ -11,7 +11,16 @@ import sys
 import shutil
 
 def get_abspath(path):
-    # Get the abs path
+    """
+    Get the absolute path.
+
+    Parameter
+        path: str (path-like)
+            An absolute or relative path. It can start from home (~)
+    Return
+        path: str (path-like)
+            The absolute path(start from root "/").
+    """
     if path.startswith("~"):
         path = path.replace("~", os.environ["HOME"], 1)
     else:
@@ -19,12 +28,29 @@ def get_abspath(path):
     return path
 
 def creat_folders(folder):
+    """
+    Create folders if not exist, leave a warning if exists
+    """
     if os.path.exists(folder):
         print("WARNING: " + folder + " exists!")
     else:
         os.makedirs(folder)
 
 def get_structure_file(STR_FOLDER=".", RECURSIVE=False, MATCH_PATTERN="*"):
+    """
+    Get all file names in STR_FOLDER path [and its sub-folder (RECURSIVE)] with condition (MATCH_PATTEN)
+
+    Parameter
+        STR_FOLDER: str (path-like)
+            The path containing files, Default: .
+        RECURSIVE: bool
+            Including the sub-folder (True) or not (Default: False)
+        MATCH_PATTERN: str
+            The match pattern for the file name
+    Return
+        STR_FILES: list[str (filename-like)]
+            The list of all the filenames matching the conditions
+    """
     ## Get the file name of structure file
     STR_FOLDER = get_abspath(STR_FOLDER)
     if not os.path.exists(STR_FOLDER):
@@ -43,6 +69,19 @@ def get_structure_file(STR_FOLDER=".", RECURSIVE=False, MATCH_PATTERN="*"):
     return STR_FILES
 
 def get_setting_file(STR_FILENAME, NEW_SETTING="SETTINGS"):
+    """
+    Get the filename (without ext) of setting file
+    (By default: The setting file should be SETTINGS or start with SETTINGS- or end with -SETTINGS (case insensitive))
+
+    Parameter
+        STR_FILENAME: str
+            The individual tags for the setting file
+        NEW_SETTING: str
+            The str to replace "SETTINGS"
+    Return
+        SETTING_FILENAMES: list
+            The list of setting files (without ext)
+    """
     SETTING_FILENAMES = ["SETTINGS", "settings"
                          "SETTINGS-" + STR_FILENAME, "settings-" + STR_FILENAME,
                          STR_FILENAME + "-SETTINGS", STR_FILENAME + "-settings"]
@@ -51,6 +90,28 @@ def get_setting_file(STR_FILENAME, NEW_SETTING="SETTINGS"):
     return SETTING_FILENAMES
 
 def run(args):
+    """
+    Run dfttk
+    Currently, only support get_wf_gibbs
+
+    Parameters
+        STR_FOLDER = args.STRUCTURE_FOLDER  
+            folder/file containing structures
+        MATCH_PATTERN = args.MATCH_PATTERN  
+            Match patterns for structure file, e.g. *POSCAR
+        RECURSIVE = args.RECURSIVE          
+            recursive or not
+        WORKFLOW = args.WORKFLOW            
+            workflow, current only get_wf_gibbs
+        LAUNCH = args.LAUNCH               
+            Launch to lpad or not
+        MAX_JOB = args.MAX_JOB              
+            Max job to submit
+        SETTINGS = args.SETTINGS            
+            Settings file    
+        WRITE_OUT_WF = args.WRITE_OUT_WF    
+            Write out wf file or not
+    """
     STR_FOLDER = args.STRUCTURE_FOLDER  # folder/file containing structures
     MATCH_PATTERN = args.MATCH_PATTERN  # Match patterns for structure file, e.g. *POSCAR
     RECURSIVE = args.RECURSIVE          # recursive or not
@@ -191,17 +252,25 @@ def run(args):
                 os.system("qlaunch rapidfire -m " + str(MAX_JOB))
 
 def config(args):
+    """
+    Config dfttk
+    It can be used to config atomate and pymatgen
+    """
     import dfttk.scripts.config_dfttk as dfttkconfig
+    ALL = args.ALL
     PATH_TO_STORE_CONFIG = get_abspath(args.PATH_TO_STORE_CONFIG)
+
+    ATOMATE = args.ATOMATE
+    VASP_CMD_FLAG = args.VASP_CMD_FLAG
     CONFIG_FOLDER = args.CONFIG_FOLDER
     QUEUE_SCRIPT = args.QUEUE_SCRIPT
     QUEUE_TYPE = args.QUEUE_TYPE
+
     PYMATGEN = args.PYMATGEN
     VASP_PSP_DIR = args.VASP_PSP_DIR
     MAPI_KEY = args.MAPI_KEY
     DEFAULT_FUNCTIONAL = args.DEFAULT_FUNCTIONAL
-    ATOMATE = args.ATOMATE
-    ALL = args.ALL
+    
     if ALL:
         ATOMATE = True
         PYMATGEN = True
@@ -212,13 +281,16 @@ def config(args):
 
     if ATOMATE:
         dfttkconfig.config_atomate(path_to_store_config=PATH_TO_STORE_CONFIG, config_folder=CONFIG_FOLDER, 
-            queue_script=QUEUE_SCRIPT, queue_type=QUEUE_TYPE)
+            queue_script=QUEUE_SCRIPT, queue_type=QUEUE_TYPE, vasp_cmd_flag=VASP_CMD_FLAG)
 
     if PYMATGEN:
         dfttkconfig.config_pymatgen(psp_dir=VASP_PSP_DIR, def_fun=DEFAULT_FUNCTIONAL, 
             mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"))
 
 def run_dfttk():
+    """
+    dfttk command
+    """
     from dfttk._version import get_versions
     print("DFTTK version: " + get_versions()["version"])
     print("Copyright \u00a9 Phases Research Lab (https://www.phaseslab.com/)\n")
@@ -276,6 +348,8 @@ def run_dfttk():
                               "It will search in current folder and sub-folders. Default: vaspjob.pbs")
     pconfig.add_argument("-qt", "--queue_type", dest="QUEUE_TYPE", type=str, default="pbs",
                          help="The type of queue system. Note, only pbs is supported now. Default: pbs")
+    pconfig.add_argument("-v", "--vasp_cmd_flg", dest="VASP_CMD_FLAG", type=str, default="vasp_std",
+                         help="The flag to distinguish vasp_cmd to othe commands in queue_script. Default: vasp_std")
     pconfig.add_argument("-mp", "--pymatgen", dest="PYMATGEN", action="store_true",
                          help="Configure pymatgen.")
     pconfig.add_argument("-psp", "--vasp_psp_dir", dest="VASP_PSP_DIR", type=str, default="psp",
