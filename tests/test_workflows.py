@@ -91,8 +91,8 @@ def test_fw_spec_modified_by_powerup():
 def test_gibbs_wf_fireworks_graph():
     """Test that the graph of Fireworks is correct for a Gibbs workflow."""
     wf_phonon = get_wf_gibbs(STRUCT, phonon=True, num_deformations=11)
-    assert len(wf_phonon.fws) == 24
+    assert len(wf_phonon.fws) == 2
     wf_debye = get_wf_gibbs(STRUCT, num_deformations=11, phonon=False)
-    assert len(wf_debye.fws) == 13
+    assert len(wf_debye.fws) == 2
 
 

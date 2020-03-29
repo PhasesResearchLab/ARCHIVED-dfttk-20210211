@@ -50,4 +50,9 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8'
     ],
+    entry_points={
+        'console_scripts': [
+            'dfttk = dfttk.scripts.run_dfttk:run_dfttk',
+        ]
+    }
 )

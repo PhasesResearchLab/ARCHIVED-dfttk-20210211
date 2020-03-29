@@ -55,8 +55,11 @@ def check_deformations_in_volumes(deformations, volumes, orig_vol=None):
     Parameters
     ----------
         deformations: list
+            The deformation, thus the value is always near 1, e.g. [0.9, 0.95, 1.05]
         volumes: list
+            The volumes have been applied
         orig_vol: float
+            The original volume of the structure, can got by Structure.volume
             default: None which means it equals to the averages of the max and min values of volumes
     Return
     ------
@@ -68,18 +71,23 @@ def check_deformations_in_volumes(deformations, volumes, orig_vol=None):
         return(np.array(deformations))
     if orig_vol is None:
         orig_vol = (max(volumes) + min(volumes))/2.
-    else:
-        result = []
-        # why 0.999 and 1.001?
-        min_vol = min(volumes) / orig_vol   #* 0.999
-        max_vol = max(volumes) / orig_vol   #* 1.001
-        for deformation in deformations:
-            if deformation < min_vol or deformation > max_vol:
-                result.append(deformation)
-        return(np.array(result))
+    result = []
+    # why 0.999 and 1.001?
+    min_vol = min(volumes) / orig_vol   #* 0.999
+    max_vol = max(volumes) / orig_vol   #* 1.001
+    for deformation in deformations:
+        if deformation < min_vol or deformation > max_vol:
+            result.append(deformation)
+    return(np.array(result))
 
 def init_evcheck_result(**kwargs):
     #Transform the input parameters into dict
+    """
+    Here it used to initial the dict of evcheck_result
+    It has following keys:
+        append_run_num, correct, volumes, energies, tolerance, 
+        threshold, vol_spacing, error, metadata
+    """
     return kwargs
 
 def eosfit_stderr(eos_fit, volume, energy):
@@ -105,7 +113,7 @@ def eosfit_stderr(eos_fit, volume, energy):
 
 def cal_stderr(value, ref=None):
     """
-    Calculate the standard error of a list 
+    Calculate the standard error of a list reference to a *ref* list
 
     Parameter
     ---------
@@ -130,7 +138,7 @@ def cal_stderr(value, ref=None):
 
 def update_err(temperror, error, verbose, ind, **kwargs):
     """
-    Update the error
+    Update the error if temperror is less than error
 
     Parameter
     ---------
@@ -139,7 +147,7 @@ def update_err(temperror, error, verbose, ind, **kwargs):
         error: float
             Previous error
         verbose: bool
-            I don't know?????
+            Print(True) the informations or not(False)
         ind: index list
             previous index
         temp_ind: index list  (**kwargs)
@@ -543,14 +551,6 @@ class EVcheck_QHA(FiretaskBase):
     def check_fit(self, volumes, energies):
         eos = EOS('vinet')
         self.eos_fit = eos.fit(volumes, energies)
-
-    #gen_volenerg(self, num, volumes, energies)
-
-    #gen_volenergdos(self, num, volumes, energies, dos_objs)
-        
-    #check_fit(self, volumes, energies)    
-        
-    #check_deformations_in_volumes(self, deformations, volumes, orig_vol)
 
 
 @explicit_serialize
