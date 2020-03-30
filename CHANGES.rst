@@ -14,7 +14,7 @@ New features
 * Support run dfttk by command. (Add ``dfttk run [options]``) (@ hitliaomq_)
 * Support configrate dfttk automately. (Add ``dfttk config [options]``) (@ hitliaomq_)
 * Documents' enhance. (@ hitliaomq_)
-* Bug fix. (Including #8_ ) (@ bocklund_, @Peng_Gao, @ hitliaomq_)
+* Bug fix. (Including # 8_ ) (@ bocklund_, @Peng_Gao, @ hitliaomq_)
 
 .. _8: https://github.com/PhasesResearchLab/dfttk/issues/8
 
