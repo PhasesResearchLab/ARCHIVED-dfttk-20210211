@@ -99,5 +99,3 @@ def test_eosfit_stderr():
 def test_EVcheck_QHA():
     wf = Firework(EVcheck_QHA(db_file=db_file,vasp_cmd=VASP_CMD,tag="test",metadata={}))
     #print(wf.as_dict())
-
-test_EVcheck_QHA()
