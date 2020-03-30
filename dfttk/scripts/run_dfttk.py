@@ -370,7 +370,7 @@ def run_dfttk():
     pconfig.add_argument("-df", "--default_functional", dest="DEFAULT_FUNCTIONAL", type=str, default="PBE",
                          choices=sorted(Potcar.FUNCTIONAL_CHOICES),
                          help="The default functional. Default: PBE")
-    pconfig.add_argument("-t", "--test_config", dest="TEST_CONFIG", nargs="?", const="all", default="none"
+    pconfig.add_argument("-t", "--test_config", dest="TEST_CONFIG", nargs="?", const="all", default="none",
                          choices=["all", "pymatgen", "atomate"],
                          help="Test for configurations. Note: currently only support for pymatgen.")
     pconfig.set_defaults(func=config)
