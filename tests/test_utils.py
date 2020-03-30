@@ -21,14 +21,16 @@ try:
     API_KEY = SETTINGS["PMG_MAPI_KEY"]
 except Exception as e:
     print("Please provide the API_KEY.")
-    raise e
+    API_KEY = None
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_structures_from_ids():
     mp_ids = ["mp-66", "mp-22862"]  #66 for Diamond, 22862 for NaCl
     structs = dfttkutils.mp_structures_from_ids(mp_ids, API_KEY=API_KEY)
     assert(structs[0].composition.reduced_formula == "C")
     assert(structs[1].composition.reduced_formula == "NaCl")
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_structures_from_system():
     system = "Fe-Cr"
     structs = dfttkutils.mp_structures_from_system(system, API_KEY=API_KEY)
@@ -37,6 +39,7 @@ def test_mp_structures_from_system():
         formula.append(s.composition.reduced_formula)
     assert(formula == ['CrFe3', 'Cr2Fe', 'CrFe3', 'Cr3Fe', 'CrFe4', 'CrFe', 'Cr3Fe', 'Cr3Fe'])
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_sorted_structures_from_system():
     system = "Fe-Cr"
     sorted_structs = dfttkutils.mp_sorted_structures_from_system(system, API_KEY=API_KEY)
@@ -45,6 +48,7 @@ def test_mp_sorted_structures_from_system():
         formula.append(s.composition.reduced_formula)
     assert(formula == ['CrFe4', 'CrFe3', 'CrFe3', 'CrFe', 'Cr3Fe'])
 
+@pytest.mark.skip(reason="MAPI_KEY required")
 def test_check_symbol():
     struc = Structure.from_str(POSCAR_STR_check_symbol, fmt="POSCAR")
     magmoms = [4.0, 4.0, -4.0, -4.0]
