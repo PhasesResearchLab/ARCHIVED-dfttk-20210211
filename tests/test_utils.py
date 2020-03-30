@@ -1,4 +1,5 @@
 #!python
+import pytest
 
 import dfttk.utils as dfttkutils
 from dfttk.input_sets import RelaxSet
@@ -48,7 +49,6 @@ def test_mp_sorted_structures_from_system():
         formula.append(s.composition.reduced_formula)
     assert(formula == ['CrFe4', 'CrFe3', 'CrFe3', 'CrFe', 'Cr3Fe'])
 
-@pytest.mark.skip(reason="MAPI_KEY required")
 def test_check_symbol():
     struc = Structure.from_str(POSCAR_STR_check_symbol, fmt="POSCAR")
     magmoms = [4.0, 4.0, -4.0, -4.0]
