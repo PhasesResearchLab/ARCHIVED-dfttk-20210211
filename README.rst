@@ -25,36 +25,16 @@ DFTTK requires Python 3. Python 2 support for NumPy ends 2019-01-01.
 Create virtual environment (optional)
 -------------------------------------
 
-- virtualenv
+Anaconda_ or Miniconda_ is required. (Another option is using virtualenv_)
 
- - virtualenv_ is required
+.. code-block:: bash
 
-    .. code-block:: bash
-    
-        virtualenv --python=python3.6 dfttk
-        #Activate
-        source dfttk/bin/activate
-        #Deactivate
-        deactivate
-
-- conda
-
- - Anaconda_ or Miniconda_ is required
-
-    .. code-block:: bash
-
-        conda create -n dfttk python=3.6
-        #Activate
-        conda active dfttk
-        #Deactivate
-        conda deactivate
-
-- FAQ
-
- Q: The path pythonX (from --python=pythonX) does not exist (for virtualenv)
-
- A: Please check the python version of the system ``python --version``. If its python 2.x, please update it to python3.6+. (**PRL Group Notes:** For **ACI** account, please you just need to load the correct python by ``module load python``)
-
+    #conda create -n ENV_NAME python=VERSION
+    conda create -n dfttk python=3.6
+    #Activate
+    conda active dfttk
+    #Deactivate
+    conda deactivate
 
 .. _virtualenv: https://github.com/pypa/virtualenv
 .. _Anaconda: https://www.anaconda.com/
