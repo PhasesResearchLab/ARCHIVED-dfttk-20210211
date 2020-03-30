@@ -25,10 +25,6 @@ DFTTK requires Python 3. Python 2 support for NumPy ends 2019-01-01.
 Create virtual environment (optional)
 -------------------------------------
 
-Check the python version ``python --version``, if it's python 2.x, please update to python 3.6+.
-
-**PRL Group Notes:** For **ACI** user, just run ``module load python``, it will load python 3.6.3 version
-
 - virtualenv
 
  - virtualenv_ is required
@@ -36,24 +32,47 @@ Check the python version ``python --version``, if it's python 2.x, please update
     .. code-block:: bash
     
         virtualenv --python=python3.6 dfttk
-
+        #Activate
+        source dfttk/bin/activate
+        #Deactivate
+        deactivate
 
 - conda
 
-.. _virtualenv: https://github.com/pypa/virtualenv
+ - Anaconda_ or Miniconda_ is required
 
-pip
----
+    .. code-block:: bash
+
+        conda create -n dfttk python=3.6
+        #Activate
+        conda active dfttk
+        #Deactivate
+        conda deactivate
+
+- FAQ
+
+ Q: The path pythonX (from --python=pythonX) does not exist (for virtualenv)
+
+ A: Please check the python version of the system ``python --version``. If its python 2.x, please update it to python3.6+. (**PRL Group Notes:** For **ACI** account, please you just need to load the correct python by ``module load python``)
+
+
+.. _virtualenv: https://github.com/pypa/virtualenv
+.. _Anaconda: https://www.anaconda.com/
+.. _Miniconda: https://docs.conda.io/en/latest/miniconda.html
+
+
+Install dfttk
+-------------
+
+- pip
 
 From the command line, run ``pip install dfttk``
 
-conda
------
+- conda
 
 Anaconda packages of DFTTK are currently not supported. If you are using Anaconda, you should be able to install with pip.
 
-development versions
---------------------
+- development versions
 
 .. code-block:: bash
 
