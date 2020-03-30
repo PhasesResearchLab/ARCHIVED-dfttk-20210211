@@ -60,10 +60,51 @@ Anaconda packages of DFTTK are currently not supported. If you are using Anacond
     cd dfttk
     pip install -e .
 
+Configuration
+=============
+
+For more details, ref. Configuration_
+
+.. _Configuration: docs/Configuration.md
+
+Preparation
+-----------
+
+Prepare following files.
+
+.. code-block:: bash
+
+    current_folder
+    ├── psp                          [specified by -psp]
+    │   ├── pseudopotential_content  [required if you didnot configurate pymatgen]
+    │   └── ...
+    ├── config                       [specified by -c parameter]
+    │   ├── db.json                  [required]
+    │   ├── my_launchpad.yaml        [required]
+    │   ├── FW_config.yaml           [optional]
+    │   ├── my_fworker.yaml          [optional]
+    │   └── my_qadapter.yaml         [optional]
+    └── vaspjob.pbs                  [optional, specified by -q parameter]
+
+
+Config
+------
+
+After prepared above files, simply run
+
+.. code-block:: bash
+
+    dfttk config -all -p PATH_TO_STORE_CONFIG_FILE
+
 Use
 ===
 
-``from dfttk import get_wf_gibbs``. Examples forthcoming.
+1. Prepare structure file(s), e.g. POSCAR
+2. Simply run ``dfttk run -f POSCAR``
+
+For more details, ref. Get_Started_
+
+.. _Get_Started: docs/Get_started.md
 
 Contributing
 ============
