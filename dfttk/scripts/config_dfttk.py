@@ -3,6 +3,8 @@
 #Configure script for dfttk
 
 from dfttk.scripts.run_dfttk import get_abspath, creat_folders
+from pymatgen.io.vasp.inputs import PotcarSingle, Potcar
+from pymatgen import MPRester
 from dfttk.utils import recursive_glob
 from monty.serialization import loadfn, dumpfn
 import getpass
@@ -485,4 +487,108 @@ class ConfigFworker(ConfigTemplate):
                  "incar_update":{"NCORE": math.floor(math.sqrt(int(self.PPNODE)))}}
             }
 
+def test_config(test_pymagen=True, test_atomate=True):
+    if test_pymagen:
+        test_config_pymatgen()
+    if test_atomate:
+        test_config_atomate()
 
+def test_config_pymatgen():
+    path_mp_config = os.path.join(os.environ["HOME"], ".pmgrc.yaml")
+    if os.path.exists(path_mp_config):
+        mp_config = loadfn(path_mp_config)
+
+        print("##########Start to test the PMG_MAPI_KEY paramter##########")
+        help_cmd = "-mapi YOUR_MP_API_KEY"
+        param = "PMG_MAPI_KEY"
+        if param in mp_config:
+            try:
+                with MPRester(mp_config[param]) as mpr:
+                    mpr.get_structure_by_material_id("mp-66")
+                Tips().set_properly(MAPI_KEY=mp_config[param])
+            except Exception as e:
+                Tips().set_improper(param, help_cmd)
+        else:
+            Tips().set_not_exist(param, help_cmd)
+
+        print("\n##########Start to test the PMG_DEFAULT_FUNCTIONAL paramter##########")
+        help_cmd = "-df DEFAULT_FUNCTIONAL"
+        param = "PMG_DEFAULT_FUNCTIONAL"
+        flag_functional = False
+        FUNCTIONAL_CHOICES = Potcar.FUNCTIONAL_CHOICES
+        if param in mp_config:
+            DF = mp_config[param]
+            if DF in FUNCTIONAL_CHOICES:
+                Tips().set_properly(PMG_DEFAULT_FUNCTIONAL=DF)
+                flag_functional = True
+            else:
+                Tips().set_improper(param, help_cmd)
+        else:
+            Tips().set_not_exist(param, help_cmd)
+
+        print("\n##########Start to test the PMG_VASP_PSP_DIR paramter##########")
+        help_cmd = "-psp VASP_PSP_DIR"
+        param = "PMG_VASP_PSP_DIR"
+        flag_psp = False
+        FUNCTIONAL_DIR = list(PotcarSingle.functional_dir.values())
+        functional_name = {v: k for k, v in PotcarSingle.functional_dir.items()}
+        if param in mp_config:
+            psp_dir = mp_config[param]
+            if os.path.isdir(psp_dir):
+                flag_psp = False
+                functional_available = []
+                sub_dirs = os.listdir(psp_dir)
+                for item in sub_dirs:
+                    if item in FUNCTIONAL_DIR:
+                        functional = functional_name[item]
+                        try:
+                            p = PotcarSingle.from_symbol_and_functional("Fe", functional)
+                            functional_available.append(functional)
+                            flag_psp = True
+                        except Exception as e:
+                            print("There are some problems of " + functional + " in " + os.path.join(psp_dir, item))
+                if flag_psp:
+                    Tips().functional_info(param)
+                    print("\t The supported functional is/are: " + ", ".join(functional_available))
+                    flag_psp = True
+                else:
+                    print("There is no available functional in " + psp_dir)
+                    Tips().set_improper(param, help_cmd)
+            else:
+                print("The path " + psp_dir + " not exists.")
+                Tips().set_improper(param, help_cmd)
+        else:
+            Tips().set_not_exist(param, help_cmd)
+    else:
+        Tips().set_not_exist("~/.pmgrc.yaml", "-mp")
+    if flag_psp and flag_functional:
+        if not (mp_config["PMG_DEFAULT_FUNCTIONAL"] in functional_available):
+            print("\nWARNING: The default functional is not supported.\n")
+
+def test_config_atomate():
+    #TODO
+    pass
+
+class Tips(Exception):
+    """docstring for DfttkConfigError"""
+    def __init__(self):
+        super(Tips, self).__init__()
+
+    def functional_info(self, param):
+        print("SUCCESSFUL: The " + param + " is set properly.")
+
+    def set_properly(self, **kwargs):
+        for item in kwargs:
+            print("SUCCESSFUL: Your " + item + " is " + kwargs[item])
+
+    def set_improper(self, param, command):
+        print("ERROR: The setting of " + param + " is inappropriate. (This is not a valid " + param + ")")
+        self.ref(command)
+
+    def set_not_exist(self, param, command):
+        print("ERROR: The " + param + " not exists.")
+        self.ref(command)
+
+    def ref(self, command):
+        print("\t Please config it using 'dfttk config " + command + "'")
+        print("\t Ref. https://github.com/hitliaomq/dfttk_tutorial/tree/master/config")

@@ -2,6 +2,7 @@
 # The template for batch run of DFTTK
 import argparse
 from pymatgen import MPRester, Structure
+from pymatgen.io.vasp.inputs import Potcar
 from dfttk.wflows import get_wf_gibbs
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
@@ -257,6 +258,8 @@ def config(args):
     It can be used to config atomate and pymatgen
     """
     import dfttk.scripts.config_dfttk as dfttkconfig
+    TEST_CONFIG = args.TEST_CONFIG
+
     ALL = args.ALL
     PATH_TO_STORE_CONFIG = get_abspath(args.PATH_TO_STORE_CONFIG)
 
@@ -274,6 +277,14 @@ def config(args):
     if ALL:
         ATOMATE = True
         PYMATGEN = True
+
+    TEST_CONFIG_MAP = {"all": [True, True], "atomate": [True, False], 
+                       "pymatgen": [False, True], "none": [False, False]}
+    [test_atomate, test_pymagen] = TEST_CONFIG_MAP[TEST_CONFIG.lower()]
+    if test_atomate or test_pymagen:
+        # -t parameter exists in the input
+        dfttkconfig.test_config(test_pymagen=True, test_atomate=True)
+        exit()
 
     if PATH_TO_STORE_CONFIG is None:
         PATH_TO_STORE_CONFIG = dfttkconfig.default_path()
@@ -305,8 +316,8 @@ def run_dfttk():
                       help="The folder/file containing the structure,\n"
                            "Default: '.' ")
     prun.add_argument("-mh", "--match_pattern", dest="MATCH_PATTERN", type=str, default="*",
-                      help="The match pattern for structure file, e.g. *POSCAR*,\n"
-                           "Default: * -- everything except SETTING files, ref. -s")
+                      help="The match pattern for structure file, and it should be place in quotes."
+                           " e.g. '*POSCAR*'. Default: * -- everything except SETTING files, ref. -s")
     prun.add_argument("-s", "--setting", dest="SETTINGS", type=str, default="SETTINGS",
                       help="Specify the name of SETTINGS files (yaml or json file)\n"
                            "Default: SETTINGS (case insensitive and without ext) \n"
@@ -357,7 +368,11 @@ def run_dfttk():
     pconfig.add_argument("-mapi", "--mapi_key", dest="MAPI_KEY", type=str,
                          help="The API key of Materials Projects")
     pconfig.add_argument("-df", "--default_functional", dest="DEFAULT_FUNCTIONAL", type=str, default="PBE",
+                         choices=sorted(Potcar.FUNCTIONAL_CHOICES),
                          help="The default functional. Default: PBE")
+    pconfig.add_argument("-t", "--test_config", dest="TEST_CONFIG", nargs="?", const="all", default="none"
+                         choices=["all", "pymatgen", "atomate"],
+                         help="Test for configurations. Note: currently only support for pymatgen.")
     pconfig.set_defaults(func=config)
 
 
