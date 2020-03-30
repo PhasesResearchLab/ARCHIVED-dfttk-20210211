@@ -32,7 +32,7 @@ Anaconda_ or Miniconda_ is required. (Another option is using virtualenv_)
     #conda create -n ENV_NAME python=VERSION
     conda create -n dfttk python=3.6
     #Activate
-    conda active dfttk
+    conda activate dfttk
     #Deactivate
     conda deactivate
 
