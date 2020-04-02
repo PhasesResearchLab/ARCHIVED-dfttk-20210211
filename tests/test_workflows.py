@@ -92,7 +92,7 @@ def test_gibbs_wf_fireworks_graph():
     """Test that the graph of Fireworks is correct for a Gibbs workflow."""
     wf_phonon = get_wf_gibbs(STRUCT, db_file=os.path.join(MODULE_DIR, "db.json"), phonon=True, num_deformations=11)
     assert len(wf_phonon.fws) == 2
-    wf_debye = get_wf_gibbs(STRUCT, num_deformations=11, phonon=False)
+    wf_debye = get_wf_gibbs(STRUCT, db_file=os.path.join(MODULE_DIR, "db.json"), num_deformations=11, phonon=False)
     assert len(wf_debye.fws) == 2
 
 
