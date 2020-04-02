@@ -186,7 +186,52 @@ def parse_queue_script(template="vaspjob.pbs", type="pbs", vasp_cmd_flag="vasp_s
         raise ValueError("Only PBS is supported now. Other system will coming soon...")
     return param_dict
 
-def handle_potcar_gz(psp_dir="psp", path_to_store_psp="psp_pymatgen"):
+def parse_psp_name(psp_name):
+    """
+    Parse the name of vasp's psp
+
+    Parameter
+        psp_name: str
+            The name of vasp's psp, e.g. GGA, LDA, potpaw_LDA
+    Return
+        psp_name_norm: str
+            The normalized psp name
+    """
+    psp_name = psp_name.upper()
+    psp_name_list = re.split(r'\.|\_|\-|\=|\+|\*|\s',psp_name)
+    flag_us = False
+    for psp_name_i in psp_name_list:
+        if "US" in psp_name_i:
+            flag_us = True
+            break
+    if "LDA" in psp_name_list:
+        if "52" in psp_name_list:
+            psp_name_norm = "POT_LDA_PAW_52"
+        elif "54" in psp_name_list:
+            psp_name_norm = "POT_LDA_PAW_54"
+        elif flag_us:
+            psp_name_norm = "POT_LDA_US"
+        else:
+            psp_name_norm = "POT_LDA_PAW"
+    elif "PBE" in psp_name_list:
+        if "52" in psp_name_list:
+            psp_name_norm = "POT_GGA_PAW_PBE_52"
+        elif "54" in psp_name_list:
+            psp_name_norm = "POT_GGA_PAW_PBE_54"
+        else:
+            psp_name_norm = "POT_GGA_PAW_PBE"
+    elif "GGA" in psp_name_list:
+        if flag_us:
+            psp_name_norm = "POT_GGA_US_PW91"
+        else:
+            psp_name_norm = "POT_GGA_PAW_PW91"
+    else:
+        print("WARNING: This is not a proper name of vasp's pseudopotential. It will return None.")
+        psp_name_norm = None
+    return psp_name_norm
+
+
+def handle_potcar_gz(psp_dir="psp", path_to_store_psp="psp_pymatgen", aci=True):
     """
     Compress and move the pseudopotential to a specified path(path_to_store_psp)
     (The compress is done by running "pmg config -p psp_dir path_to_store_psp" command)
@@ -220,41 +265,47 @@ def handle_potcar_gz(psp_dir="psp", path_to_store_psp="psp_pymatgen"):
     Return
         None
     """
-    #The name_mappings is copied from pymatgen.cli.pmg_config
+    #aci* For ACI at PSU only
+    aci_pp_path = "/opt/aci/sw/vasp/5.4.1.05Feb16_intel-16.0.3_impi-5.1.3/pp"
+    aci_name_map = {"USPP_GAA": "POT_GGA_US_PW91"}
     name_mappings = {
-        "potpaw_PBE": "POT_GGA_PAW_PBE",
-        "potpaw_PBE_52": "POT_GGA_PAW_PBE_52",
-        "potpaw_PBE_54": "POT_GGA_PAW_PBE_54",
-        "potpaw_PBE.52": "POT_GGA_PAW_PBE_52",
-        "potpaw_PBE.54": "POT_GGA_PAW_PBE_54",
-        "potpaw_LDA": "POT_LDA_PAW",
-        "potpaw_LDA.52": "POT_LDA_PAW_52",
-        "potpaw_LDA.54": "POT_LDA_PAW_54",
-        "potpaw_LDA_52": "POT_LDA_PAW_52",
-        "potpaw_LDA_54": "POT_LDA_PAW_54",
-        "potUSPP_LDA": "POT_LDA_US",
+        "GGA": "POT_GGA_PAW_PW91",
+        "USPP_GAA": "POT_GGA_US_PW91",
         "potpaw_GGA": "POT_GGA_PAW_PW91",
-        "potUSPP_GGA": "POT_GGA_US_PW91"
+        "potUSPP_GGA": "POT_GGA_US_PW91",
     }
-    name_list = list(name_mappings.keys()) + list(name_mappings.values())
+    name_list = list(name_mappings.keys()) + list(set(name_mappings.values()))
     # file_str is not abspath, is relative path
     file_str = os.listdir(psp_dir)
     psp_uncompress = os.path.join(psp_dir, "psp_uncompress")
     creat_folders(psp_uncompress)
+    if aci:
+        #For ACI at PSU only
+        pp_paths = os.listdir(aci_pp_path)
+        for pp_path in pp_paths:
+            dst_path_name = parse_psp_name(pp_path)
+            if not dst_path_name:
+                if pp_path in aci_name_map:
+                    dst_path_name = aci_name_map[pp_path]
+            shutil.copytree(os.path.join(aci_pp_path, pp_path), os.path.join(psp_uncompress, dst_path_name))
     for file_i in file_str:
+        dst_path_name = parse_psp_name(file_i)
+        if not dst_path_name:
+            continue
         psp_old = os.path.join(psp_dir, file_i)
         if os.path.isdir(psp_old):
-            if file_i in name_list:
-                psp_new = os.path.join(psp_uncompress, file_i)
-                shutil.copytree(psp_old, psp_new)
+            psp_new = os.path.join(psp_uncompress, dst_path_name)
+            if os.path.exists(psp_new):
+                print("WARNING: Potential exists, and current potential will over write it.")
+                shutil.rmtree(psp_new)
+            shutil.copytree(psp_old, psp_new)
         elif os.path.isfile(psp_old):
-            if file_i.endswith(".tar.gz"):
-                file_without_gz = ".".join(file_i.split(".")[0:-2])
-                if file_without_gz in name_list:
-                    psp_new = os.path.join(psp_uncompress, file_without_gz)
-                    creat_folders(psp_new)
-                    # uncompress
-                    os.system("tar -zxvf " + psp_old + " -C " + psp_new)
+            psp_new = os.path.join(psp_uncompress, dst_path_name)
+            creat_folders(psp_new)
+            if file_i.endswith(".tar.gz") or file_i.endswith(".tgz"):
+                os.system("tar -zxvf " + psp_old + " -C " + psp_new)
+            elif file_i.endswith(".tar"):
+                os.system("tar -xvf " + psp_old + " -C " + psp_new)
     # config the POTCAR
     os.system("pmg config -p " + psp_uncompress + " " + path_to_store_psp)
     # Remove the uncompress folder
@@ -264,7 +315,7 @@ def handle_potcar_gz(psp_dir="psp", path_to_store_psp="psp_pymatgen"):
         os.system("chmod +w " + os.path.join(psp_uncompress, "*/*"))
         shutil.rmtree(psp_uncompress)
 
-def config_pymatgen(psp_dir="psp", def_fun="PBE", mapi=None, path_to_store_psp="psp_pymatgen"):
+def config_pymatgen(psp_dir="psp", def_fun="PBE", mapi=None, path_to_store_psp="psp_pymatgen", aci=False):
     """
     Config pymatgen. 
     If the key is exists in ~/.pmgrc.yaml and not empty, skip
@@ -305,7 +356,7 @@ def config_pymatgen(psp_dir="psp", def_fun="PBE", mapi=None, path_to_store_psp="
     dumpfn(params, pmg_config_file, default_flow_style=False)
     if "PMG_VASP_PSP_DIR" in keys_required:
         #No configuration for psp path
-        handle_potcar_gz(psp_dir=psp_dir, path_to_store_psp=path_to_store_psp)
+        handle_potcar_gz(psp_dir=psp_dir, path_to_store_psp=path_to_store_psp, aci=aci)
 
 def update_configfile(filename, base_file):
     """

@@ -273,6 +273,7 @@ def config(args):
     VASP_PSP_DIR = args.VASP_PSP_DIR
     MAPI_KEY = args.MAPI_KEY
     DEFAULT_FUNCTIONAL = args.DEFAULT_FUNCTIONAL
+    ACI = args.ACI
     
     if ALL:
         ATOMATE = True
@@ -296,7 +297,7 @@ def config(args):
 
     if PYMATGEN:
         dfttkconfig.config_pymatgen(psp_dir=VASP_PSP_DIR, def_fun=DEFAULT_FUNCTIONAL, 
-            mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"))
+            mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"), aci=ACI)
 
 def run_dfttk():
     """
@@ -363,6 +364,8 @@ def run_dfttk():
                          help="The flag to distinguish vasp_cmd to othe commands in queue_script. Default: vasp_std")
     pconfig.add_argument("-mp", "--pymatgen", dest="PYMATGEN", action="store_true",
                          help="Configure pymatgen.")
+    pconfig.add_argument("-aci", "--aci", dest="ACI", action="store_true",
+                         help="Using the pesudopotential on the ACI cluster at PSU.")
     pconfig.add_argument("-psp", "--vasp_psp_dir", dest="VASP_PSP_DIR", type=str, default="psp",
                          help="The path of pseudopotentials. Default: psp")
     pconfig.add_argument("-mapi", "--mapi_key", dest="MAPI_KEY", type=str,
