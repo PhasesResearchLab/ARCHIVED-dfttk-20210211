@@ -42,11 +42,11 @@ def test_gen_volenergdos():
     volumes = [-0.01, -0.005, 0.005, 0.01]
     energies = [-2.0, -3.0, -4.0, -5.0]
     volume, energy = gen_volenergdos(num, volumes, energies)
-    assert(all(volume[i] == result_volume[i] for i in range(volume)))
-    assert(all(energy[i] == result_energy[i] for i in range(energy)))
+    assert(all(volume[i] == result_volume[i] for i in range(len(volume))))
+    assert(all(energy[i] == result_energy[i] for i in range(len(energy))))
     dos_objs = [1, 2, 3, 4]
     volume, energy, dos_obj = gen_volenergdos(num, volumes, energies, dos_objs)
-    assert(all(dos_obj[i] == result_dos_obj[i] for i in range(dos_obj)))
+    assert(all(dos_obj[i] == result_dos_obj[i] for i in range(len(dos_obj))))
 
 def test_check_deformations_in_volumes():
     deformations = [0.9, 0.95, 1.0, 1.05, 1.1]
