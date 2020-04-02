@@ -35,22 +35,26 @@ def test_extract_accord_index():
     assert(p_out == [[0, 1], [2, 3]])
 
 def test_gen_volenergdos():
+    result_volume = [-0.01, 0.005]
+    result_energy = [-2.0, -4.0]
+    result_dos_obj = [1, 3]
     num = [0, 2]
     volumes = [-0.01, -0.005, 0.005, 0.01]
     energies = [-2.0, -3.0, -4.0, -5.0]
     volume, energy = gen_volenergdos(num, volumes, energies)
-    assert(volume == [-0.01, 0.005])
-    assert(energy == [-2.0, -4.0])
+    assert(all(volume[i] == result_volume[i] for i in range(volume)))
+    assert(all(energy[i] == result_energy[i] for i in range(energy)))
     dos_objs = [1, 2, 3, 4]
     volume, energy, dos_obj = gen_volenergdos(num, volumes, energies, dos_objs)
-    assert(dos_obj == [1, 3])
+    assert(all(dos_obj[i] == result_dos_obj[i] for i in range(dos_obj)))
 
 def test_check_deformations_in_volumes():
     deformations = [0.9, 0.95, 1.0, 1.05, 1.1]
     volumes = [31, 32, 33, 34, 35]
     orig_vol = 33
     deform_outof_vol = check_deformations_in_volumes(deformations, volumes, orig_vol=orig_vol)
-    assert(deform_outof_vol == [0.9, 1.1])
+    result = [0.9, 1.1]
+    assert(all(deform_outof_vol[i] == result[i] for i in range(len(deform_outof_vol))))
 
 def test_cal_stderr():
     value = [-34.69020102,

@@ -20,9 +20,11 @@ Direct
 
 try:
     API_KEY = SETTINGS["PMG_MAPI_KEY"]
+    PMG_VASP_PSP_DIR = SETTINGS["PMG_VASP_PSP_DIR"]
 except Exception as e:
     print("Please provide the API_KEY.")
     API_KEY = None
+    PMG_VASP_PSP_DIR = None
 
 @pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_structures_from_ids():
@@ -69,6 +71,7 @@ def test_update_pos_by_symbols():
     assert(syms == "Fe Fe")
     assert(natom == "2 2")
 
+@pytest.mark.skipif(PMG_VASP_PSP_DIR is None, reason="PMG_VASP_PSP_DIR required")
 def test_update_pot_by_symbols():
     struc = Structure.from_str(POSCAR_STR_check_symbol, fmt="POSCAR")
     magmoms = [4.0, 4.0, -4.0, -4.0]
