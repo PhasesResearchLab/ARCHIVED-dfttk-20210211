@@ -94,7 +94,7 @@ After prepared above files, simply run
 
     dfttk config -all -p PATH_TO_STORE_CONFIG_FILE
 
-**PRL GROUP NOTE:** If you use ACI cluster at PRL group, you can get the pseudopotentialS from ACI
+**PRL GROUP NOTE:** If you use ACI cluster at PRL group, you can get the pseudopotentials from ACI
 
 .. code-block:: bass
 
