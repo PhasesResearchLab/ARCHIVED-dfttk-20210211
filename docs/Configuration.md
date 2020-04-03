@@ -33,7 +33,7 @@ current_folder
 
 After prepared the above **required** file, simply run `dfttk config -all` to finish the configuration. If such command successes, you can skip **all** of the reset part of this documents. If not, please reading the following parts.
 
-- pseudopotential_content:** The vasp pseudopotential.
+- **pseudopotential_content:** The vasp pseudopotential.
 
   - **PRL Group Notes:** For PRL group, if you use ACI at PSU, you can skip this part,  using `-aci` parameter
 
