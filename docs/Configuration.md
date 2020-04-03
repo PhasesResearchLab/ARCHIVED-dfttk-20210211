@@ -95,6 +95,8 @@ After prepared the above **required** file, simply run `dfttk config -all` to fi
 
 - `dfttk config -all`
 
+- For **ACI** at PSU user, please use `dfttk config -all -aci`
+
   ```shell
   usage: dfttk config [-h] [-all] [-p PATH_TO_STORE_CONFIG] [-a]
                       [-c CONFIG_FOLDER] [-q QUEUE_SCRIPT] [-qt QUEUE_TYPE]
