@@ -92,13 +92,13 @@ After prepared above files, simply run
 
 .. code-block:: bash
 
-    dfttk config -all -p PATH_TO_STORE_CONFIG_FILE
+    dfttk config -all
 
 **PRL GROUP NOTE:** If you use ACI cluster at PRL group, you can get the pseudopotentials from ACI
 
 .. code-block:: bass
 
-    dfttk config -all -aci -p PATH_TO_STORE_CONFIG_FILE
+    dfttk config -all -aci
 
 For more details, ref. Configuration_
 
