@@ -44,6 +44,8 @@ Anaconda_ or Miniconda_ is required. (Another option is using virtualenv_)
 Install dfttk
 -------------
 
+To install dfttk, there are several ways.
+
 - pip
 
 From the command line, run ``pip install dfttk``
@@ -62,10 +64,6 @@ Anaconda packages of DFTTK are currently not supported. If you are using Anacond
 
 Configuration
 =============
-
-For more details, ref. Configuration_
-
-.. _Configuration: docs/Configuration.md
 
 Preparation
 -----------
@@ -95,6 +93,16 @@ After prepared above files, simply run
 .. code-block:: bash
 
     dfttk config -all -p PATH_TO_STORE_CONFIG_FILE
+
+**PRL GROUP NOTE:** If you use ACI cluster at PRL group, you can get the pseudopotentialS from ACI
+
+.. code-block:: bass
+
+    dfttk config -all -aci -p PATH_TO_STORE_CONFIG_FILE
+
+For more details, ref. Configuration_
+
+.. _Configuration: docs/Configuration.md
 
 Use
 ===
