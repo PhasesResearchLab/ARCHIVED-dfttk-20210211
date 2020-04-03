@@ -267,20 +267,15 @@ def handle_potcar_gz(psp_dir="psp", path_to_store_psp="psp_pymatgen", aci=True):
     """
     #aci* For ACI at PSU only
     aci_pp_path = "/opt/aci/sw/vasp/5.4.1.05Feb16_intel-16.0.3_impi-5.1.3/pp"
-    aci_name_map = {"USPP_GAA": "POT_GGA_US_PW91"}
-    name_mappings = {
-        "GGA": "POT_GGA_PAW_PW91",
-        "USPP_GAA": "POT_GGA_US_PW91",
-        "potpaw_GGA": "POT_GGA_PAW_PW91",
-        "potUSPP_GGA": "POT_GGA_US_PW91",
-    }
-    name_list = list(name_mappings.keys()) + list(set(name_mappings.values()))
+    aci_name_map = {"USPP_GAA": "POT_GGA_US_PW91"}  #A typo in ACI cluster
     # file_str is not abspath, is relative path
     file_str = os.listdir(psp_dir)
     psp_uncompress = os.path.join(psp_dir, "psp_uncompress")
     creat_folders(psp_uncompress)
     if aci:
         #For ACI at PSU only
+        if not os.path.exists(aci_pp_path):
+            raise Exception("ERROR: The -aci parameters only work for ACI cluster at PSU.")
         pp_paths = os.listdir(aci_pp_path)
         for pp_path in pp_paths:
             dst_path_name = parse_psp_name(pp_path)
