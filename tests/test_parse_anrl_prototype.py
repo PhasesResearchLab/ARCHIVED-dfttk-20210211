@@ -55,7 +55,8 @@ def test_parse_aflow_proto_single():
     url_poscar = parse_proto.poscar_map(252)
     proto_dict = parse_proto.parse_aflow_proto_single(url_poscar, fmt="poscar")
     assert(proto_dict["tags"]["aflow"] == "A3B4_tI28_141_ad_h")
-
+    
+@pytest.mark.skip
 def test_parse_aflow_proto_url():
     #This test will cost about 5-10 minutes
     proto_list = parse_proto.parse_aflow_proto_url(write_json=False)

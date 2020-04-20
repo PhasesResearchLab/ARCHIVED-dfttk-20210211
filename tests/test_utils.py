@@ -1,4 +1,5 @@
 #!python
+import pytest
 
 import dfttk.utils as dfttkutils
 from dfttk.input_sets import RelaxSet
@@ -19,16 +20,20 @@ Direct
 
 try:
     API_KEY = SETTINGS["PMG_MAPI_KEY"]
+    PMG_VASP_PSP_DIR = SETTINGS["PMG_VASP_PSP_DIR"]
 except Exception as e:
     print("Please provide the API_KEY.")
-    raise e
+    API_KEY = None
+    PMG_VASP_PSP_DIR = None
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_structures_from_ids():
     mp_ids = ["mp-66", "mp-22862"]  #66 for Diamond, 22862 for NaCl
     structs = dfttkutils.mp_structures_from_ids(mp_ids, API_KEY=API_KEY)
     assert(structs[0].composition.reduced_formula == "C")
     assert(structs[1].composition.reduced_formula == "NaCl")
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_structures_from_system():
     system = "Fe-Cr"
     structs = dfttkutils.mp_structures_from_system(system, API_KEY=API_KEY)
@@ -37,6 +42,7 @@ def test_mp_structures_from_system():
         formula.append(s.composition.reduced_formula)
     assert(formula == ['CrFe3', 'Cr2Fe', 'CrFe3', 'Cr3Fe', 'CrFe4', 'CrFe', 'Cr3Fe', 'Cr3Fe'])
 
+@pytest.mark.skipif(API_KEY is None, reason="MAPI_KEY required")
 def test_mp_sorted_structures_from_system():
     system = "Fe-Cr"
     sorted_structs = dfttkutils.mp_sorted_structures_from_system(system, API_KEY=API_KEY)
@@ -65,6 +71,7 @@ def test_update_pos_by_symbols():
     assert(syms == "Fe Fe")
     assert(natom == "2 2")
 
+@pytest.mark.skipif(PMG_VASP_PSP_DIR is None, reason="PMG_VASP_PSP_DIR required")
 def test_update_pot_by_symbols():
     struc = Structure.from_str(POSCAR_STR_check_symbol, fmt="POSCAR")
     magmoms = [4.0, 4.0, -4.0, -4.0]

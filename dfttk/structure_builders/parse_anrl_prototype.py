@@ -93,7 +93,7 @@ def poscar_map(num):
     Create poscar map for parsing error in pymatgen
     """
     poscarmap = {
-    67 : """AB2_aP12_1_4a_8a & a,b/a,c/a,\alpha,\beta,\gamma,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6,x7,y7,z7,x8,y8,z8,x9,y9,z9,x10,y10,z10,x11,y11,z11,x12,y12,z12 --params=5.417,1.0,1.0,90.0,90.0,90.0,0.001,0.002,0.003,0.4966,0.0001,0.5036,0.5001,0.502,0.0011,-0.0006,0.5013,0.5038,0.3857,0.3832,0.384,0.1149,0.6114,0.8846,0.8854,0.1157,0.6143,0.6153,0.8865,0.1141,0.6151,0.6132,0.6137,0.8854,0.3818,0.1149,0.1147,0.8856,0.3841,0.3857,0.1161,0.8842 & P1       C_1^1 #1 (a^12) & aP12 & & FeS2 & anisotropic Pyrite & Bayliss, Am. Mineral. 62, 1168-72 (1977)
+    67 : """AB2_aP12_1_4a_8a & a,b/a,c/a,alpha,beta,gamma,x1,y1,z1,x2,y2,z2,x3,y3,z3,x4,y4,z4,x5,y5,z5,x6,y6,z6,x7,y7,z7,x8,y8,z8,x9,y9,z9,x10,y10,z10,x11,y11,z11,x12,y12,z12 --params=5.417,1.0,1.0,90.0,90.0,90.0,0.001,0.002,0.003,0.4966,0.0001,0.5036,0.5001,0.502,0.0011,-0.0006,0.5013,0.5038,0.3857,0.3832,0.384,0.1149,0.6114,0.8846,0.8854,0.1157,0.6143,0.6153,0.8865,0.1141,0.6151,0.6132,0.6137,0.8854,0.3818,0.1149,0.1147,0.8856,0.3841,0.3857,0.1161,0.8842 & P1       C_1^1 #1 (a^12) & aP12 & & FeS2 & anisotropic Pyrite & Bayliss, Am. Mineral. 62, 1168-72 (1977)
    1.0000000000000000
    5.41700000000000   0.00000000000000   0.00000000000000
    0.00000000000000   5.41700000000000   0.00000000000000
@@ -190,13 +190,13 @@ def parse_proto_param(poscar):
     line1 = poscar.split("\n")[0].split("&")
     aflow_proto = line1[0].strip()
     paramstr = line1[1]
-    paramstr = multi_replace(paramstr, {"\\a": "a", "\\b": "b", "\\g": "g", "\a": "a", "\b": "b", "\g": "g"})
+    paramstr = multi_replace(paramstr, {"\\a": "a", "\\b": "b", "\\g": "g", "\a": "a", "\b": "b", r"\g": "g"})
     param_list = paramstr.split()
     param = param_list[0]
     value = param_list[1].split("=")[-1]
     sg = int(line1[2].split()[2][1:])
     pearson = line1[3].strip()
-    strukturbericht = line1[4].strip()
+    strukturbericht = multi_replace(line1[4].strip(), {"{": "", "}": "", "$": "", "None": ""})
     mineral = line1[-2].strip()
     ref = line1[-1].strip()
     proto_info = [aflow_proto, sg, pearson, strukturbericht, mineral, param, value, ref]
@@ -269,7 +269,7 @@ def parse_aflow_proto_url(write_json=True, write_path="."):
             print("Beign the ith prototype:" + str(n_count))
             linei = linei.strip()
             # aflow, pearson, sg, strukturbericht, formula, sg_num, mineral
-            linei_list = re.split("\s+", linei)
+            linei_list = re.split(r"\s+", linei)
             #Remove the content after .
             aflow_proto = linei_list[0].split(".")[0]
             formula = linei_list[4]

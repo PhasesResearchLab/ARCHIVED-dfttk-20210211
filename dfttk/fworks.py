@@ -36,7 +36,7 @@ class OptimizeFW(Firework):
         parents (Firework): Parents of this particular Firework. FW or list of FWS.
         db_insert : bool
             Whether to insert the task into the database. Defaults to False.
-        \*\*kwargs: Other kwargs that are passed to Firework.__init__.
+        **kwargs: Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, modify_incar=None,
@@ -103,7 +103,7 @@ class StaticFW(Firework):
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
@@ -166,7 +166,7 @@ class InflectionDetectionFW(Firework):
         Parents of this particular Firework. FW or list of FWS.
     continuation : bool
         Whether this Firework is continuing from a previous run of the InflectionDetection code.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
 
     Notes
@@ -245,7 +245,7 @@ class PhononFW(Firework):
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
