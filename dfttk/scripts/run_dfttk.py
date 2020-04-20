@@ -7,6 +7,7 @@ from dfttk.wflows import get_wf_gibbs
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
+import warnings
 import os
 import sys
 import shutil
@@ -22,18 +23,14 @@ def get_abspath(path):
         path: str (path-like)
             The absolute path(start from root "/").
     """
-    if path.startswith("~"):
-        path = path.replace("~", os.environ["HOME"], 1)
-    else:
-        path = os.path.abspath(path)
-    return path
+    return os.path.abspath(os.path.expanduser(path))
 
 def creat_folders(folder):
     """
     Create folders if not exist, leave a warning if exists
     """
     if os.path.exists(folder):
-        print("WARNING: " + folder + " exists!")
+        warning.warn( folder + " exists!")
     else:
         os.makedirs(folder)
 
@@ -55,7 +52,7 @@ def get_structure_file(STR_FOLDER=".", RECURSIVE=False, MATCH_PATTERN="*"):
     ## Get the file name of structure file
     STR_FOLDER = get_abspath(STR_FOLDER)
     if not os.path.exists(STR_FOLDER):
-        raise IOError("ERROR: The specified folder/file does not exist.")
+        raise FileNotFoundError("The specified folder/file '{}' does not exist.".format(STR_FOLDER))
     if os.path.isfile(STR_FOLDER):
         STR_FILES = [STR_FOLDER]
     else:
@@ -297,7 +294,8 @@ def config(args):
 
     if PYMATGEN:
         dfttkconfig.config_pymatgen(psp_dir=VASP_PSP_DIR, def_fun=DEFAULT_FUNCTIONAL, 
-            mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"), aci=ACI)
+            mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"), aci=ACI, 
+            vasp_cmd=VASP_CMD_FLAG, template=QUEUE_SCRIPT, queue_type=QUEUE_TYPE)
 
 def run_dfttk():
     """
@@ -360,14 +358,14 @@ def run_dfttk():
                               "It will search in current folder and sub-folders. Default: vaspjob.pbs")
     pconfig.add_argument("-qt", "--queue_type", dest="QUEUE_TYPE", type=str, default="pbs",
                          help="The type of queue system. Note, only pbs is supported now. Default: pbs")
-    pconfig.add_argument("-v", "--vasp_cmd_flg", dest="VASP_CMD_FLAG", type=str, default="vasp_std",
+    pconfig.add_argument("-v", "--vasp_cmd_flag", dest="VASP_CMD_FLAG", type=str, default="vasp_std",
                          help="The flag to distinguish vasp_cmd to othe commands in queue_script. Default: vasp_std")
     pconfig.add_argument("-mp", "--pymatgen", dest="PYMATGEN", action="store_true",
                          help="Configure pymatgen.")
     pconfig.add_argument("-aci", "--aci", dest="ACI", action="store_true",
                          help="Using the pesudopotential on the ACI cluster at PSU.")
-    pconfig.add_argument("-psp", "--vasp_psp_dir", dest="VASP_PSP_DIR", type=str, default="psp",
-                         help="The path of pseudopotentials. Default: psp")
+    pconfig.add_argument("-psp", "--vasp_psp_dir", dest="VASP_PSP_DIR", 
+                         help="The path of pseudopotentials.")
     pconfig.add_argument("-mapi", "--mapi_key", dest="MAPI_KEY", type=str,
                          help="The API key of Materials Projects")
     pconfig.add_argument("-df", "--default_functional", dest="DEFAULT_FUNCTIONAL", type=str, default="PBE",

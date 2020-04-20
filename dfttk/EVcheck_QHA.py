@@ -72,9 +72,8 @@ def check_deformations_in_volumes(deformations, volumes, orig_vol=None):
     if orig_vol is None:
         orig_vol = (max(volumes) + min(volumes))/2.
     result = []
-    # why 0.999 and 1.001?
-    min_vol = min(volumes) / orig_vol   #* 0.999
-    max_vol = max(volumes) / orig_vol   #* 1.001
+    min_vol = min(volumes) / orig_vol 
+    max_vol = max(volumes) / orig_vol 
     for deformation in deformations:
         if deformation < min_vol or deformation > max_vol:
             result.append(deformation)
@@ -612,7 +611,6 @@ class PreEV_check(FiretaskBase):
         run_num += 1
         
         volumes, energies = self.get_orig_EV_structure(db_file, tag)
-        #vol_adds = check_deformations_in_volumes(deformations, volumes, structure.volume)
         self.check_points(db_file, metadata, tolerance, 0.1, del_limited, volumes, energies, verbose)
         
         EVcheck_result = init_evcheck_result(run_num, self.correct, volumes, energies, tolerance, 
@@ -710,7 +708,6 @@ class PreEV_check(FiretaskBase):
             json.dump(EVcheck_result, fp)  
     
     def get_orig_EV_structure(self, db_file, tag):
-        #from pymatgen.core.structure import Structure
         vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
         energies = []
         volumes = []
@@ -727,8 +724,6 @@ class PreEV_check(FiretaskBase):
                 volumes[-1] = vol
             vol_last = vol
         self.scale_lattice = calc['scale_lattice']
-        #structure = Structure.from_dict(calc['structure'])
-        #structure = structure.scale_lattice(1/self.scale_lattice*structure.volume)                       
         # Reset to lattice
         energies = sort_x_by_y(energies, volumes)
         volumes = sorted(volumes)
@@ -849,14 +844,6 @@ class PreEV_check(FiretaskBase):
     def check_fit(self, volumes, energies):
         eos = EOS('vinet')
         self.eos_fit = eos.fit(volumes, energies)
-
-    #gen_volenerg(self, num, volumes, energies)
-
-    #gen_volenergdos(self, num, volumes, energies, dos_objs)
-        
-    #check_fit(self, volumes, energies)  
-    
-    #check_deformations_in_volumes(self, deformations, volumes, orig_vol)
 
 
 def tol_error():

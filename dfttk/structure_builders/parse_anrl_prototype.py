@@ -196,7 +196,7 @@ def parse_proto_param(poscar):
     value = param_list[1].split("=")[-1]
     sg = int(line1[2].split()[2][1:])
     pearson = line1[3].strip()
-    strukturbericht = line1[4].strip()
+    strukturbericht = multi_replace(line1[4].strip(), {"{": "", "}": "", "$": "", "None": ""})
     mineral = line1[-2].strip()
     ref = line1[-1].strip()
     proto_info = [aflow_proto, sg, pearson, strukturbericht, mineral, param, value, ref]
