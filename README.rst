@@ -1,6 +1,6 @@
-==========================================
-DFTTK: Density Functional Theory Tool Kits
-==========================================
+=========================================
+DFTTK: Density Functional Theory Tool Kit
+=========================================
 
 **Ultimate goals:** For a given structure and elements, calculate the free energy with respect to possible internal degree of freedoms.
 
