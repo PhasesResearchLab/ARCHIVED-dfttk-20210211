@@ -236,22 +236,25 @@ def run(args):
             #This is current file
             pass
         else:
+            flag_run = False
             try:
                 structure = Structure.from_file(STR_FILE)
+                flag_run = True
             except Exception as e:
                 warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
                     "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
 
-            user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+            if flag_run:
+                user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
-            wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+                wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 
-            metadatas[STR_FILE] = wf.as_dict()["metadata"]
-            wfs.append(wf)
+                metadatas[STR_FILE] = wf.as_dict()["metadata"]
+                wfs.append(wf)
 
-            if WRITE_OUT_WF:
-                dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
-                wf.to_file(dfttk_wf_filename)
+                if WRITE_OUT_WF:
+                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
+                    wf.to_file(dfttk_wf_filename)
             
     #Write Out the metadata for POST purpose
     dumpfn(metadatas, "METADATAS.yaml")
