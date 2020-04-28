@@ -6,7 +6,7 @@ module_dir = os.path.dirname(os.path.abspath(__file__))
 
 
 def readme():
-    with open(os.path.join(module_dir, 'README.rst')) as f:
+    with open(os.path.join(module_dir, 'README.rst'), encoding='UTF-8') as f:
         return f.read()
 
 

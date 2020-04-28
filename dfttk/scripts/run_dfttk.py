@@ -8,6 +8,7 @@ from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
 import warnings
+import copy
 import os
 import sys
 import shutil
@@ -66,7 +67,7 @@ def get_structure_file(STR_FOLDER=".", RECURSIVE=False, MATCH_PATTERN="*"):
             STR_FILES = [os.path.join(STR_FOLDER, file_i) for file_i in STR_FILES]
     return STR_FILES
 
-def get_setting_file(STR_FILENAME, NEW_SETTING="SETTINGS"):
+def get_user_settings(STR_FILENAME, STR_PATH="./", NEW_SETTING="SETTINGS"):
     """
     Get the filename (without ext) of setting file
     (By default: The setting file should be SETTINGS or start with SETTINGS- or end with -SETTINGS (case insensitive))
@@ -74,18 +75,114 @@ def get_setting_file(STR_FILENAME, NEW_SETTING="SETTINGS"):
     Parameter
         STR_FILENAME: str
             The individual tags for the setting file
+        STR_PATH: str
+            The path of the setting files
         NEW_SETTING: str
             The str to replace "SETTINGS"
     Return
-        SETTING_FILENAMES: list
-            The list of setting files (without ext)
+        user_settings: dict
+            User settings, if no setting file, return an empty dict
     """
-    SETTING_FILENAMES = ["SETTINGS", "settings"
+    user_settings = {}
+    SETTING_FILENAMES = ["SETTINGS", "settings",
                          "SETTINGS-" + STR_FILENAME, "settings-" + STR_FILENAME,
                          STR_FILENAME + "-SETTINGS", STR_FILENAME + "-settings"]
     replace_dict = {"SETTINGS": NEW_SETTING.upper(), "settings": NEW_SETTING.lower()}
     SETTING_FILENAMES = [multi_replace(item, replace_dict) for item in SETTING_FILENAMES]
-    return SETTING_FILENAMES
+
+    for SETTING_FILENAME in SETTING_FILENAMES:
+        for STR_EXT in ['json', 'yaml']:
+            SETTING_FULL_FILENAME = os.path.join(STR_PATH, "{}.{}".format(SETTING_FILENAME, STR_EXT))
+            if os.path.exists(SETTING_FULL_FILENAME):
+                try:
+                    user_settings.update(loadfn(SETTING_FULL_FILENAME))
+                except Exception as e:
+                    raise TypeError("The file contant or file type is not supported. ref. " +\
+                        "http://guide.materialsvirtuallab.org/monty/monty.serialization.html#monty.serialization.loadfn")
+    return user_settings
+
+def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
+    """
+    Get a single workflow
+
+    Parameters
+        structure: pymatgen.Structure
+            The structure
+        WORKFLOW: str
+            The name of the workflow, now only gibbs energy workflow(get_wf_gibbs) is supported
+        settings: dict
+            User settings for the workflow
+    Return
+    """
+    ################ PARAMETERS FOR WF #############################
+    #str, the absolute path of db.json file, e.g. /storage/home/mjl6505/atomate/config/db.json
+    #  If None, it will use the configuration in fireworks 
+    db_file = settings.get('db_file', None)
+    #list, the MAGMOM of the structure, e.g. [4.0, 4.0, -4.0, -4.0]
+    magmom = settings.get('magmom', None)
+    #int, the number of initial deformations, e.g. 7
+    num_deformations = settings.get('num_deformations', 7)
+    #list/tuple(min, max) or float(-max, max), the maximum amplitude of deformation, e.g. (-0.05, 0.1) means (0.95, 1.1) in volume
+    deformation_fraction = settings.get('deformation_fraction', (-0.1, 0.1))
+    #float, minimum ratio of Volumes spacing, e.g. 0.03
+    volume_spacing_min = settings.get('volume_spacing_min', 0.03)
+    #bool, run phonon(True) or not(False)
+    phonon = settings.get('phonon', False)
+    #list(3x3), the supercell matrix for phonon, e.g. [[2.0, 0, 0], [0, 2.0, 0], [0, 0, 2.0]]
+    phonon_supercell_matrix = settings.get('phonon_supercell_matrix', None)
+    #float, the mimimum of temperature in QHA process, e.g. 5
+    t_min = settings.get('t_min', 5)
+    #float, the maximum of temperature in QHA process, e.g. 2000
+    t_max = settings.get('t_max', 2000)
+    #float, the step of temperature in QHA process, e.g. 5
+    t_step = settings.get('t_step', 5)
+    #float, acceptable value for average RMS, recommend >= 0.005
+    tolerance = settings.get('tolerance', 0.01) 
+    #str, the vasp command, if None then find in the FWorker configuration
+    vasp_cmd = settings.get('vasp_cmd', None)
+    #dict, metadata to be included, this parameter is useful for filter the data, e.g. metadata={"phase": "BCC_A2", "tag": "AFM"}
+    metadata = settings.get('metadata', None)
+    #float, the tolerannce for symmetry, e.g. 0.05
+    symmetry_tolerance = settings.get('symmetry_tolerance', 0.05)
+    #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
+    passinitrun = settings.get('passinitrun', False)
+    #bool, Whether run isif=2 calculation before isif=4 running
+    run_isif2 = settings.get('run_isif2', False)
+    #bool, Whether pass isif=4 calculation.
+    pass_isif4 = settings.get('pass_isif4', False)
+    #Set the path already exists for new static calculations; if set as '', will try to get the path from db_file
+    relax_path = settings.get('relax_path', '')
+    #dict, dict of class ModifyIncar with keywords in Workflow name. e.g.
+    """
+    modify_incar_params = { 'Full relax': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
+                            'PreStatic': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
+                            'PS2': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}}, 
+                            'static': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
+    """
+    modify_incar_params = settings.get('modify_incar_params', {})
+    #dict, dict of class ModifyKpoints with keywords in Workflow name, similar with modify_incar_params
+    modify_kpoints_params = settings.get('modify_kpoints_params', {})
+    #bool, print(True) or not(False) some informations, used for debug
+    verbose = settings.get('verbose', False)
+
+    if magmom:
+        structure.add_site_property('magmom', magmom)
+    if not db_file:
+        from fireworks.fw_config import config_to_dict
+        db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]    
+
+    if WORKFLOW == "get_wf_gibbs":
+        #Currently, only this workflow is supported
+        wf = get_wf_gibbs(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction, 
+                    phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,  t_min=t_min, t_max=t_max, 
+                    t_step=t_step, tolerance=tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
+                    db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
+                    run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
+                    modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
+                    verbose=verbose)
+    else:
+        raise ValueError("Currently, only the gibbs energy workflow is supported.")
+    return wf
 
 def run(args):
     """
@@ -119,67 +216,6 @@ def run(args):
     SETTINGS = args.SETTINGS            # Settings file    
     WRITE_OUT_WF = args.WRITE_OUT_WF    # Write out wf file or not
 
-    ## Load global settings
-    ################ PARAMETERS FOR WF #############################
-    #str, the absolute path of db.json file, e.g. /storage/home/mjl6505/atomate/config/db.json
-    #  If None, it will use the configuration in fireworks 
-    db_file=None
-    #list, the MAGMOM of the structure, e.g. [4.0, 4.0, -4.0, -4.0]
-    magmom = None
-    #int, the number of initial deformations, e.g. 7
-    num_deformations = 7
-    #list/tuple(min, max) or float(-max, max), the maximum amplitude of deformation, e.g. (-0.05, 0.1) means (0.95, 1.1) in volume
-    deformation_fraction = (-0.1, 0.1)
-    #float, minimum ratio of Volumes spacing, e.g. 0.03
-    volume_spacing_min = 0.03
-    #bool, run phonon(True) or not(False)
-    phonon=False
-    #list(3x3), the supercell matrix for phonon, e.g. [[2.0, 0, 0], [0, 2.0, 0], [0, 0, 2.0]]
-    phonon_supercell_matrix=None
-    #float, the mimimum of temperature in QHA process, e.g. 5
-    t_min=5
-    #float, the maximum of temperature in QHA process, e.g. 2000
-    t_max=2000
-    #float, the step of temperature in QHA process, e.g. 5
-    t_step=5
-    #float, acceptable value for average RMS, recommend >= 0.005
-    tolerance = 0.01
-    #str, the vasp command, if None then find in the FWorker configuration
-    vasp_cmd=None
-    #dict, metadata to be included, this parameter is useful for filter the data, e.g. metadata={"phase": "BCC_A2", "tag": "AFM"}
-    metadata=None
-    #float, the tolerannce for symmetry, e.g. 0.05
-    symmetry_tolerance = 0.05
-    #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
-    passinitrun=False
-    #bool, Whether run isif=2 calculation before isif=4 running
-    run_isif2=False
-    #bool, Whether pass isif=4 calculation.
-    pass_isif4=False
-    #Set the path already exists for new static calculations; if set as '', will try to get the path from db_file
-    relax_path=''
-    #dict, dict of class ModifyIncar with keywords in Workflow name. e.g.
-    """
-    modify_incar_params = { 'Full relax': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
-                            'PreStatic': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
-                            'PS2': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}}, 
-                            'static': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
-    """
-    modify_incar_params={}
-    #dict, dict of class ModifyKpoints with keywords in Workflow name, similar with modify_incar_params
-    modify_kpoints_params={}
-    #bool, print(True) or not(False) some informations, used for debug
-    verbose=False
-
-    GLOBAL_SETTING = {"db_file": db_file, "magmom": magmom, "num_deformations": num_deformations,
-                      "deformation_fraction": deformation_fraction, "volume_spacing_min": volume_spacing_min,
-                      "phonon": phonon, "phonon_supercell_matrix": phonon_supercell_matrix,
-                      "t_min": t_min, "t_max": t_max, "t_step": t_step, "tolerance": tolerance,
-                      "vasp_cmd": vasp_cmd, "metadata": metadata, "symmetry_tolerance": symmetry_tolerance,
-                      "passinitrun": passinitrun, "run_isif2": run_isif2, "pass_isif4": pass_isif4,
-                      "relax_path": relax_path, "modify_incar_params": modify_incar_params, 
-                      "modify_kpoints_params": modify_kpoints_params, "verbose": verbose}
-
     ## Get the file names of files
     STR_FILES = get_structure_file(STR_FOLDER=STR_FOLDER, RECURSIVE=RECURSIVE, MATCH_PATTERN=MATCH_PATTERN)
 
@@ -202,37 +238,21 @@ def run(args):
         else:
             try:
                 structure = Structure.from_file(STR_FILE)
-
-                locals().update(GLOBAL_SETTING)
-                SETTING_FILENAMES = get_setting_file(STR_FILENAME, SETTINGS)
-                for SETTING_FILENAME in SETTING_FILENAMES:
-                    SETTING_FULL_FILENAME = os.path.join(STR_PATH, SETTING_FILENAME + STR_EXT)
-                    if os.path.exists(SETTING_FULL_FILENAME):
-                        locals().update(loadfn(SETTING_FULL_FILENAME))
-                if magmom:
-                    structure.add_site_property('magmom', magmom)
-                if not db_file:
-                    from fireworks.fw_config import config_to_dict
-                    db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]    
-
-                if WORKFLOW == "get_wf_gibbs":
-                    #Currently, only this workflow is supported
-                    wf = get_wf_gibbs(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction, 
-                                phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,  t_min=t_min, t_max=t_max, 
-                                t_step=t_step, tolerance=tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
-                                db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
-                                run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
-                                modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
-                                verbose=verbose)
-                metadatas[STR_FILE] = wf.as_dict()["metadata"]
-                wfs.append(wf)
-
-                if WRITE_OUT_WF:
-                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
-                    wf.to_file(dfttk_wf_filename)
             except Exception as e:
-                print("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped.")
-                print("Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
+                warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
+                    "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
+
+            user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+
+            wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+
+            metadatas[STR_FILE] = wf.as_dict()["metadata"]
+            wfs.append(wf)
+
+            if WRITE_OUT_WF:
+                dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
+                wf.to_file(dfttk_wf_filename)
+            
     #Write Out the metadata for POST purpose
     dumpfn(metadatas, "METADATAS.yaml")
 
