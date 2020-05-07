@@ -96,7 +96,7 @@ After prepared above files, simply run
 
 **PRL GROUP NOTE:** If you use ACI cluster at PRL group, you can get the pseudopotentials from ACI
 
-.. code-block:: bass
+.. code-block:: bash
 
     dfttk config -all -aci
 

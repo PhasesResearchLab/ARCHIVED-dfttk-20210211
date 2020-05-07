@@ -52,7 +52,7 @@ def add_path_var(**kwarg):
     """
     def var_is_exist(var):
         var_expand = os.path.expandvars("$"+var)
-        if var_expand == var:
+        if var_expand == "$" + var:
             return False
         else:
             return True
