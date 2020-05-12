@@ -105,7 +105,7 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
         # add the abstract atom to the sublattice model
         subl = atom[0]
         #Replace the digital by alphas, 1->a, 2->b, 3->c, ...
-        rep_items = re.findall("\d+", subl)
+        rep_items = re.findall(r"\d+", subl)
         for rep_item in rep_items:
             subl = subl.replace(rep_item, chr(96 + int(rep_item)))
         subl_atom = atom[1]
@@ -254,7 +254,7 @@ def read_sqsgen_in(sqsgen_path):
     sqs_config = {}
     with open(os.path.join(sqsgen_path, "sqsgen.in"), "r+") as fid:
         for eachline in fid:
-            eachline = re.split('\s+', eachline.strip("\n"))
+            eachline = re.split(r'\s+', eachline.strip("\n"))
             configuration = []
             occupancies = []
             for linei in eachline:

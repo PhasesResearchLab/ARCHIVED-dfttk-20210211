@@ -36,7 +36,7 @@ class OptimizeFW(Firework):
         parents (Firework): Parents of this particular Firework. FW or list of FWS.
         db_insert : bool
             Whether to insert the task into the database. Defaults to False.
-        \*\*kwargs: Other kwargs that are passed to Firework.__init__.
+        **kwargs: Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, modify_incar=None,
@@ -60,9 +60,9 @@ class OptimizeFW(Firework):
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
         #vasp_input_set = vasp_input_set or RelaxSet(structure)  # ??
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         if scale_lattice is not None:
-            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice, structure=structure))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         if modify_incar != None:
              t.append(ModifyIncar(incar_update=modify_incar))
@@ -164,7 +164,7 @@ class StaticFW(Firework):
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
@@ -192,9 +192,9 @@ class StaticFW(Firework):
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         if (scale_lattice is not None) and not Prestatic:
-            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice))
+            t.append(ScaleVolumeTransformation(scale_factor=scale_lattice, structure=structure))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         if modify_incar != None:
              t.append(ModifyIncar(incar_update=modify_incar))
@@ -232,7 +232,7 @@ class InflectionDetectionFW(Firework):
         Parents of this particular Firework. FW or list of FWS.
     continuation : bool
         Whether this Firework is continuing from a previous run of the InflectionDetection code.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
 
     Notes
@@ -311,7 +311,7 @@ class PhononFW(Firework):
         Path to file specifying db credentials.
     parents : Firework
         Parents of this particular Firework. FW or list of FWS.
-    \*\*kwargs : dict
+    **kwargs : dict
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
@@ -344,7 +344,7 @@ class PhononFW(Firework):
         else:
             # write the input set first, just to get the POSCAR file in the directory
             # the other inputs will get overridden by WriteVaspFromIOSetPrevStructure
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
 
         t.append(SupercellTransformation(supercell_matrix=supercell_matrix))
         t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=supercell_site_properties))

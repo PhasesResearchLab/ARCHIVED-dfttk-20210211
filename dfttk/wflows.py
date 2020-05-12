@@ -122,6 +122,14 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
 
+    if db_file == ">>db_file<<":
+        #In PengGao's version, some function used the absolute db_file
+        from fireworks.fw_config import config_to_dict
+        from monty.serialization import loadfn
+        db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
+
+    site_properties = deepcopy(structure).site_properties
+
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
 
@@ -159,8 +167,9 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
         fws.append(full_relax_fw)
     else:
         full_relax_fw = None
-    check_result = Firework(EVcheck_QHA(db_file = db_file, tag = tag, relax_path = relax_path, deformations = deformations,
-                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd,
+
+    check_result = Firework(EVcheck_QHA(db_file = db_file, tag = tag, relax_path = relax_path, deformations = deformations, site_properties=site_properties,
+                                        tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, 
                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
                                         phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, run_isif2=run_isif2, pass_isif4=pass_isif4,
                                         modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
