@@ -57,6 +57,7 @@ class RelaxSet(DictSet):
         self.kwargs = kwargs
         self.volume_relax = volume_relax
         self.isif = isif
+        uis = {}
         if self.volume_relax and self.isif is not None:
             raise ValueError("isif cannot have a value while volume_relax is True.")
         if self.volume_relax:
