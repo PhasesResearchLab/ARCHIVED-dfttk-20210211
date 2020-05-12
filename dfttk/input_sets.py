@@ -52,13 +52,20 @@ class RelaxSet(DictSet):
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
-    def __init__(self, structure, volume_relax=False, **kwargs):
+    def __init__(self, structure, volume_relax=False, isif=None, **kwargs):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
         self.volume_relax = volume_relax
-        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
+        self.isif = isif
+        if self.volume_relax and self.isif is not None:
+            raise ValueError("isif cannot have a value while volume_relax is True.")
         if self.volume_relax:
-            self.incar.update({'ISIF': 7})
+            uis = kwargs.get('user_incar_settings', {})
+            uis['ISIF'] = 7
+        if self.isif:
+            uis = kwargs.get('user_incar_settings', {})
+            uis['ISIF'] = self.isif
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 
 class PreStaticSet(DictSet):
@@ -235,7 +242,7 @@ class ForcesSet(DictSet):
         'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
-    CONFIG['INCAR'].pop('ENCUT',None) 
+    CONFIG['INCAR'].pop('ENCUT',None)
     CONFIG['INCAR'].update({
         'EDIFF_PER_ATOM': 1e-8,
         'ISMEAR': 0,

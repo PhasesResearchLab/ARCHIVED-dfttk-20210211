@@ -9,7 +9,7 @@ from atomate.vasp.firetasks.glue_tasks import CopyVaspOutputs
 from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
-    CheckSymmetry, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate, \
+    CheckRelaxation, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate, \
     Record_relax_running_path, Record_PreStatic_result
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
@@ -40,7 +40,7 @@ class OptimizeFW(Firework):
     """
     def __init__(self, structure, scale_lattice=None, symmetry_tolerance=None, name="structure optimization", vasp_input_set=None, job_type="normal",
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, modify_incar=None,
-                 force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, run_isif2=False, pass_isif4=False, 
+                 force_gamma=True, prev_calc_loc=True, parents=None, db_insert=False, run_isif2=False, pass_isif4=False,
                  modify_incar_params = {}, modify_kpoints_params = {}, **kwargs):
 
         metadata = metadata or {}
@@ -79,6 +79,67 @@ class OptimizeFW(Firework):
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
+class RobustOptimizeFW(Firework):
+    """
+    Optimize the given structure.
+
+    Results are not entered into the database.
+
+    Args:
+        structure (Structure): Input structure. Note that for prev_calc_loc jobs, the structure
+            is only used to set the name of the FW and any structure with the same composition
+            can be used.
+        name (str): Name for the Firework.
+        vasp_input_set (VaspInputSet): input set to use (for jobs w/no parents)
+            Defaults to MPStaticSet() if None.
+        vasp_cmd (str): Command to run vasp.
+        prev_calc_loc (bool or str): If true (default), copies outputs from previous calc. If
+            a str value, grabs a previous calculation output by name. If False/None, will create
+            new calculation using the provided structure.
+        db_file (str): Path to file specifying db credentials.
+        parents (Firework): Parents of this particular Firework. FW or list of FWS.
+        db_insert : bool
+            Whether to insert the task into the database. Defaults to False.
+        \*\*kwargs: Other kwargs that are passed to Firework.__init__.
+    """
+    def __init__(self, structure, isif=4, name="structure optimization", override_symmetry_tolerances=None, job_type="normal",
+                 vasp_cmd="vasp_std", metadata=None, override_default_vasp_params=None, db_file=None,
+                 prev_calc_loc=True, parents=None, db_insert=False, tag=None, **kwargs):
+
+        metadata = metadata or {}
+        metadata = metadata or {}
+        tag = tag or metadata.get('tag')
+        # generate a tag with a warning
+        if tag is None:
+            tag = str(uuid4())
+            metadata['tag'] = tag
+
+        override_default_vasp_params = override_default_vasp_params or {}
+        override_symmetry_tolerances = override_symmetry_tolerances or {}
+        vasp_input_set = RelaxSet(structure, isif=isif, **override_default_vasp_params)
+        site_properties = deepcopy(structure).site_properties
+
+        t = []
+        if parents:
+            if prev_calc_loc:
+                t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
+            t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
+        else:
+            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+        t.append(ModifyIncar(incar_update=">>incar_update<<"))
+        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
+        t.append(PassCalcLocs(name=name))
+        if db_insert:
+            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
+        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
+        relax_kwargs = {}
+        static_kwargs = {}
+        t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag,
+                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs,
+                                 **override_symmetry_tolerances))
+        super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
+
+
 class StaticFW(Firework):
     """
     Standard static calculation Firework - either from a previous location or from a structure.
@@ -107,15 +168,20 @@ class StaticFW(Firework):
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, scale_lattice=None, name="static", vasp_input_set=None, vasp_cmd="vasp", metadata=None,
-                 prev_calc_loc=True, Prestatic=False, modify_incar=None, db_file=None, parents=None, **kwargs):
+                 prev_calc_loc=True, Prestatic=False, modify_incar=None, db_file=None, parents=None, tag=None, **kwargs):
 
         # TODO: @computron - I really don't like how you need to set the structure even for
         # prev_calc_loc jobs. Sometimes it makes appending new FWs to an existing workflow
         # difficult. Maybe think about how to remove this need? -computron
         metadata = metadata or {}
+        tag = tag or metadata.get('tag')
+        # generate a tag with a warning
+        if tag is None:
+            tag = str(uuid4())
+            metadata['tag'] = tag
         vasp_input_set = vasp_input_set or StaticSet(structure)
         site_properties = deepcopy(structure).site_properties
-        
+
         # Avoids delivery (prev_calc_loc == '' (instead by True))
         t = []
         if type(prev_calc_loc) == str:
@@ -137,8 +203,8 @@ class StaticFW(Firework):
         if Prestatic:
             t.append(Record_PreStatic_result(db_file = db_file, metadata = metadata, structure = structure, scale_lattice = scale_lattice))
         else:
-            t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata, 
-                                "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True},))
+            t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata,
+                                "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True, "tag": tag},))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 
