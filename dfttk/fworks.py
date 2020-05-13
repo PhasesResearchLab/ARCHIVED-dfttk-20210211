@@ -107,7 +107,6 @@ class RobustOptimizeFW(Firework):
                  prev_calc_loc=True, parents=None, db_insert=False, tag=None, **kwargs):
 
         metadata = metadata or {}
-        metadata = metadata or {}
         tag = tag or metadata.get('tag')
         # generate a tag with a warning
         if tag is None:

@@ -3,7 +3,7 @@
 import argparse
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Potcar
-from dfttk.wflows import get_wf_gibbs
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
@@ -180,6 +180,9 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                     run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
                     verbose=verbose)
+    elif WORKFLOW == "eos":
+        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
+                  num_deformations=num_deformations, override_symmetry_tolerances=None, metadata=metadata)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
