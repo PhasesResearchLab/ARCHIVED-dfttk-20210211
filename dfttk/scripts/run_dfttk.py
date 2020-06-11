@@ -3,7 +3,7 @@
 import argparse
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Potcar
-from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
@@ -183,6 +183,13 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     elif WORKFLOW == "eos":
         wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
                   num_deformations=num_deformations, override_symmetry_tolerances=None, metadata=metadata)
+    elif WORKFLOW == "robust":
+        wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
+                 phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, 
+                 tolerance=tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
+                 metadata=metadata, name='EV_QHA', override_symmetry_tolerances=None,
+                 passinitrun=passinitrun, relax_path=relax_path, modify_incar_params=modify_incar_params,
+                 modify_kpoints_params=modify_kpoints_params, verbose=verbose)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf

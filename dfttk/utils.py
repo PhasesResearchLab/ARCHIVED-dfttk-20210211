@@ -6,8 +6,10 @@ these are more verbose """
 import fnmatch
 import os
 
-from pymatgen import MPRester
+from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
+from pymatgen.io.vasp.outputs import Vasprun
+from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from fireworks import LaunchPad
 import numpy as np
 import itertools
@@ -447,14 +449,7 @@ class metadata_in_POSCAR():
             
         '''
         if not os.path.exists(self.poscarfile):
-            print('''
-#####################################################################################################
-#                                                                                                   #
-     The file "%s" does NOT exist, please biuld it with some instructions in first line!         
-#                                                                                                   #
-#####################################################################################################
-                  ''' %(self.poscarfile))
-            ss = list()
+            raise FileNotFoundError('No such file ({}), please set the first line of POSCAR properly.'.format(self.poscarfile))
         else:
             file = open(self.poscarfile)
             firstline = file.readline()
@@ -634,3 +629,75 @@ def update_pot_by_symbols(InputSet, write_file=True):
     if write_file:
         potcar.write_file(filename="POTCAR")
     return potcar
+
+def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
+    '''
+    Check symmetry for vasp run. This should be run for each vasp run
+
+    Parameter
+    ---------
+        tol_energy: float
+            The tolerance of energy
+        tol_strain: float
+            The tolerance of strain
+        tol_bond: float
+            The tolerance of bond
+    Return
+        symm_data: dict
+            It will store the initial structure/final_structure, isif, initial_energy_per_atom,
+                final_energy_per_atom, symmetry_checks_passed, tolerances, failures, number_of_failures
+    ------
+    '''
+    # Get relevant files as pmg objects
+    incar = Incar.from_file("INCAR")
+    vasprun = Vasprun("vasprun.xml")
+    inp_struct = Structure.from_file("POSCAR")
+    out_struct = Structure.from_file("CONTCAR")
+
+    current_isif = incar['ISIF']
+    initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
+    final_energy = float(vasprun.final_energy)/len(out_struct)
+
+    # perform all symmetry breaking checks
+    failures = []
+    energy_difference = np.abs(final_energy - initial_energy)
+    if energy_difference > tol_energy:
+        fail_dict = {
+            'reason': 'energy',
+            'tolerance': tol_energy,
+            'value': energy_difference,
+        }
+        failures.append(fail_dict)
+    strain_norm = get_non_isotropic_strain(inp_struct.lattice.matrix, out_struct.lattice.matrix)
+    if strain_norm > tol_strain:
+        fail_dict = {
+            'reason': 'strain',
+            'tolerance': tol_strain,
+            'value': strain_norm,
+        }
+        failures.append(fail_dict)
+    bond_distance_change = get_bond_distance_change(inp_struct, out_struct)
+    if bond_distance_change > tol_bond:
+        fail_dict = {
+            'reason': 'bond distance',
+            'tolerance': tol_bond,
+            'value': bond_distance_change,
+        }
+        failures.append(fail_dict)
+
+    symm_data = {
+        "initial_structure": inp_struct.as_dict(),
+        "final_structure": out_struct.as_dict(),
+        "isif": current_isif,
+        "initial_energy_per_atom": initial_energy,
+        "final_energy_per_atom": final_energy,
+        "tolerances": {
+            "energy": tol_energy,
+            "strain": tol_strain,
+            "bond": tol_bond,
+        },
+        "failures": failures,
+        "number_of_failures": len(failures),
+        "symmetry_checks_passed": len(failures) == 0,
+    }
+    return symm_data

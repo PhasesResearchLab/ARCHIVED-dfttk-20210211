@@ -2,7 +2,9 @@
 
 import math
 import numpy as np
+from copy import deepcopy
 from atomate.vasp.database import VaspCalcDb
+from atomate.utils.utils import env_chk
 from dfttk.utils import sort_x_by_y, mark_adopted, consistent_check_db, check_relax_path
 from itertools import combinations
 from pymatgen.analysis.eos import EOS
@@ -12,6 +14,8 @@ from dfttk.input_sets import PreStaticSet, RelaxSet, StaticSet, ForceConstantsSe
 from dfttk.fworks import OptimizeFW, StaticFW, PhononFW
 from dfttk.ftasks import QHAAnalysis
 from dfttk.analysis.quasiharmonic import Quasiharmonic
+
+from atomate.vasp.config import VASP_CMD, DB_FILE
 
 
 def gen_volenergdos(num, volumes, energies, dos_objs=None):
@@ -187,10 +191,10 @@ class EVcheck_QHA(FiretaskBase):
     
     '''
     _fw_name = 'EVcheck'
-    required_params = ['db_file', 'tag', 'vasp_cmd', 'metadata']
-    optional_params = ['deformations', 'relax_path', 'run_num', 'tolerance', 'threshold', 'del_limited', 'vol_spacing', 't_min',
+    required_params = ['tag', 'metadata']
+    optional_params = ['deformations', 'relax_scheme', 'run_num', 'tolerance', 'threshold', 'del_limited', 'vol_spacing', 't_min',
                        't_max', 't_step', 'phonon', 'phonon_supercell_matrix', 'verbose', 'modify_incar_params', 'structure',
-                       'modify_kpoints_params', 'symmetry_tolerance', 'run_isif2', 'pass_isif4', 'site_properties']
+                       'modify_kpoints_params', 'site_properties', 'override_symmetry_tolerances', 'db_file', 'vasp_cmd']
 
     def run_task(self, fw_spec):
         ''' 
@@ -205,13 +209,11 @@ class EVcheck_QHA(FiretaskBase):
         '''
         # Get the parameters from the object
         max_run = 10
+        db_file = env_chk(self.get('db_file', DB_FILE), fw_spec)
+        vasp_cmd = env_chk(self.get('vasp_cmd', VASP_CMD), fw_spec)
         deformations = self.get('deformations') or []
-        db_file = self['db_file']
         tag = self['tag']
-        vasp_cmd = self['vasp_cmd']
         metadata = self['metadata']
-        relax_path = self['relax_path'] or ''
-        structure = self.get('structure') or None
         run_num = self.get('run_num') or 0
         tolerance = self.get('tolerance') or 0.005
         threshold = self.get('threshold') or 14
@@ -226,9 +228,14 @@ class EVcheck_QHA(FiretaskBase):
         modify_incar_params = self.get('modify_incar_params') or {}
         modify_kpoints_params = self.get('modify_kpoints_params') or {}
         symmetry_tolerance = self.get('symmetry_tolerance') or None
-        run_isif2 = self.get('run_isif2') or None
-        pass_isif4 = self.get('pass_isif4') or False
         site_properties = self.get('site_properties') or None
+        override_default_vasp_params = self.get('override_default_vasp_params', {})
+        override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
+
+        relax_structure = self.get('structure') or fw_spec.get('relax_structure', None)
+        relax_scheme = self.get('relax_scheme') or fw_spec.get('relax_scheme', [2])
+
+        #struct = deepcopy(structure)
 
         run_num += 1
         
@@ -238,17 +245,12 @@ class EVcheck_QHA(FiretaskBase):
             if not consistent_check_db(db_file, tag):
                 print('Please check DB, DFTTK running ended!')
                 return
-        ## Check and get the relax_path, if not exist, return error
-        relax_path, run_isif2, pass_isif4 = check_relax_path(relax_path, db_file, tag, run_isif2, pass_isif4)
-        if relax_path == '':
-            relax_path_error()
-            return
 
-        ## check the structure, if not exist, read from relax's result
-        if structure == None:
-            from pymatgen.io.vasp.inputs import Poscar
-            poscar = Poscar.from_file(relax_path + '/CONTCAR')
-            structure = poscar.structure    
+        if relax_structure is not None:
+            structure = deepcopy(relax_structure)
+        else:
+            raise ValueError('Not relax_structure in spec, please provide structure as input')
+
         if site_properties:
             for pkey in site_properties:
                 structure.add_site_property(pkey, site_properties[pkey])
@@ -284,55 +286,48 @@ class EVcheck_QHA(FiretaskBase):
                     # Do VASP and check again
                     print('Appending the volumes of : %s to calculate in VASP!' %(vol_adds).tolist())
                     calcs = []
-                    vis_relax = RelaxSet(structure)
-                    vis_static = StaticSet(structure)
+                    #vis_relax = RelaxSet(structure)
+                    #vis_static = StaticSet(structure)
                     #isif2 = 5 if 'infdet' in relax_path else 4
                     for vol_add in vol_adds:
-                        if run_isif2 or not pass_isif4:
-                            if run_isif2:
-                                ps2_relax_fw = OptimizeFW(structure, scale_lattice=vol_add, symmetry_tolerance=None, modify_incar = {'ISIF': 2},
-                                                         job_type='normal', name='PS2_%.3f-relax' %(vol_add), prev_calc_loc=relax_path, 
-                                                         vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, 
-                                                         modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params,
-                                                         run_isif2=run_isif2, pass_isif4=pass_isif4, parents=None)
-                                scale_ps4 = None
-                                calcs.append(ps2_relax_fw)
-                                fws.append(ps2_relax_fw)
-                                ps_relax_fw = ps2_relax_fw
-                            else:
-                                ps2_relax_fw = None
-                                scale_ps4 = vol_add
-                            if not pass_isif4:
-                                ps4_relax_fw = OptimizeFW(structure, scale_lattice=scale_ps4, symmetry_tolerance=None, modify_incar = {'ISIF': 4},
-                                                         job_type='normal', name='PS4_%.3f-relax' %(vol_add), prev_calc_loc=True, 
-                                                         vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata, 
-                                                         modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params,
-                                                         run_isif2=run_isif2, pass_isif4=pass_isif4, parents=ps2_relax_fw)
-                                calcs.append(ps4_relax_fw)
-                                fws.append(ps4_relax_fw)
-                                ps_relax_fw = ps4_relax_fw
-                            static = StaticFW(structure, name = 'structure_%.3f-static' %(vol_add), vasp_input_set=vis_static, vasp_cmd=vasp_cmd, 
-                                              db_file=db_file, metadata=metadata, prev_calc_loc=True, parents=ps_relax_fw)
-                        else:
-                            static = StaticFW(structure, scale_lattice=vol_add, name = 'structure_%.3f-static' %(vol_add), vasp_input_set=vis_static, vasp_cmd=vasp_cmd, 
-                                              db_file=db_file, metadata=metadata, prev_calc_loc=relax_path, parents=None)
-                        fws.append(static)
-                        calcs.append(static)
+                        struct = deepcopy(structure)
+                        struct.scale_lattice(structure.volume * vol_add)
+
+                        relax_parents_fw = None
+                        for isif_i in relax_scheme:
+                            #record_path=record_path
+                            relax_fw = OptimizeFW(struct, isif=isif_i, symmetry_tolerance=None, 
+                                 name="relax_Vol%.3f" %(vol_add), vasp_input_set=None, job_type="normal", vasp_cmd=vasp_cmd, 
+                                 metadata=metadata, override_default_vasp_params=override_default_vasp_params, 
+                                 db_file=db_file, 
+                                 prev_calc_loc=True, parents=relax_parents_fw, db_insert=False, tag=tag, force_gamma=True,
+                                 modify_incar={}, modify_incar_params = modify_incar_params, 
+                                 modify_kpoints_params = modify_kpoints_params)
+                            relax_parents_fw = deepcopy(relax_fw)
+                            fws.append(relax_fw)
+                            calcs.append(relax_fw)
+
+                        static_fw = StaticFW(struct, isif=relax_scheme[-1], name='static_Vol%.3f' %(vol_add), 
+                                        vasp_input_set=None, vasp_cmd=vasp_cmd, 
+                                        db_file=db_file, metadata=metadata, prev_calc_loc=True, parents=relax_parents_fw)
+                        fws.append(static_fw)
+                        calcs.append(static_fw)
+
                         if phonon:
-                            visphonon = ForceConstantsSet(structure)
-                            phonon_fw = PhononFW(structure, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
+                            visphonon = ForceConstantsSet(struct)
+                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
                                      name='structure_%.3f-phonon' %(vol_add), vasp_input_set=visphonon,
                                      vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
-                                     prev_calc_loc=True, parents=static)
+                                     prev_calc_loc=True, parents=static_fw)
                             fws.append(phonon_fw)
                             calcs.append(phonon_fw)
-                    check_result = Firework(EVcheck_QHA(db_file = db_file, tag = tag, relax_path = relax_path, tolerance = tolerance, run_isif2=run_isif2,
-                                                        threshold = threshold, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, run_num = run_num,
-                                                        metadata = metadata, t_min = t_min, t_max = t_max, t_step = t_step, phonon = phonon,
-                                                        phonon_supercell_matrix = phonon_supercell_matrix, symmetry_tolerance = symmetry_tolerance,
-                                                        modify_incar_params = modify_incar_params, verbose = verbose, pass_isif4=pass_isif4,
-                                                        modify_kpoints_params = modify_kpoints_params, site_properties=site_properties), 
-                                            parents = calcs, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
+                    check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, db_file=db_file, tag=tag, tolerance=tolerance,
+                                                        threshold=threshold, vol_spacing=vol_spacing, vasp_cmd=vasp_cmd, run_num=run_num,
+                                                        metadata=metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon=phonon,
+                                                        phonon_supercell_matrix=phonon_supercell_matrix, symmetry_tolerance=symmetry_tolerance,
+                                                        modify_incar_params=modify_incar_params, verbose=verbose,
+                                                        modify_kpoints_params=modify_kpoints_params, site_properties=site_properties), 
+                                            parents=calcs, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
                     fws.append(check_result)
                     strname = "{}:{}".format(structure.composition.reduced_formula, 'EV_QHA_Append')
                     wfs = Workflow(fws, name = strname, metadata=metadata)

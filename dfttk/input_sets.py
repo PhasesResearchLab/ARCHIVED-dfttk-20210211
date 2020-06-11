@@ -57,14 +57,12 @@ class RelaxSet(DictSet):
         self.kwargs = kwargs
         self.volume_relax = volume_relax
         self.isif = isif
-        uis = {}
+        uis = kwargs.get('user_incar_settings', {})
         if self.volume_relax and self.isif is not None:
             raise ValueError("isif cannot have a value while volume_relax is True.")
         if self.volume_relax:
-            uis = kwargs.get('user_incar_settings', {})
             uis['ISIF'] = 7
         if self.isif:
-            uis = kwargs.get('user_incar_settings', {})
             uis['ISIF'] = self.isif
         super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
@@ -184,8 +182,11 @@ class StaticSet(DictSet):
     # now we reset the potentials
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
-    def __init__(self, structure, **kwargs):
+    def __init__(self, structure, isif=2, **kwargs):
         # pop the old kwargs, backwards compatibility from the complex StaticSet
+        self.isif = isif
+        uis = kwargs.get('user_incar_settings', {})
+        uis['ISIF'] = isif
         old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
         for k in old_kwargs:
             try:
@@ -193,7 +194,7 @@ class StaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 
 class ATATIDSet():
