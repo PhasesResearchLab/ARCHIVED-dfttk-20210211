@@ -688,45 +688,64 @@ class CheckRelaxation(FiretaskBase):
 
     Follow the following flow (assuming fixed volume):
 
-                                          +--------+
-                                          | ISIF 7 |
-                                          |        |
-                                          | Volume |
-                                          | Only   |
-                                          +---+- --+
-                                              |
-                                              |
-                                              v
-                                          +---+----+
-                                          | ISIF 5 |
-                                          |        |
-                                          | Shape  |
-                                          | Only   |
-                                          +-+----+-+
-                                            |    |
-                          +--------+        |    |       +--------+
-                Pass      | ISIF 4 |  Pass  |    | Fail  | ISIF 2 |        Fail
-             +------------+        +<-------+    +------>+        +--------------+
-             |            | Shape  |                     | Ions   |              |
-             |            | & Ions |                     | Only   |              |
-             |            ----+----+                     +----+---+              |
-             |                |                               |                  |
-             |                |Fail                           |Pass              |
-             |                |                               |                  |
-             v                v                               v                  v
-    +--------+------+  +------+--------------+  +-------------+--------+  +------+---------------+
-    | Static        |  | Static              |  |  Static              |  |  Static              |
-    |               |  |                     |  |                      |  |                      |
-    | Fully relaxed |  | Constrained: ISIF 5 |  |  Constrained: ISIF 2 |  |  Constrained: ISIF 7 |
-    |               |  | Broken     : ISIF 4 |  |  Broken     : ISIF 5 |  |  Broken     : ISIF 2 |
-    +---------------+  +---------------------+  +----------------------+  +----------------------+
-
-    Above diagram made with http://asciiflow.com
-
+                       ISIF4=TRUE       PASS  +---+               NOTE:  7 -- Volume only
+                    7  ---------->  4   ----> | 4 |                      5 -- Shape only
+                                              +---+                      2 -- Ions only
+                    |               |                                    4 -- Shape & Ions
+        ISIF4=FALSE |               |                                         +---+
+         (default)  |     FAIL      |                                    N in |   | means Relax Scheme
+                    |<--------------+                                         +---+
+                    |                                               
+                    v                         
+                          FAIL                 +---+
+                    5  ---------+              | 0 |
+                                |              +---+                   
+                    |           |                A
+               PASS |           |                |
+                    |           |                | YES
+                    v           v                |
+                        FAIL        FAIL                 NO     +---+
+                    4  ------>  2  ------->  5 passed?  ------> | 5 |
+                                                                +---+
+                    |           |
+               PASS |           | PASS
+                    |           |
+                    v           V
+                +-------+              FAIL                 YES                 YES   +---+
+                | 5-->4 |     4(opt)  ------->  5 passed?  ------> E_2 < E_5?  -----> | 2 |
+                +-------+  (default skip)                                             +---+
+                                |                   |                  |
+                                | PASS              | NO               | NO
+                                |                   |                  |
+                                v                   v                  v
+                            +-------+             +---+              +---+
+                            | 2-->4 |             | 2 |              | 5 |
+                            +-------+             +---+              +---+
+    
+    Required parameters
+    -------------------
+        db_file: str
+            The json file to connect to MongoDb, if it is '>>db_file<<', it will look the FireWorks' configuration
+        tag: str
+            Tag to search the database.
+        common_kwargs: dict
+            Some common settings for RobustOptimizeFW
+    Optional parameters
+    -------------------
+        tol_energy/tol_strain/tol_bond: float
+            The tolerance of symmetry check
+        static_kwargs/relax_kwargs: dict
+            The common settings for static/relax run
+        isif4: bool
+            If run ISIF=4 befor ISIF=5
+        level: int
+            To contral if run(level=2) ISIF=4 after ISIF=2 passed or not(level=1, default)
+        energy_with_isif: dict
+            The energy with different isif, energy_with_isif = {2: energy2, 5: energy5}
     """
 
     required_params = ["db_file", "tag", "common_kwargs"]
-    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", "static_kwargs", "relax_kwargs"]
+    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", "static_kwargs", "relax_kwargs", 'level', 'isif4',  "energy_with_isif"]
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
@@ -735,14 +754,20 @@ class CheckRelaxation(FiretaskBase):
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
         tol_bond = self.get("tol_bond", 0.10)
+        energy_with_isif = self.get('energy_with_isif', {})
 
         symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
         passed = symm_check_data["symmetry_checks_passed"]
         cur_isif = symm_check_data["isif"]
+        if passed:
+            energy_with_isif.update({str(cur_isif): symm_check_data['final_energy_per_atom']})
+        isif4 = self.get('isif4', False)
+        level = self.get('level', 1)
         if cur_isif == 7:
-            next_steps = [
-                {"job_type": "relax", "isif": 4, "structure": {"type": "final_structure", "isif": 7}},
-            ]
+            if isif4:
+                next_steps = [{"job_type": "relax", "isif": 4, "structure": {"type": "final_structure", "isif": 7}}]
+            else:
+                next_steps = [{"job_type": "relax", "isif": 5, "structure": {"type": "final_structure", "isif": 7}}]
             if not passed:
                 warnings.warn("Large change in volume during relaxation.")
         else:
@@ -754,16 +779,19 @@ class CheckRelaxation(FiretaskBase):
                 if cur_isif == 4:
                     prev_isif = 7
                 elif cur_isif == 5:
-                    prev_isif = 4
+                    if isif4:
+                        prev_isif = 4
+                    else:
+                        prev_isif = 7
                 else:
                     raise ValueError("The first ISIF enter the RobustOptimizeFW should be 4, 5 or 7")
-                prev_isif = None
-            next_steps = self.get_next_steps(passed, cur_isif, prev_isif)
+                    #prev_isif = None
+            next_steps = self.get_next_steps(passed, cur_isif, prev_isif, isif4=isif4, level=level, energy_with_isif=energy_with_isif)
 
-        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom']))
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], energy_with_isif=energy_with_isif))
 
     @staticmethod
-    def get_next_steps(symmetry_checks_passed, current_isif, prev_isif):
+    def get_next_steps(symmetry_checks_passed, current_isif, prev_isif, isif4=False, level=1, energy_with_isif={}):
         """Determine what to do next based on whether the checks passed and where we are at in the flowchart
 
         See the docstring for this class for reference to the flowchart.
@@ -778,8 +806,18 @@ class CheckRelaxation(FiretaskBase):
                 next_steps = [
                     {"job_type": "static", "isif": 4, "structure": {"type": "final_structure", "isif": 4}, "symmetry_type": "constrained"}]
             elif current_isif == 2:
-                next_steps = [
-                    {"job_type": "relax", "isif": 4 , "structure": {"type": "final_structure", "isif": 2}}]
+                if level == 1:
+                    energy_isif5 = energy_with_isif.get('5', 0)
+                    energy_isif2 = energy_with_isif.get('2')
+                    if energy_isif2 < energy_isif5:
+                        next_steps = [
+                            {"job_type": "static", "isif": 2, "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"}]
+                    else:
+                        next_steps = [
+                            {"job_type": "static", "isif": 5, "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"}]
+                elif level == 2:
+                    next_steps = [
+                        {"job_type": "relax", "isif": 4 , "structure": {"type": "final_structure", "isif": 2}}]
         # Relaxation failed
         else:
             if current_isif == 5:
@@ -790,11 +828,18 @@ class CheckRelaxation(FiretaskBase):
                     next_steps = [
                         {"job_type": "relax", "isif": 5, "structure": {"type": "initial_structure", "isif": 4}}]
                 elif prev_isif == 5:
+                    #Note: though here 5 is passed, but use the initial structure of 5 to compare the energy with 2
                     next_steps = [
                         {"job_type": "relax", "isif": 2, "structure": {"type": "initial_structure", "isif": 5}}]
                 elif prev_isif == 2:
-                    next_steps = [
-                        {"job_type": "static", "isif": 2, "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"}]
+                    energy_isif5 = energy_with_isif.get('5', 0)
+                    energy_isif2 = energy_with_isif.get('2')
+                    if energy_isif2 < energy_isif5:
+                        next_steps = [
+                            {"job_type": "static", "isif": 2, "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"}]
+                    else:
+                        next_steps = [
+                            {"job_type": "static", "isif": 5, "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"}]
             elif current_isif == 2:
                 if prev_isif == 5:
                     next_steps = [
@@ -809,7 +854,7 @@ class CheckRelaxation(FiretaskBase):
 
         return next_steps
 
-    def get_detour_workflow(self, next_steps, final_energy):
+    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
         # delayed imports to avoid circular import
@@ -839,7 +884,8 @@ class CheckRelaxation(FiretaskBase):
                 common_copy["metadata"] = md
                 detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **common_copy))
             elif job_type == "relax":
-                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
+                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
+                        override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws
@@ -874,13 +920,24 @@ class CheckRelaxScheme(FiretaskBase):
         elif vasp_db.db['relaxations'].count_documents({'tag': self.get('tag')}) > 0:
             relax_items = vasp_db.db['relaxations'].find({'tag': self.get('tag')}).sort('_id', 1)
             pass_dict = {2: False, 4: False, 5: False}
+            energy_dict = {}
             for item in relax_items:
                 pass_dict[item['isif']] = item['symmetry_checks_passed']
+                if item['symmetry_checks_passed']:
+                    energy_dict[item['isif']] = item['final_energy_per_atom']
+                else:
+                    energy_dict[item['isif']] = item['initial_energy_per_atom']
             if pass_dict[2]:
                 if pass_dict[4]:
                     relax_scheme = [2, 4]
                 else:
-                    relax_scheme = [2]
+                    if pass_dict[5]:
+                        if energy_dict[2] < energy_dict[5]:
+                            relax_scheme = [2]
+                        else:
+                            relax_scheme = [5]
+                    else:
+                        relax_scheme = [2]
             elif pass_dict[5]:
                 if pass_dict[4]:
                     relax_scheme = [5, 4]
@@ -889,7 +946,7 @@ class CheckRelaxScheme(FiretaskBase):
             elif pass_dict[4]:
                 relax_scheme = [4]
             else:
-                raise ValueError("The symmetry check failed.")
+                relax_scheme = [0]
             relax_structure = _get_relaxed_structure(relax_scheme[-1])
 
             relax_scheme_data = {'relax_scheme': relax_scheme, 'relax_structure': relax_structure,
@@ -900,7 +957,7 @@ class CheckRelaxScheme(FiretaskBase):
 
             vasp_db.db['relax_scheme'].insert_one(relax_scheme_data)
 
-            return FWAction(update_spec={'relax_scheme': relax_scheme, 'relax_structure': relax_structure})
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
         else:
             print('No relax scheme, the RobustOptimizeFW need run before CheckRelaxScheme')
             #return FWAction(update_spec={'relax_scheme': 7})
@@ -983,4 +1040,5 @@ class CheckSymmetryToDb(FiretaskBase):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['relaxations'].insert_one(symm_check_data)
+        return FWAction(update_spec={'symmetry_checks_passed': symm_check_data['symmetry_checks_passed']})
    

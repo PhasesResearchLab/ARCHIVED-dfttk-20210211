@@ -142,6 +142,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     vasp_cmd = settings.get('vasp_cmd', None)
     #dict, metadata to be included, this parameter is useful for filter the data, e.g. metadata={"phase": "BCC_A2", "tag": "AFM"}
     metadata = settings.get('metadata', None)
+    #It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7
+    isif4 = settings.get('isif4', False)
     #float, the tolerannce for symmetry, e.g. 0.05
     symmetry_tolerance = settings.get('symmetry_tolerance', 0.05)
     #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
@@ -152,6 +154,13 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     pass_isif4 = settings.get('pass_isif4', False)
     #Set the path already exists for new static calculations; if set as '', will try to get the path from db_file
     relax_path = settings.get('relax_path', '')
+    #The symmetry tolerance, including three keys, 
+    #e.g. override_symmetry_tolerances={'tol_strain': 0.05, 'tol_energy': 0.025, 'tol_bond': 0.10}
+    override_symmetry_tolerances = settings.get('override_symmetry_tolerances', None)
+    #Global settings for all vasp job, e.g.
+    #override_default_vasp_params = {'user_incar_settings': {}, 'user_kpoints_settings': {}, 'user_potcar_functional': str}
+    #If some value in 'user_incar_settings' is set to None, it will use vasp's default value
+    override_default_vasp_params = settings.get('override_default_vasp_params', {})
     #dict, dict of class ModifyIncar with keywords in Workflow name. e.g.
     """
     modify_incar_params = { 'Full relax': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
@@ -182,13 +191,13 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                     verbose=verbose)
     elif WORKFLOW == "eos":
         wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
-                  num_deformations=num_deformations, override_symmetry_tolerances=None, metadata=metadata)
+                  num_deformations=num_deformations, override_symmetry_tolerances=override_default_vasp_params, metadata=metadata)
     elif WORKFLOW == "robust":
         wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
                  phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, 
                  tolerance=tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
-                 metadata=metadata, name='EV_QHA', override_symmetry_tolerances=None,
-                 passinitrun=passinitrun, relax_path=relax_path, modify_incar_params=modify_incar_params,
+                 isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
+                 override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
