@@ -494,11 +494,12 @@ class EVcheck_QHA(FiretaskBase):
         
         # Check minimum spacing
         volumer = [vol_i / vol_orig for vol_i in volumer]
+        decimals = 4
         for m in range(len(volumer) - 1):
             vol_space_m = volumer[m + 1] - volumer[m]
-            if vol_space_m > vol_spacing:
-                vol = np.linspace(volumer[m], volumer[m + 1], np.ceil(vol_space_m / vol_spacing) + 1).tolist()
-                print('Additional volume({}) is appended for the volume space({}) is larger than specified({})'.format(vol, vol_space_m, vol_spacing))
+            if np.around(vol_space_m, decimals) > np.around(vol_spacing, decimals):
+                vol = np.linspace(volumer[m], volumer[m + 1], math.ceil(vol_space_m / vol_spacing) + 1).tolist()
+                print('Additional volume({}) is appended for the volume space({}) is larger than specified({})'.format(vol[1:-1], vol_space_m, vol_spacing))
                 result.append(vol[1:-1])
         
         # To check (and extend) deformation coverage

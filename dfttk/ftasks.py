@@ -897,7 +897,7 @@ class CheckRelaxScheme(FiretaskBase):
     Check the MongoDB, and get the relax scheme and the path of the static task
         1. Searching the 'relax_scheme' collection, if it exists, return an update_spec FWAction
         2. elif, try to get the relax scheme from 'relaxation' collection
-        3. TODO: returen a RobustOptimizeFW followed by CheckRelaxScheme 
+        3. TODO: return a RobustOptimizeFW followed by CheckRelaxScheme 
     """
 
     required_params = ["db_file", "tag"]
@@ -965,6 +965,26 @@ class CheckRelaxScheme(FiretaskBase):
 @explicit_serialize
 class GetElectronicDosFromDb(FiretaskBase):
     """
+    Get electronic dos from MongoDB
+
+    Required parameters
+    -------------------
+        metadata: dict
+        db_file: str [filename like]
+    Optional parameters
+    -------------------
+        save_data: bool
+        save_fig: bool
+        pdos: bool
+    Return
+    ------
+        Updata spec FWAction, add/update 'edos' key in spec
+            edos = [{volume1: {'volume': volume1, 'formula': formula1, 'fermi': fermi1, 'band_gap': band_gap,
+                               'spacegroup': sg1, 'dos': dos1}, 'metadata': metadata,
+                    {volume2: {...}, 'metadata': metadata}
+                     ...]
+            The edos is sorted according to volume
+
     """
     required_params = ['metadata', 'db_file']
     optional_params = ['save_data', 'save_fig', 'pdos']
@@ -972,6 +992,8 @@ class GetElectronicDosFromDb(FiretaskBase):
         self.db_file = env_chk(self.get('db_file'), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         dos_items = vasp_db.db['tasks'].find({'metadata': self.metadata}).sort('_id', -1)
+        dos_result = []
+        volumes = []
         for dos_item in dos_items:            
             structure = Structure.from_dict(dos_item['output']['structure'])
             volume = structure.volume
@@ -985,18 +1007,27 @@ class GetElectronicDosFromDb(FiretaskBase):
             band_gap = dos_obj.get_gap()
             electronic_dos = np.vstack((dos_obj.energies, dos_obj.get_densities()))
 
+            dos_result.append({format(volume, '.3f'): {'volume': volume, 'formula': formula, 'fermi': fermi,
+                               'band_gap': band_gap, 'spacegroup': sg, 'dos': electronic_dos}, 'metadata': metadata})
+            volumes.append(volume)
+        dos_result = sort_x_by_y(dos_result, volumes)
+        return FWAction(update_spec={'edos': dos_result})
+
 @explicit_serialize      
 class GetPhononDosFromDb(FiretaskBase):
     """
     """
     required_params = ['metadata', 'db_file']
-    optional_params = ['qpoint_mesh']
+    optional_params = ['qpoint_mesh', 'save_data', 'save_fig', 'pdos', 'phonon_band']
     def run_task(self, fw_spec):
         qpoint_mesh = self.get('qpoint_mesh', [50, 50, 50])
 
         self.db_file = env_chk(self.get('db_file'), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         phonon_items = vasp_db.db['phonon'].find({'metadata': self.metadata}).sort('_id', -1)
+
+        phonon_tdos = []
+        volumes = []
         for phonon_item in phonon_items:
 
             structure = Structure.from_dict(phonon_item['unitcell'])
@@ -1006,7 +1037,7 @@ class GetPhononDosFromDb(FiretaskBase):
             supercell_matrix = phonon['supercell_matrix']
             force_constants = phonon['force_constants']
 
-            phonon_total_dos = get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh, 
+            phonon_tdos = get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh, 
                                                    phonon_dos=True, phonon_band=False, phonon_pdos=False, save_data=False, save_fig=False)
 
 @explicit_serialize
