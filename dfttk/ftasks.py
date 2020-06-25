@@ -745,7 +745,8 @@ class CheckRelaxation(FiretaskBase):
     """
 
     required_params = ["db_file", "tag", "common_kwargs"]
-    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", "static_kwargs", "relax_kwargs", 'level', 'isif4',  "energy_with_isif"]
+    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", 'level', 'isif4',  "energy_with_isif",
+                       "static_kwargs", "relax_kwargs"]
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
@@ -755,6 +756,7 @@ class CheckRelaxation(FiretaskBase):
         tol_strain = self.get("tol_strain", 0.05)
         tol_bond = self.get("tol_bond", 0.10)
         energy_with_isif = self.get('energy_with_isif', {})
+        self.symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
 
         symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
         passed = symm_check_data["symmetry_checks_passed"]
@@ -860,10 +862,9 @@ class CheckRelaxation(FiretaskBase):
         # delayed imports to avoid circular import
         from fireworks import Workflow
         from .fworks import RobustOptimizeFW, StaticFW
-        tol_energy = self.get("tol_energy", 0.025)
-        tol_strain = self.get("tol_strain", 0.05)
-        tol_bond = self.get("tol_bond", 0.10)
-        symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
+        
+        symmetry_options = self.symmetry_options
+        static_kwargs = self.get('static_kwargs', {})
 
         # Assume the data for the current step is already in the database
         db = VaspCalcDb.from_db_file(self.db_file, admin=True).db['relaxations']
@@ -882,7 +883,7 @@ class CheckRelaxation(FiretaskBase):
                 md = common_copy.get("metadata", {})
                 md['symmetry_type'] = step["symmetry_type"]
                 common_copy["metadata"] = md
-                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **common_copy))
+                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **static_kwargs, **common_copy))
             elif job_type == "relax":
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
                         override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
@@ -905,17 +906,18 @@ class CheckRelaxScheme(FiretaskBase):
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
+        tag = self.get('tag')
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
 
-        def _get_relaxed_structure(isif):
-            passed_item = vasp_db.db['relaxations'].find_one({'$and': [{'tag': self["tag"]}, {'isif': isif}, {'symmetry_checks_passed': True}]})
+        def _get_relaxed_structure(isif, tag):
+            passed_item = vasp_db.db['relaxations'].find_one({'$and': [{'tag': tag}, {'isif': isif}, {'symmetry_checks_passed': True}]})
             return passed_item['final_structure']
 
-        if vasp_db.db['relax_scheme'].count_documents({'tag': self.get('tag')}) > 0:
-            relax_items = vasp_db.db['relax_scheme'].find_one({'tag': self.get('tag')})
+        if vasp_db.db['relax_scheme'].count_documents({'tag': tag}) > 0:
+            relax_items = vasp_db.db['relax_scheme'].find_one({'tag': tag})
             relax_scheme = relax_items['relax_scheme']
             relax_structure = Structure.from_dict(relax_items['relax_structure'])
-            return FWAction(update_spec={'relax_scheme': relax_scheme, 'relax_structure': relax_structure})
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
 
         elif vasp_db.db['relaxations'].count_documents({'tag': self.get('tag')}) > 0:
             relax_items = vasp_db.db['relaxations'].find({'tag': self.get('tag')}).sort('_id', 1)
@@ -947,10 +949,10 @@ class CheckRelaxScheme(FiretaskBase):
                 relax_scheme = [4]
             else:
                 relax_scheme = [0]
-            relax_structure = _get_relaxed_structure(relax_scheme[-1])
+            relax_structure = _get_relaxed_structure(relax_scheme[-1], tag)
 
             relax_scheme_data = {'relax_scheme': relax_scheme, 'relax_structure': relax_structure,
-                                "tag": self["tag"],"metadata": self.get("metadata", {'tag': self["tag"]}),
+                                "tag": tag,"metadata": self.get("metadata", {'tag': tag}),
                                 "version_info": {"atomate": atomate_ver, "dfttk": dfttk_ver,"pymatgen": pymatgen_ver}}
             with open('relax_scheme_check_summary.json', 'w') as fp:
                 json.dump(relax_scheme_data, fp, indent=4)
@@ -959,8 +961,8 @@ class CheckRelaxScheme(FiretaskBase):
 
             return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
         else:
-            print('No relax scheme, the RobustOptimizeFW need run before CheckRelaxScheme')
-            #return FWAction(update_spec={'relax_scheme': 7})
+            raise ValueError('Please run RobustOptimizeFW firstly.')
+
 
 @explicit_serialize
 class GetElectronicDosFromDb(FiretaskBase):
@@ -1013,6 +1015,7 @@ class GetElectronicDosFromDb(FiretaskBase):
         dos_result = sort_x_by_y(dos_result, volumes)
         return FWAction(update_spec={'edos': dos_result})
 
+
 @explicit_serialize      
 class GetPhononDosFromDb(FiretaskBase):
     """
@@ -1039,6 +1042,7 @@ class GetPhononDosFromDb(FiretaskBase):
 
             phonon_tdos = get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh, 
                                                    phonon_dos=True, phonon_band=False, phonon_pdos=False, save_data=False, save_fig=False)
+
 
 @explicit_serialize
 class CheckSymmetryToDb(FiretaskBase):

@@ -691,6 +691,11 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
         "isif": current_isif,
         "initial_energy_per_atom": initial_energy,
         "final_energy_per_atom": final_energy,
+        "real_value": {
+            "energy": energy_difference,
+            "strain": strain_norm,
+            "bond": bond_distance_change
+        },
         "tolerances": {
             "energy": tol_energy,
             "strain": tol_strain,

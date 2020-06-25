@@ -109,10 +109,11 @@ class RobustOptimizeFW(Firework):
             Whether to insert the task into the database. Defaults to False.
         \*\*kwargs: Other kwargs that are passed to Firework.__init__.
     """
-    def __init__(self, structure, scale_lattice=None, isif=4, name="structure optimization", isif4=False,
+    def __init__(self, structure, isif=7, name="structure optimization", isif4=False,
                  override_symmetry_tolerances=None, job_type="normal", vasp_input_set=None,
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
-                 prev_calc_loc=True, parents=None, db_insert=False, tag=None, energy_with_isif={}, **kwargs):
+                 prev_calc_loc=True, parents=None, db_insert=False, tag=None, modify_incar_params={},
+                 modify_kpoints_params={}, energy_with_isif={}, **kwargs):
 
         metadata = metadata or {}
         tag = tag or metadata.get('tag')
@@ -141,10 +142,10 @@ class RobustOptimizeFW(Firework):
         t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
 
         common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
-        relax_kwargs = {}
         static_kwargs = {}
+        relax_kwargs = {}
         t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, isif4=isif4, energy_with_isif=energy_with_isif,
-                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs,
+                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, 
                                  **override_symmetry_tolerances))
         super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 

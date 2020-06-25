@@ -197,7 +197,7 @@ class EVcheck_QHA(FiretaskBase):
     '''
     _fw_name = 'EVcheck'
     required_params = []
-    optional_params = ['structure', 'tag', 'metadata', 'deformations', 'relax_scheme', 'tolerance', 'threshold', 
+    optional_params = ['structure', 'tag', 'metadata', 'deformations', 'relax_scheme', 'eos_tolerance', 'threshold', 
                        'del_limited', 'vol_spacing', 't_min', 't_max', 't_step', 'phonon', 'phonon_supercell_matrix', 
                        'verbose', 'modify_incar_params', 'run_num','modify_kpoints_params', 'site_properties', 
                        'override_symmetry_tolerances', 'override_default_vasp_params', 'db_file', 'vasp_cmd']
@@ -208,7 +208,7 @@ class EVcheck_QHA(FiretaskBase):
             only for internal usage;
 
         Important args:
-        tolerance: acceptable value for average RMS, recommend >= 0.005;
+        eos_tolerance: acceptable value for average RMS, recommend >= 0.005;
         threshold: total point number above the value should be reduced, recommend < 16 or much time to run;
         del_limited: maximum deletion ration for large results;
         vol_spacing: the maximum ratio step between two volumes, larger step will be inserted points to calculate;
@@ -219,7 +219,7 @@ class EVcheck_QHA(FiretaskBase):
         vasp_cmd = env_chk(self.get('vasp_cmd', VASP_CMD), fw_spec)
         deformations = self.get('deformations') or []
         run_num = self.get('run_num') or 0
-        tolerance = self.get('tolerance') or 0.005
+        eos_tolerance = self.get('eos_tolerance') or 0.005
         threshold = self.get('threshold') or 14
         del_limited = self.get('del_limited') or 0.3
         vol_spacing = self.get('vol_spacing') or 0.03
@@ -244,6 +244,12 @@ class EVcheck_QHA(FiretaskBase):
             tag = str(uuid4())
             metadata['tag'] = tag
 
+        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
+        vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
+                       'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+        t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
+        eos_kwargs = {'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
+
         run_num += 1
         
         #Some initial checks
@@ -266,13 +272,13 @@ class EVcheck_QHA(FiretaskBase):
         volumes, energies, dos_objs = self.get_orig_EV(db_file, tag)
         vol_adds = check_deformations_in_volumes(deformations, volumes, structure.volume)
         if (len(vol_adds)) == 0:
-            self.check_points(db_file, metadata, tolerance, threshold, del_limited, volumes, energies, verbose)
+            self.check_points(db_file, metadata, eos_tolerance, threshold, del_limited, volumes, energies, verbose)
         else:
             self.correct = True
             self.error = 1e10
         
         EVcheck_result = init_evcheck_result(append_run_num=run_num, correct=self.correct, volumes=volumes, 
-                         energies=energies, tolerance=tolerance, threshold=threshold, vol_spacing=vol_spacing, 
+                         energies=energies, eos_tolerance=eos_tolerance, threshold=threshold, vol_spacing=vol_spacing, 
                          error=self.error, metadata=metadata)
 
         if self.correct:
@@ -305,37 +311,31 @@ class EVcheck_QHA(FiretaskBase):
                         for isif_i in relax_scheme:
                             #record_path=record_path
                             relax_fw = OptimizeFW(struct, isif=isif_i,
-                                 name="relax_Vol%.3f" %(vol_add), vasp_input_set=None, job_type="normal", vasp_cmd=vasp_cmd, 
-                                 metadata=metadata, override_default_vasp_params=override_default_vasp_params, 
-                                 db_file=db_file, override_symmetry_tolerances=override_symmetry_tolerances,
-                                 prev_calc_loc=True, parents=relax_parents_fw, db_insert=False, tag=tag, force_gamma=True,
-                                 modify_incar={}, modify_incar_params = modify_incar_params, 
-                                 modify_kpoints_params = modify_kpoints_params)
+                                 name="relax_Vol{:.3f}".format(vol_add), vasp_input_set=None, job_type="normal",
+                                 override_symmetry_tolerances=override_symmetry_tolerances,
+                                 prev_calc_loc=True, parents=relax_parents_fw, db_insert=False, force_gamma=True,
+                                 modify_incar={}, **vasp_kwargs, **common_kwargs)
                             relax_parents_fw = deepcopy(relax_fw)
                             fws.append(relax_fw)
                             calcs.append(relax_fw)
 
-                        static_fw = StaticFW(struct, isif=relax_scheme[-1], name='static_Vol%.3f' %(vol_add), 
-                                        vasp_input_set=None, vasp_cmd=vasp_cmd, 
-                                        db_file=db_file, metadata=metadata, prev_calc_loc=True, parents=relax_parents_fw)
+                        static_fw = StaticFW(struct, isif=relax_scheme[-1], name='static_Vol{:.3f}'.format(vol_add), 
+                                        vasp_input_set=None, prev_calc_loc=True, parents=relax_parents_fw, **common_kwargs)
                         fws.append(static_fw)
                         calcs.append(static_fw)
 
                         if phonon:
                             visphonon = ForceConstantsSet(struct)
-                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
-                                     name='structure_%.3f-phonon' %(vol_add), vasp_input_set=visphonon,
-                                     vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
-                                     prev_calc_loc=True, parents=static_fw)
+                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=visphonon,
+                                                 name='structure_{:.3f}-phonon'.format(vol_add), prev_calc_loc=True,
+                                                 parents=static_fw, **t_kwargs, **common_kwargs)
                             fws.append(phonon_fw)
                             calcs.append(phonon_fw)
-                    check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, db_file=db_file, tag=tag, tolerance=tolerance,
-                                                        threshold=threshold, vol_spacing=vol_spacing, vasp_cmd=vasp_cmd, run_num=run_num,
-                                                        metadata=metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon=phonon,
-                                                        phonon_supercell_matrix=phonon_supercell_matrix,
-                                                        modify_incar_params=modify_incar_params, verbose=verbose,
-                                                        modify_kpoints_params=modify_kpoints_params, site_properties=site_properties), 
-                                            parents=calcs, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
+                    check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, run_num=run_num,
+                                                        verbose=verbose, site_properties=site_properties,
+                                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,
+                                                        **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs), 
+                                            parents=calcs, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
                     fws.append(check_result)
                     strname = "{}:{}".format(structure.composition.reduced_formula, 'EV_QHA_Append')
                     wfs = Workflow(fws, name = strname, metadata=metadata)
@@ -350,6 +350,10 @@ class EVcheck_QHA(FiretaskBase):
                     too_many_run_error()
             else:  # No need to do more VASP calculation, QHA could be running 
                 print('Success in Volumes-Energies checking, enter QHA ...')
+                debye_fw = Firework(QHAAnalysis(phonon=phonon, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), 
+                                    name="{}-qha_analysis".format(structure.composition.reduced_formula))
+                fws.append(debye_fw)
+                '''
                 # Debye
                 debye_fw = Firework(QHAAnalysis(phonon=False, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata), 
                                     name="{}-qha_analysis-Debye".format(structure.composition.reduced_formula))
@@ -360,6 +364,7 @@ class EVcheck_QHA(FiretaskBase):
                     phonon_fw = Firework(QHAAnalysis(phonon=True, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, 
                                                      metadata=metadata), parents=debye_fw, name="{}-qha_analysis-phonon".format(structure.composition.reduced_formula))
                     fws.append(phonon_fw)
+                '''
                 strname = "{}:{}".format(structure.composition.reduced_formula, 'QHA')
                 wfs = Workflow(fws, name = strname, metadata=metadata)
                 lpad.add_wf(wfs)
@@ -371,9 +376,6 @@ class EVcheck_QHA(FiretaskBase):
         import json
         with open('EV_check_summary.json', 'w') as fp:
             json.dump(EVcheck_result, fp, indent=4)  
-
-    def get_relax_structure():
-        pass
     
     def get_orig_EV(self, db_file, tag):
         vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
@@ -414,7 +416,7 @@ class EVcheck_QHA(FiretaskBase):
         print('%s Energies = %s' %(len(energies), energies))
         return(volumes, energies, dos_objs)       
         
-    def check_points(self, db_file, metadata, tolerance, threshold, del_limited, volumes, energies, verbose = False):
+    def check_points(self, db_file, metadata, eos_tolerance, threshold, del_limited, volumes, energies, verbose = False):
         """
         Check the existing points if they reached the tolerance, 
         if reached, update self.correct as True
@@ -440,7 +442,7 @@ class EVcheck_QHA(FiretaskBase):
                 error = update_err(temperror=temperror, error=error, verbose=verbose, ind=comb)
         
         # Decrease the quantity of large results
-        while (error > tolerance) and (len(num) > limit) and (len(num) > threshold):
+        while (error > eos_tolerance) and (len(num) > limit) and (len(num) > threshold):
             volume, energy = gen_volenergdos(num, volumes, energies)
             try:
                 self.check_fit(volume, energy)
@@ -460,9 +462,9 @@ class EVcheck_QHA(FiretaskBase):
 
         # combinations
         len_comb = len(comb)
-        if (error > tolerance) and (len_comb <= threshold):
+        if (error > eos_tolerance) and (len_comb <= threshold):
             comb_source = comb
-            while (error > tolerance) and (len_comb >= 4):
+            while (error > eos_tolerance) and (len_comb >= 4):
                 print('Combinations in "%s"...' %len_comb)
                 combination = combinations(comb_source, len_comb)
                 for combs in combination:
@@ -480,7 +482,7 @@ class EVcheck_QHA(FiretaskBase):
                 len_comb -= 1
 
         print('Minimum error = %s' %error, comb)
-        if error <= tolerance:
+        if error <= eos_tolerance:
             self.correct = True
         comb = list(comb)
         comb.sort()

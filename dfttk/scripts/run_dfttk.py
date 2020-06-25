@@ -137,7 +137,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #float, the step of temperature in QHA process, e.g. 5
     t_step = settings.get('t_step', 5)
     #float, acceptable value for average RMS, recommend >= 0.005
-    tolerance = settings.get('tolerance', 0.01) 
+    eos_tolerance = settings.get('eos_tolerance', 0.01) 
     #str, the vasp command, if None then find in the FWorker configuration
     vasp_cmd = settings.get('vasp_cmd', None)
     #dict, metadata to be included, this parameter is useful for filter the data, e.g. metadata={"phase": "BCC_A2", "tag": "AFM"}
@@ -184,7 +184,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
         #Currently, only this workflow is supported
         wf = get_wf_gibbs(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction, 
                     phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,  t_min=t_min, t_max=t_max, 
-                    t_step=t_step, tolerance=tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
+                    t_step=t_step, eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
                     db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
                     run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
@@ -195,7 +195,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     elif WORKFLOW == "robust":
         wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
                  phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, 
-                 tolerance=tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
+                 eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
                  isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose)
@@ -242,6 +242,9 @@ def run(args):
     wfs = []
     metadatas = {}
 
+    if os.path.exists('METADATAS.yaml'):
+        metadatas = loadfn('METADATAS.yaml')
+
     ## generat the wf
     for STR_FILE in STR_FILES:
         (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(STR_FILE)
@@ -266,6 +269,10 @@ def run(args):
             if flag_run:
                 user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
+                metadatai = metadatas.get(STR_FILE, None)
+                if metadatai:
+                    user_settings.update({'metadata': metadatai})
+
                 wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 
                 metadatas[STR_FILE] = wf.as_dict()["metadata"]
@@ -275,7 +282,7 @@ def run(args):
                     dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
                     wf.to_file(dfttk_wf_filename)
             
-    #Write Out the metadata for POST purpose
+    #Write Out the metadata for POST and continue purpose
     dumpfn(metadatas, "METADATAS.yaml")
 
     if LAUNCH:

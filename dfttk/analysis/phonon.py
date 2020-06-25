@@ -50,7 +50,7 @@ def get_f_vib_phonopy(structure, supercell_matrix, vasprun_path,
     ph.run_thermal_properties(t_min=t_min, t_max=t_max, t_step=t_step)
     # the thermal properties are for the unit cell
     tp_dict = ph.get_thermal_properties_dict()
-    temperature = tp_dict['temperatures']
+    temperatures = tp_dict['temperatures']
     # convert the units into our expected eV/atom-form (and per K)
     f_vib = tp_dict['free_energy'] * J_per_mol_to_eV_per_atom*1000
     s_vib = tp_dict['entropy'] * J_per_mol_to_eV_per_atom

@@ -7,9 +7,9 @@ from uuid import uuid4
 from copy import deepcopy
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
-from dfttk.fworks import OptimizeFW, StaticFW, RobustOptimizeFW
+from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW
 from dfttk.ftasks import CheckRelaxScheme
-from dfttk.input_sets import PreStaticSet, RelaxSet
+from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname
 
@@ -66,7 +66,7 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
 
 def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), phonon=False, isif4=False,
                         phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
-                        t_step=5, tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
+                        t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False):
     """
@@ -95,7 +95,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
         Temperature step size
     t_max : float
         Maximum temperature (inclusive)
-    tolerance: float
+    eos_tolerance: float
         Acceptable value for average RMS, recommend >= 0.005.
     volume_spacing_min: float
         Minimum ratio of Volumes spacing
@@ -122,13 +122,6 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     override_symmetry_tolerances = override_symmetry_tolerances or {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.10}
     override_default_vasp_params = override_default_vasp_params or {}
 
-    #TODO: Delete this paragraph, and ensure that any sub-function which call db_file is a Firetask
-    if db_file == ">>db_file<<":
-        #In PengGao's version, some function used the absolute db_file
-        from fireworks.fw_config import config_to_dict
-        from monty.serialization import loadfn
-        db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-
     site_properties = deepcopy(structure).site_properties
 
     metadata = metadata or {}
@@ -138,40 +131,35 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     deformations = _get_deformations(deformation_fraction, num_deformations)
     vol_spacing = max((deformations[-1] - deformations[0]) / (num_deformations - 1), volume_spacing_min)
 
+    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
+    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'override_symmetry_tolerances': override_symmetry_tolerances}
+    vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
+                   'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+    t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
+    eos_kwargs = {'deformations': deformations, 'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
+
     fws = []
-    
-    vis_relax = RelaxSet(structure, isif=7, **override_default_vasp_params)
-    full_relax_fw = RobustOptimizeFW(structure, isif=7, override_symmetry_tolerances=override_symmetry_tolerances,
-                       prev_calc_loc=False, vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file, isif4=isif4,
-                       override_default_vasp_params=override_default_vasp_params, name='Full relax',
-                       metadata=metadata, tag=tag)
-    fws.append(full_relax_fw)
 
-    #TODO: add a phonon after the relax
-    #      How to pass the static structure to phonon
-    '''
+    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax',
+                                     **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
+    fws.append(robust_opt_fw)
+
     if phonon:
-        visphonon = ForceConstantsSet(struct)
-        phonon_fw = PhononFW(struct, phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step,
-                 name='structure_%.3f-phonon' %(vol_add), vasp_input_set=visphonon,
-                 vasp_cmd=vasp_cmd, db_file=db_file, metadata=metadata,
-                 prev_calc_loc='static', parents=full_relax_fw)
-        fws.append(phonon_fw)
-        calcs.append(phonon_fw)
-    '''
+        phonon_wf = PhononFW(structure, phonon_supercell_matrix, parents=robust_opt_fw, prev_calc_loc='static', 
+                             name='structure_{:.3f}-phonon'.format(structure.volume),
+                             **t_kwargs, **common_kwargs)
+        fws.append(phonon_wf)
 
-    check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=full_relax_fw)
+    check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=robust_opt_fw,
+                              name="{}-CheckRelaxScheme".format(structure.composition.reduced_formula))
     fws.append(check_relax_fw)
 
-    check_result = Firework(EVcheck_QHA(db_file=db_file, tag=tag, deformations=deformations, site_properties=site_properties,
-                                        tolerance=tolerance, threshold=14, vol_spacing=vol_spacing, vasp_cmd=vasp_cmd, 
-                                        metadata=metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon=phonon, 
-                                        phonon_supercell_matrix=phonon_supercell_matrix, verbose = verbose, 
+    check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, 
+                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,
                                         override_symmetry_tolerances=override_symmetry_tolerances,
-                                        override_default_vasp_params=override_default_vasp_params,
-                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
-                            parents=check_relax_fw, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
-    fws.append(check_result)
+                                        **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
+                            parents=check_relax_fw, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
+    fws.append(check_qha_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
     wf = Workflow(fws, name=wfname, metadata=metadata)
