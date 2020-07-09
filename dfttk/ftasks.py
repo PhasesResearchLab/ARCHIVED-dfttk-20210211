@@ -775,7 +775,7 @@ class CheckRelaxation(FiretaskBase):
         else:
             prev_item = vasp_db.db['relaxations'].find({'tag': self.get('tag')}).sort('_id', -1)
             try:
-                prev_isif = prev_item[0]['isif']
+                prev_isif = prev_item[1]['isif']
             except Exception as e:
                 #Not exist, which means current is the first one
                 if cur_isif == 4:

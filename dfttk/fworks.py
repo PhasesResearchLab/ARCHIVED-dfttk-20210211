@@ -133,7 +133,7 @@ class RobustOptimizeFW(Firework):
                 t.append(CopyVaspOutputs(calc_loc=prev_calc_loc, contcar_to_poscar=True))
             t.append(WriteVaspFromIOSetPrevStructure(vasp_input_set=vasp_input_set, site_properties=site_properties))
         else:
-            t.append(WriteVaspFromIOSet(structure=structure, vasp_input_set=vasp_input_set))
+            t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
