@@ -31,7 +31,7 @@ def creat_folders(folder):
     Create folders if not exist, leave a warning if exists
     """
     if os.path.exists(folder):
-        warning.warn( folder + " exists!")
+        warnings.warn( folder + " exists!")
     else:
         os.makedirs(folder)
 
