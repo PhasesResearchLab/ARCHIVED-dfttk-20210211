@@ -11,7 +11,7 @@ from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW
 from dfttk.ftasks import CheckRelaxScheme
 from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
-from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname
+from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
 
 
 def _get_deformations(def_frac, num_def):
@@ -68,7 +68,8 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                         phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
-                        modify_kpoints_params={}, verbose=False):
+                        modify_kpoints_params={}, verbose=False, phonon_supercell_matrix_min=60, 
+                        phonon_supercell_matrix_max=120):
     """
     E - V
     curve
@@ -85,8 +86,10 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
         Default is (-0.1, 0.1) leading to volumes of 0.90-1.10. A single value gives plus/minus by default.
     phonon : bool
         Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
-    phonon_supercell_matrix : list
+    phonon_supercell_matrix : list/str
         3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]]. Must be specified if phonon is specified.
+         if string, choose from 'atoms', 'lattice' or 'volume' (only the first letter works, case insensitive), 
+            which determine who to determin the matrix
     override_symmetry_tolerances : dict
         The symmetry tolerance. It contains three keys, default: {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.1}
     t_min : float
@@ -145,6 +148,14 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     fws.append(robust_opt_fw)
 
     if phonon:
+        if isinstance(phonon_supercell_matrix, str):
+            phonon_supercell_matrix = supercell_scaling_by_atom_lat_vol(structure, min_obj=phonon_supercell_matrix_min,
+                                            max_obj=phonon_supercell_matrix_min, scale_object=phonon_supercell_matrix,
+                                            target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
+                                            verbose=False, sc_tolerance=1e-5)
+        ph_scm_size = np.array(phonon_supercell_matrix).shape
+        if not (ph_scm_size[0] == 3 and ph_scm_size[1] == 3):
+            raise ValueError('Current phonon_supercell_matrix({}) is not correct.'.format(phonon_supercell_matrix))
         phonon_wf = PhononFW(structure, phonon_supercell_matrix, parents=robust_opt_fw, prev_calc_loc='static', 
                              name='structure_{:.3f}-phonon'.format(structure.volume),
                              **t_kwargs, **common_kwargs)

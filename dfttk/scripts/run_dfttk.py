@@ -130,6 +130,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     phonon = settings.get('phonon', False)
     #list(3x3), the supercell matrix for phonon, e.g. [[2.0, 0, 0], [0, 2.0, 0], [0, 0, 2.0]]
     phonon_supercell_matrix = settings.get('phonon_supercell_matrix', None)
+    phonon_supercell_matrix_min = settings.get('phonon_supercell_matrix_min', None)
+    phonon_supercell_matrix_max = settings.get('phonon_supercell_matrix_max', None)
     #float, the mimimum of temperature in QHA process, e.g. 5
     t_min = settings.get('t_min', 5)
     #float, the maximum of temperature in QHA process, e.g. 2000
@@ -174,6 +176,20 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #bool, print(True) or not(False) some informations, used for debug
     verbose = settings.get('verbose', False)
 
+    #Set the default value for phonon_supercell_matrix_min/max
+    if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
+        if phonon_supercell_matrix.lower().startswith('a'):
+            phonon_supercell_matrix_min = 60
+            phonon_supercell_matrix_max = 130
+        elif phonon_supercell_matrix.lower().startswith('l'):
+            phonon_supercell_matrix_min = 8
+            phonon_supercell_matrix_max = 12
+        elif phonon_supercell_matrix.lower().startswith('v'):
+            phonon_supercell_matrix_min = 512
+            phonon_supercell_matrix_max = 1728
+        else:
+            raise ValueError("Unknown parameters for phonon_supercell_matrix({}), support 'atoms', 'lattice' or 'volume' or 3x3 list.".format(phonon_supercell_matrix))
+
     if magmom:
         structure.add_site_property('magmom', magmom)
     if not db_file:
@@ -198,7 +214,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
                  isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
-                 modify_kpoints_params=modify_kpoints_params, verbose=verbose)
+                 modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
+                 phonon_supercell_matrix_max=phonon_supercell_matrix_max)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
@@ -230,6 +247,7 @@ def run(args):
     MATCH_PATTERN = args.MATCH_PATTERN  # Match patterns for structure file, e.g. *POSCAR
     RECURSIVE = args.RECURSIVE          # recursive or not
     WORKFLOW = args.WORKFLOW            # workflow, current only get_wf_gibbs
+    PHONON = args.PHONON                # run phonon
     LAUNCH = args.LAUNCH               # Launch to lpad or not
     MAX_JOB = args.MAX_JOB              # Max job to submit
     SETTINGS = args.SETTINGS            # Settings file    
@@ -272,6 +290,8 @@ def run(args):
                 metadatai = metadatas.get(STR_FILE, None)
                 if metadatai:
                     user_settings.update({'metadata': metadatai})
+                if PHONON:
+                    user_settings.update({'phonon': True})
 
                 wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 
@@ -379,6 +399,8 @@ def run_dfttk():
                       help="""Specify the workflow to run.\n
                            Default: get_wf_gibbs \n
                            (NOTE: currently, only get_wf_gibbs is supported.)""")
+    prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
+                      help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",
                       help="Launch the wf to launchpad")
     prun.add_argument("-m", "--max_job", dest="MAX_JOB", nargs="?", type=int, default=0,
