@@ -146,6 +146,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     metadata = settings.get('metadata', None)
     #It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7
     isif4 = settings.get('isif4', False)
+    #The level for robust optimization
+    level = setting.get('level', 1)
     #float, the tolerannce for symmetry, e.g. 0.05
     symmetry_tolerance = settings.get('symmetry_tolerance', 0.05)
     #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
@@ -215,7 +217,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
-                 phonon_supercell_matrix_max=phonon_supercell_matrix_max)
+                 phonon_supercell_matrix_max=phonon_supercell_matrix_max, level=level)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
@@ -292,6 +294,9 @@ def run(args):
                     user_settings.update({'metadata': metadatai})
                 if PHONON:
                     user_settings.update({'phonon': True})
+                phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+                if phonon_supercell_matrix is None:
+                    phonon_supercell_matrix = 'atoms'
 
                 wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 

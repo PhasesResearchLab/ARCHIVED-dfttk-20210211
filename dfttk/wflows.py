@@ -68,7 +68,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                         phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
-                        modify_kpoints_params={}, verbose=False, phonon_supercell_matrix_min=60, 
+                        modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
                         phonon_supercell_matrix_max=120):
     """
     E - V
@@ -135,7 +135,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     vol_spacing = max((deformations[-1] - deformations[0]) / (num_deformations - 1), volume_spacing_min)
 
     common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
-    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'override_symmetry_tolerances': override_symmetry_tolerances}
+    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'level': level, 'override_symmetry_tolerances': override_symmetry_tolerances}
     vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
                    'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
     t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
@@ -150,7 +150,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     if phonon:
         if isinstance(phonon_supercell_matrix, str):
             phonon_supercell_matrix = supercell_scaling_by_atom_lat_vol(structure, min_obj=phonon_supercell_matrix_min,
-                                            max_obj=phonon_supercell_matrix_min, scale_object=phonon_supercell_matrix,
+                                            max_obj=phonon_supercell_matrix_max, scale_object=phonon_supercell_matrix,
                                             target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
                                             verbose=False, sc_tolerance=1e-5)
         ph_scm_size = np.array(phonon_supercell_matrix).shape

@@ -50,8 +50,10 @@ eos_tolerance : 0.01
 #float, the tolerannce for symmetry, e.g. 0.05
 symmetry_tolerance : 0.05
 
-#It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7
+#It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7.
 isif4 : False
+#The optimization level(Run ISIF=4 after ISIF=2 (2) or not(1)) for RobustOptimizeFW
+level : 1
 
 #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
 passinitrun : False
@@ -67,7 +69,7 @@ relax_path : ''
 
 #The symmetry tolerance, including three keys, 
 #e.g. override_symmetry_tolerances={'tol_strain': 0.05, 'tol_energy': 0.025, 'tol_bond': 0.10}
-#override_symmetry_tolerances : None
+override_symmetry_tolerances : None
 
 #Global settings for all vasp job, e.g.
 #override_default_vasp_params = {'user_incar_settings': {}, 'user_kpoints_settings': {}, 'user_potcar_functional': str}
