@@ -146,6 +146,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax',
                                      **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
     fws.append(robust_opt_fw)
+    check_qha_parent = []
 
     if phonon:
         if isinstance(phonon_supercell_matrix, str):
@@ -160,16 +161,18 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                              name='structure_{:.3f}-phonon'.format(structure.volume),
                              **t_kwargs, **common_kwargs)
         fws.append(phonon_wf)
+        check_qha_parent.append(phonon_wf)
 
     check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=robust_opt_fw,
                               name="{}-CheckRelaxScheme".format(structure.composition.reduced_formula))
     fws.append(check_relax_fw)
+    check_qha_parent.append(check_relax_fw)
 
     check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, 
                                         phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,
                                         override_symmetry_tolerances=override_symmetry_tolerances,
                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
-                            parents=check_relax_fw, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
+                            parents=check_qha_parent, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
     fws.append(check_qha_fw)
 
     wfname = "{}:{}".format(structure.composition.reduced_formula, name)
