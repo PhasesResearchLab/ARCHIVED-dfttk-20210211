@@ -147,7 +147,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7
     isif4 = settings.get('isif4', False)
     #The level for robust optimization
-    level = setting.get('level', 1)
+    level = settings.get('level', 1)
     #float, the tolerannce for symmetry, e.g. 0.05
     symmetry_tolerance = settings.get('symmetry_tolerance', 0.05)
     #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
