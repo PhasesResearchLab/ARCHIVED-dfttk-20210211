@@ -19,7 +19,8 @@ from scipy.optimize import minimize
 from pymatgen.analysis.eos import EOS, EOSError
 
 from dfttk.analysis.thermal_electronic import calculate_thermal_electronic_contribution
-from dfttk.analysis.debye import DebyeModel
+#from dfttk.analysis.debye import DebyeModel
+from dfttk.analysis.debye_ext_yw import DebyeModel
 
 __author__ = "Kiran Mathew, Brandon Bocklund"
 __credits__ = "Cormac Toher"
@@ -64,7 +65,8 @@ class Quasiharmonic(object):
     vib_kwargs : dict
         Additional keyword arguments to pass to the vibrational calculator
     """
-    def __init__(self, energies, volumes, structure, dos_objects=None, F_vib=None, t_min=5, t_step=5,
+    def __init__(self, energies, volumes, structure, dos_objects=None, F_vib=None, S_vib=None, C_vib=None,
+                 t_min=5, t_step=5,
                  t_max=2000.0, eos="vinet", pressure=0.0, poisson=0.25,
                  bp2gru=1., vib_kwargs=None):
         self.energies = np.array(energies)
@@ -82,8 +84,13 @@ class Quasiharmonic(object):
             debye_model = DebyeModel(energies, volumes, structure, t_min=t_min, t_step=t_step,
                                      t_max=t_max, eos=eos, poisson=poisson, bp2gru=bp2gru, **vib_kwargs)
             self.F_vib = debye_model.F_vib  # vibrational free energy as a function of volume and temperature
+            self.S_vib = debye_model.S_vib  # vibrational entropy as a function of volume and temperature
+            self.C_vib = debye_model.C_vib  # vibrational heat capacity as a function of volume and temperature
+            self.D_vib = debye_model.D_vib  # Debye temperature
         else:
             self.F_vib = F_vib
+            self.S_vib = S_vib
+            self.C_vib = C_vib
 
 
         # get the electronic properties as a function of V and T
@@ -162,4 +169,22 @@ class Quasiharmonic(object):
         d["gibbs_free_energy"] = self.gibbs_free_energy
         d["temperatures"] = self.temperatures
         d["optimum_volumes"] = self.optimum_volumes
+        d["volumes"] = self.volumes.tolist()
+        d["helmholtz_energies"] = self.F_vib.tolist()
+
+        try:
+            d["entropies"] = self.S_vib.tolist()
+        except:
+            pass
+
+        try:
+            d["heat_capacities"] = self.C_vib.tolist()
+        except:
+            pass
+
+        try:
+            d["debye_temperatures"] = self.D_vib.tolist()
+        except:
+            pass
+
         return d

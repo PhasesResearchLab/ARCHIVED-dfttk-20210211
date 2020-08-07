@@ -97,9 +97,19 @@ class DebyeModel(object):
 
         """
         self.F_vib = np.zeros((len(self.volumes), self.temperatures.size ))
+        self.S_vib = np.zeros((len(self.volumes), self.temperatures.size ))
+        self.C_vib = np.zeros((len(self.volumes), self.temperatures.size ))
+        self.D_vib = np.zeros((len(self.volumes)))
         for v_idx, vol in enumerate(self.volumes):
+            #print ("DebyeT=", self.debye_temperature(vol))
+            self.D_vib[v_idx] = self.debye_temperature(vol)
             for t_idx, temp in enumerate(self.temperatures):
+                #print ("FT=", self.vibrational_free_energy(temp, vol))
+                #print ("ST=", self.vibrational_entropy(temp, vol))
+                #print ("CT=", self.vibrational_heat_capacity(temp, vol))
                 self.F_vib[v_idx, t_idx] = self.vibrational_free_energy(temp, vol)
+                self.S_vib[v_idx, t_idx] = self.vibrational_entropy(temp, vol)
+                self.C_vib[v_idx, t_idx] = self.vibrational_heat_capacity(temp, vol)
 
 
     def vibrational_free_energy(self, temperature, volume):
@@ -116,6 +126,44 @@ class DebyeModel(object):
         """
         y = self.debye_temperature(volume) / temperature
         return self.kb * self.natoms * temperature * (9./8. * y + 3 * np.log(1 - np.exp(-y)) - self.debye_integral(y))
+
+
+    def vibrational_entropy(self, temperature, volume):
+        """
+        Vibrational entropy, S_vib(V, T).
+        Eq(4) in doi.org/10.1016/j.comphy.2003.12.001
+
+        Args:
+            temperature (float): temperature in K
+            volume (float)
+
+        Returns:
+            float: vibrational entropy in eV
+        """
+        y = self.debye_temperature(volume) / temperature
+        return self.kb * self.natoms * ( -3 * np.log(1 - np.exp(-y)) + 4*self.debye_integral(y))
+
+
+    def vibrational_heat_capacity(self, temperature, volume):
+        """
+        Vibrational heat capacity, C_vib(V, T).
+        Eq(4) in doi.org/10.1016/j.comphy.2003.12.001
+
+        Args:
+            temperature (float): temperature in K
+            volume (float)
+
+        Returns:
+            float: vibrational heat capacity in eV
+        """
+        y = self.debye_temperature(volume) / temperature
+        factor = 3. / y ** 3
+        if y < 155:
+            integral = quadrature(lambda x: x ** 4 *np.exp(x)/ (np.exp(x) - 1.)**2, 0, y)
+            return 3*self.kb * self.natoms * list(integral)[0] * factor
+        else:
+            import math
+            return self.kb * self.natoms * 4./5.*math.pi**4 * factor
 
 
     def debye_temperature(self, volume):

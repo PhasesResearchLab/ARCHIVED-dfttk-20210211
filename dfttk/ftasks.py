@@ -325,12 +325,21 @@ class QHAAnalysis(FiretaskBase):
             phonon_calculations = list(vasp_db.db['phonon'].find({'$and':[ {'metadata.tag': tag}, {'adopted': True} ]}))
             vol_vol = [calc['volume'] for calc in phonon_calculations]  # these are just used for sorting and will be thrown away
             vol_f_vib = [calc['F_vib'] for calc in phonon_calculations]
+            vol_s_vib = [calc['S_vib'] for calc in phonon_calculations]
+            vol_cv_vib = [calc['CV_vib'] for calc in phonon_calculations]
+            import sys
             # sort them order of the unit cell volumes
             vol_f_vib = sort_x_by_y(vol_f_vib, vol_vol)
+            vol_s_vib = sort_x_by_y(vol_s_vib, vol_vol)
+            vol_cv_vib = sort_x_by_y(vol_cv_vib, vol_vol)
             f_vib = np.vstack(vol_f_vib)
+            s_vib = np.vstack(vol_s_vib)
+            cv_vib = np.vstack(vol_cv_vib)
             qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
+                                S_vib=s_vib, C_vib=cv_vib,
                                 t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
                                 poisson=poisson, bp2gru=bp2gru)
+            print("pass S_vib=s_vib", file=sys.stderr)
             qha_result['phonon'] = qha.get_summary_dict()
             qha_result['phonon']['temperatures'] = qha_result['phonon']['temperatures'].tolist()
 
