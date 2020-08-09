@@ -9,6 +9,7 @@ from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
 import dfttk.pythelec as pythelec
+from dfttk.pythelec import class_thelecMDB
 import warnings
 import copy
 import os
@@ -16,9 +17,9 @@ import sys
 import shutil
 
 def ext_thelec(args):
-    print ("\n  Calculate Seebeck and Lorenz number. Yi Wang\n")
+    print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
     """
-    calculate Seebeck and Lorenz number
+    Postprocess for thermodynamic properties, Seebeck, Lorenz number etc
 
     Parameters
         STR_FOLDER = args.STRUCTURE_FOLDER
@@ -50,6 +51,8 @@ def ext_thelec(args):
     doscar = args.doscar
     outf = args.outf
     qhamode = args.qhamode
+    eqmode = args.eqmode
+    elmode = args.elmode
     metadata = args.metadata
     everyT = args.everyT
     plot = args.plot
@@ -64,12 +67,20 @@ def ext_thelec(args):
         from fireworks.fw_config import config_to_dict
         from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-        volumes, energies = pythelec.thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, 
-            outf, db_file, 
-            metadata=metadata, qhamode=qhamode, everyT=everyT, plot=plot)
+        if 1==0:
+            volumes, energies, thermofile = pythelec.thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, 
+                outf, db_file, 
+                metadata=metadata, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, plot=plot)
+        else:
+            proc = class_thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,           
+                outf, db_file, 
+                metadata=metadata, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, plot=plot)
+            volumes, energies, thermofile = proc.run_console()
+
+        print("\nFull thermodynamic properties have outputed into:", thermofile) 
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
-            plotAPI(outf, volumes, energies, expt=expt, xlim=xlim)
+            plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
 
@@ -119,6 +130,16 @@ def run_ext_thelec(subparsers):
     pthelec.add_argument("-qhamode", "-qhamode", dest="qhamode", nargs="?", type=str, default=None,
                       help="quasiharmonic mode: debye, phonon, or yphon. \n"
                            "Default: debye")
+    pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=0,
+                      help="Mode to calculate LTC. 0: Symmetrical Central differential;  \n"
+                           "                       4: 4-parameter BM fitting.  \n"
+                           "                       5: 5-parameter BM fitting.  \n"
+                           "Default: 0")
+    pthelec.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=1,
+                      help="Mode to interpolate thermal electronic contribution:"
+                           "                       0: interp1d;  \n"
+                           "                       1: UnivariateSpline.  \n"
+                           "Default: 1")
     pthelec.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
                       help="plot the figure. \n"
                            "Default: False")

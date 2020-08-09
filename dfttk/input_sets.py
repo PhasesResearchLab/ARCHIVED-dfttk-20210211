@@ -76,7 +76,7 @@ class PreStaticSet(DictSet):
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
     CONFIG['KPOINTS'].update({
-        'grid_density': 1000,
+        'grid_density': 4000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
@@ -126,7 +126,7 @@ class ForceConstantsSet(DictSet):
     CONFIG = _load_yaml_config("MPRelaxSet")
     # we never are comparing relaxations, only using them for optimizing structures.
     CONFIG['KPOINTS'].update({
-        'grid_density': 1000,
+        'grid_density': 4000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
@@ -161,7 +161,7 @@ class StaticSet(DictSet):
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
     CONFIG['KPOINTS'].update({
-        'grid_density': 4000,
+        'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].update({
@@ -243,7 +243,7 @@ class ForcesSet(DictSet):
     """
     CONFIG = _load_yaml_config("MPRelaxSet")
     CONFIG['KPOINTS'].update({
-        'grid_density': 1000,
+        'grid_density': 8000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
     CONFIG['INCAR'].pop('ENCUT',None)

@@ -385,8 +385,9 @@ def proStoichiometricCp():
       for i,T in enumerate(x):
         if T < T0:
           i0 = i
-      ifit0 = i0-3
+      ifit0 = i0
       ifit0 = max(ifit0,0)
+      #print("xxxxxxxx=",x[ifit0:],T0) 
       c,cerror = fitStoichiometricCp(x[ifit0:],y[ifit0:])
 
       y = zthermo.get("enthalpy (J/mol-atom)")
@@ -410,6 +411,7 @@ def proStoichiometricCp():
       gout = 'G(T) =' + outexpressionG(f)
       #print (gout)
 
+      SGTErec.update({"T":[x[ifit0], x[-1]]})
       SGTErec.update({"Cp (J/mol-atom/K)":[outexpressionCp(c),{"error":round(cerror,2)}]})
       SGTErec.update({"H-H298.15 (J/mol-atom)":[outexpressionH(h),{"error":round(herror,2)}]})
       SGTErec.update({"S (J/mol-atom/K)":[outexpressionS(s),{"error":round(serror,2)}]})
@@ -436,7 +438,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
 
     if thermodynamicproperty=="0 K total energies (eV/atom)":
         #plt.xlabel("atomic volume (Angstrom^3)")
-        xlabel = "atomic volume (Angstrom^3)"
+        xlabel = "atomic volume ($Angstrom^3$)"
         plt.ylabel("0 K total energies (eV/atom)")
         ax.set_xlim([min(x)*0.95,max(x)*1.05])
         ax.plot(x, y, fillstyle='none', marker='o', markersize=12, color='k', linestyle='None', label="DFT")
@@ -446,7 +448,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         #f2 = interp1d(x, y)
         ynew = f2(xnew)
         ax.plot(xnew,ynew,'-',linewidth=1,color='b')
-    elif thermodynamicproperty!="heat capacities ((J/mol-atom/K)":
+    elif thermodynamicproperty!="heat capacities (J/mol-atom/K)":
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
         y1 = np.nanmax(np.array(list(map(float,y))))
@@ -840,8 +842,8 @@ def Genergy(thermofile,dir0):
   threcord.update({"S298.15 (J/mol-atom/K)":round(S298,6)})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
-  zthermo.update({"atomic volume (Angstrom^3)":list(thermo[:,1])})
-  thermoplot(folder,"atomic volume (Angstrom^3)",list(thermo[:,0]),list(thermo[:,1]))
+  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
+  thermoplot(folder,"atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]))
   zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
@@ -929,7 +931,7 @@ def Genergy(thermofile,dir0):
     f.write('set output "E-V.eps"\n')
     f.write('{}\n'.format(fitF))
     f.write('set key right bottom\n')
-    f.write('set xlabel "atomic volume (Angstrom^3)\n')
+    f.write('set xlabel "atomic volume ($Angstrom^3$)\n')
     f.write('set ylabel "static energy (eV/atom)\n')
     f.write('plot "../E-V.dat" title "calculated" w p pt 7, \\\n')
     f.write('     f_expr(x) title "'+ffun+'" w l lt -1\n')
@@ -1492,7 +1494,7 @@ PQ = 0.075
 EQ = 0.015
 PQ = 0.01
 EQ = 0.01
-CpMax = 50.
+CpMax = 40.
 Tupmax = 2000.0
 start = time.time()
 threcord = {}
@@ -1514,7 +1516,11 @@ papers = []
 PhaseName = {}
 
 def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
-  folder = "./figures/"
+  phasedir = [substr for substr in thermofile.split('/') if substr!=""]
+  phasedir = ('/').join(phasedir[0:-1])
+  if phasedir=="": phasedir="."
+  folder = phasedir+"/figures/"
+  print("All figures have been outputed into: ", folder, "  with T uplimt:", xlim, "\n\nEnjoy!\n")
   if not os.path.exists(folder):
     os.mkdir(folder)
   thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies)
@@ -1545,29 +1551,32 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   threcord.update({"S298.15 (J/mol-atom/K)":S298})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
-  zthermo.update({"atomic volume (Angstrom^3)":list(thermo[:,1])})
+  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
   zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
   zthermo.update({"Cp (J/mol-atom/K)":list(thermo[:,6])})
   proStoichiometricCp()
-  with open(folder + 'record.json', 'w') as fp:
+  with open(folder + '/../record.json', 'w') as fp:
     myjsonout(SGTErec, fp, indent="", comma="")
+  myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
-  thermoplot(folder,"atomic volume (Angstrom^3)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
+  thermoplot(folder,"atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
   thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
   thermoplot(folder,"enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
   thermoplot(folder,"entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
 
-  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0)
+  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim)
   ncols = [6,8]
-  thermoplot(folder,"heat capacities ((J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
-  thermoplot(folder,"heat capacities ((J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
-  thermoplot(folder,"heat capacities ((J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
-  thermoplot(folder,"heat capacities ((J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
+  thermoplot(folder,"heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
+  thermoplot(folder,"heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
+  thermoplot(folder,"heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
+  thermoplot(folder,"heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70)
   thermoplot(folder,"bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim)
+  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
+  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
 
 
 if __name__ == '__main__':
