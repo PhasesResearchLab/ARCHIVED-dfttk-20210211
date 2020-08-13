@@ -443,11 +443,13 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         ax.set_xlim([min(x)*0.95,max(x)*1.05])
         ax.plot(x, y, fillstyle='none', marker='o', markersize=12, color='k', linestyle='None', label="DFT")
         xnew = np.linspace(min(x)*0.95,max(x)*1.05, 300)  
-        from scipy.interpolate import UnivariateSpline
-        f2 = UnivariateSpline(x,y)
+        #from scipy.interpolate import UnivariateSpline
+        from dfttk.pythelec import BMvol4, BMvol
+        f2, pcov = curve_fit(BMvol4, x, y)
+        #f2 = UnivariateSpline(x,y)
         #f2 = interp1d(x, y)
-        ynew = f2(xnew)
-        ax.plot(xnew,ynew,'-',linewidth=1,color='b')
+        ynew = BMvol(xnew, f2)
+        ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
     elif thermodynamicproperty!="heat capacities (J/mol-atom/K)":
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
@@ -501,7 +503,8 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
                 yy = np.array(y0)
                 yy = yy[xx!=0.0]
                 yy = yy/xx
-                xnew = np.linspace(0, math.sqrt(xlim), 100)
+                #xnew = np.linspace(0, math.sqrt(xlim), 100)
+                xnew = np.linspace(min(x), math.sqrt(xlim), 10)
                 xnew = xnew*xnew
                 xx = xx*xx
                 from scipy.interpolate import UnivariateSpline
@@ -509,6 +512,8 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
                 ynew = f2(xnew)
                 ax.set_xlim([0.0,xlim])
                 ax.set_ylim([0.0,max(ynew)*1.5])
+                xnew = xx
+                ynew = yy
                 fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(xlim)+"_T2.png"
             else:
                 for i,v in enumerate(x):
