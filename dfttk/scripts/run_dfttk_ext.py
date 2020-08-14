@@ -56,6 +56,7 @@ def ext_thelec(args):
     elmode = args.elmode
     metatag = args.metatag
     everyT = args.everyT
+    noel = args.noel
     plot = args.plot
     smooth = args.smooth
     expt = args.expt
@@ -70,7 +71,7 @@ def ext_thelec(args):
         from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
-            metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
+            noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, plot=plot)
         volumes, energies, thermofile = proc.run_console()
 
@@ -121,6 +122,9 @@ def run_ext_thelec(subparsers):
     pthelec.add_argument("-o", "-outf", dest="outf", nargs="?", type=str, default="fvib_ele",
                       help="output filename for calculated thermoelectric properties. \n"
                            "Default: fvib_ele")
+    pthelec.add_argument("-noel", "-noel", dest="noel", action='store_true', default=False,
+                      help="do not consider the thermal electron contribution. \n"
+                           "Default: False")
     pthelec.add_argument("-metatag", "-metatag", dest="metatag", nargs="?", type=str, default=None,
                       help="metatag: MongoDB metadata tag field. \n"
                            "Default: None")
@@ -171,8 +175,17 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-any", "--containany", dest="containany", nargs="?", type=str, default=None,
                       help="find calculations contain any elements in the list\n"
                            "Default: None")
+    pthfind.add_argument("-v", "--nV", dest="nV", nargs="?", type=int, default=6,
+                      help="Return phonon calculations finished for number of volumes larger or equals to. \n"
+                           "Default: 6")
+    pthfind.add_argument("-ss", "--supercellsize", dest="supercellN", nargs="?", type=int, default=0,
+                      help="only return phonon calculation with supercell size larger than. \n"
+                           "Default: 0")
     pthfind.add_argument("-g", "--get", dest="get", action='store_true', default=False,
                       help="get the thermodyamic data for all found entries. \n"
+                           "Default: False")
+    pthfind.add_argument("-ty", "--toyphon", dest="toyphon", action='store_true', default=False,
+                      help="extract the superfij.out used by Yphon for all found entries. \n"
                            "Default: False")
     pthfind.add_argument("-T0", "-t0", dest="t0", nargs="?", type=float, default=0.0,
                       help="Low temperature limit. \n"
@@ -210,6 +223,9 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-o", "-outf", dest="outf", nargs="?", type=str, default="fvib_ele",
                       help="output filename for calculated thermoelectric properties. \n"
                            "Default: fvib_ele")
+    pthfind.add_argument("-noel", "-noel", dest="noel", action='store_true', default=False,
+                      help="do not consider the thermal electron contribution. \n"
+                           "Default: False")
     pthfind.add_argument("-metatag", "-metatag", dest="metatag", nargs="?", type=str, default=None,
                       help="metatag: MongoDB metadata tag field. \n"
                            "Default: None")

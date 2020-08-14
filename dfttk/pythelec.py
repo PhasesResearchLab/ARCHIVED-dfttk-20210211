@@ -348,7 +348,7 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
     """
 
     #print ("dF=", dF)
-    mu_el = brentq(gfind, mu_ref-5.0, mu_ref+5.0, args=(pe, pdos, NELECTRONS, Beta), maxiter=10000)
+    mu_el = brentq(gfind, mu_ref-10.0, mu_ref+10.0, args=(pe, pdos, NELECTRONS, Beta), maxiter=10000)
     tc = Beta*(pe-mu_el)
     tc = tc[np.where(tc<200)]
     k1 = len(tc)
@@ -816,7 +816,7 @@ class thelecMDB():
 
     def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
                 outf, db_file, 
-                everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False):
+                noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -830,6 +830,7 @@ class thelecMDB():
         self.gaussian = gaussian
         self.natom = natom
         self.outf = outf
+        self.noel = noel
         self.everyT = everyT
         self.tag = metatag
         self.qhamode = qhamode
@@ -946,7 +947,7 @@ class thelecMDB():
                     print("\nFATAL ERROR! I cannot find any results for entry !", self.tag, "\n")
                     sys.exit()
 
-                print ("\nFound some calculation at volumes with  energie:\n")
+                print ("\nFound some calculation at volumes with energies:\n")
                 for i,v in enumerate (self.v_phonon):
                     print (v, self.energies[list(self.volumes).index(v)])
                 if len(v_phonon)==len(self.volumes):
@@ -1148,7 +1149,8 @@ class thelecMDB():
         else:
             self.T = T[T<=self.t1]
 
-        self.get_static_calculations()
+        if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
+        else : self.get_static_calculations()
         self.get_vibrational()
         return self.calc_thermodynamics()
 
