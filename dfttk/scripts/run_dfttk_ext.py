@@ -17,7 +17,7 @@ import os
 import sys
 import shutil
 
-def ext_thelec(args):
+def ext_thelec(args, _Yphon=[]):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
     """
     Postprocess for thermodynamic properties, Seebeck, Lorenz number etc
@@ -72,7 +72,7 @@ def ext_thelec(args):
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
-            smooth=smooth, plot=plot)
+            smooth=smooth, plot=plot, _Yphon=_Yphon)
         volumes, energies, thermofile = proc.run_console()
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
@@ -187,6 +187,9 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-ty", "--toyphon", dest="toyphon", action='store_true', default=False,
                       help="extract the superfij.out used by Yphon for all found entries. \n"
                            "Default: False")
+    pthfind.add_argument("-py", "--pyphon", dest="pyphon", action='store_true', default=False,
+                      help="together with -g and -ty, use Yphon to recalculate vibrational properties. \n"
+                           "Default: False")
     pthfind.add_argument("-T0", "-t0", dest="t0", nargs="?", type=float, default=0.0,
                       help="Low temperature limit. \n"
                            "Default: 0")
@@ -272,9 +275,13 @@ def ext_thfind(args):
             workflow, current only get_wf_gibbs
     """
     proc=thfindMDB(args)
-    tags = proc.run_console()
+    tags,_Yphon = proc.run_console()
+    #print("xxxxx=",tags,_Yphon)
     if args.get:
-        for tag in tags:
+        for i,tag in enumerate(tags):
             print("\nDownloading data by metadata tag:", tag, "\n")
             args.metatag = tag
-            ext_thelec(args)
+            if len(_Yphon) > 0:
+                ext_thelec(args, _Yphon=_Yphon[i])
+            else:
+                ext_thelec(args)

@@ -5,6 +5,7 @@ from __future__ import division
 import sys
 import os
 import math
+import copy
 import numpy as np
 from scipy.constants import physical_constants
 from scipy.optimize import brentq, curve_fit
@@ -424,12 +425,17 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
     return mu_el, u, -s*k_B, cv*k_B*Beta*Beta, Q_el, Y_el, Q_p, Q_e, c_mu*k_B*Beta*Beta, W_p, W_e, Y_p, Y_e
 
 
-def T_remesh(t0, t1, td):
-    nT = int(abs((t1-t0)/td)+1.5)
-    nT = 51
-    a = 50./nT
-    dT_new = abs(td)/(1+(nT-1)*0.5*a)
+def T_remesh(t0, t1, td, _nT=-1):
     T = []
+    if td > 0:
+        for t in np.arange(t0,t1+td, td):
+            T.append(t)
+        return np.array(T)
+
+    if _nT <= 0: nT = 51
+    else: nT = _nT
+    a = 100./nT
+    dT_new = abs(td)/(1+(nT-1)*0.5*a)
     for i in range (nT):
       T.append(t0+i*dT_new*(1+i*a))
     T = np.array(T)
@@ -439,7 +445,8 @@ def T_remesh(t0, t1, td):
     return T
 
 
-def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=sys.stdin, fout=sys.stdout, vol=None):
+def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, 
+    _T=[], dos=sys.stdin, fout=sys.stdout, vol=None):
     """
     Calculate thermal free energy from electronic density of states (e DOS)
 
@@ -498,11 +505,13 @@ def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=sys.stdin
     fout.write('Fermi energy was shifted {} due to doping of {} resulting Ne={} \n'.format(dF, dope, NELECTRONS))
 
     # for all temperatures
-    if td>0.0:
+    if len(_T)!=0:
+      T=copy.deepcopy(_T)
+    elif td>0.0:
       T = np.arange(t0,t1+td,td) # temperature
     else:
-      T = T_remesh(t0,t1,td)
-    nT = T.size
+      T = T_remesh(t0,t1,td,_nT=129)
+    nT = len(T)
     U_el = np.zeros(nT)
     S_el = np.zeros(nT)
     C_el = np.zeros(nT) # electronic specific heat
@@ -735,6 +744,7 @@ def debye_phonon(x, temperature, natoms, clat):
     return debye_heat_capacity(temperature, x, natoms) - clat
 
 def get_debye_T_from_phonon_Cv(temperature, clat, dlat, natoms, _td=50):
+    if temperature <=0: return dlat
     t0 = dlat
     d0 = debye_phonon(t0, temperature, natoms, clat)
     if d0 > 0.0: td = _td
@@ -814,9 +824,9 @@ class thelecMDB():
     and the equilibrium volume extracted from MongoDB in the last column
     """
 
-    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
-                outf, db_file, 
-                noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False):
+    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
+                noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
+                _Yphon=[]):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -838,6 +848,8 @@ class thelecMDB():
         self.elmode = elmode
         self.smooth = smooth
         self.plot = plot
+        self._Yphon=_Yphon
+        #print ("iiiii=",len(self._Yphon))
 
 
     # get the energies, volumes and DOS objects by searching for the tag
@@ -849,7 +861,8 @@ class thelecMDB():
         structure = None  # single Structure for QHA calculation
         for calc in static_calculations:
             vol = calc['output']['structure']['lattice']['volume']
-            if vol_within (vol, volumes): 
+            #if vol_within (vol, volumes): 
+            if vol in volumes: 
                 print ("WARNING: skipped volume =", vol)
                 continue
             volumes.append(vol)
@@ -872,6 +885,7 @@ class thelecMDB():
         from dfttk.utils import sort_x_by_y
         self.energies = sort_x_by_y(energies, volumes)
         self.dos_objs = sort_x_by_y(dos_objs, volumes)
+        #self.volumes = sort_x_by_y(volumes,volumes)
         self.volumes = np.array(list(map(float,sorted(volumes))))
         print ("found volumes from static calculations:", volumes)
 
@@ -881,12 +895,13 @@ class thelecMDB():
         t1 = max(self.T)
         td = (t1-t0)/(len(self.T)-1)
         if self.td < 0: td = self.td
+        #print("xxxxx=", t0,t1,td)
         #theall = np.empty([len(prp_T), int((t1-t0)/td+1.5), len(self.volumes)])
         self.theall = np.empty([14, len(self.T), len(self.volumes)])
         for i,dos in enumerate(self.dos_objs):
             #print ("processing dos object at volume: ", self.volumes[i], " with nT =", len(self.T))
             prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
-                self.gaussian, self.natom, dos=dos, fout=sys.stdout, vol=self.volumes[i])
+                self.gaussian, self.natom, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
             """
             F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Q_el, Q_p, Q_e, C_mu, T, W_p, W_e, Y_p, Y_e = runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=dos, fout=fvib, vol=volumes[i])
             Tuple of 14 float array containing
@@ -898,6 +913,44 @@ class thelecMDB():
 
 
     def find_vibrational(self):
+        #print ("xxxxx=",len(self._Yphon))
+        if len(self._Yphon)!=0:
+            self.T_vib = self._Yphon['T_vib']
+            #print ("to be used", len(self.T_vib), "temperatures", self.T_vib)
+            #sys.exit()
+            self.s_phonon = self._Yphon['S_vib']
+            self.c_phonon = self._Yphon['CV_vib']
+            self.f_phonon = self._Yphon['F_vib']
+            self.v_phonon = self._Yphon['volumes']
+            self.s_phonon = sort_x_by_y(self.s_phonon, self.v_phonon)
+            self.c_phonon = sort_x_by_y(self.c_phonon, self.v_phonon)
+            self.f_phonon = sort_x_by_y(self.f_phonon, self.v_phonon)
+            self.v_phonon = sort_x_by_y(self.v_phonon, self.v_phonon)
+            if len(self.v_phonon)<=0:
+                print("\nFATAL ERROR! Wrong Yphon call.\n")
+                sys.exit()
+            print ("\nChecking compatibility between _Yphon and static calculation at volumes with energies:\n")
+            #print(list(self.volumes))
+            for i,v in enumerate (self.v_phonon):
+                print (v, self.energies[list(self.volumes).index(v)])
+            if len(self.v_phonon)!=len(self.volumes):
+                print("\nWarning! It appears that the calculations are not all done! Let me see if I can do something\n")
+            _volumes = list(self.volumes)
+            for i, vol in enumerate(_volumes):
+                if vol not in self.v_phonon:
+                    del _volumes[i]
+                    del self.energies[i]
+                    del self.dos_objs[i]
+                    print ("data in static calculation with volume=", vol, "will be discarded")
+            if len(_volumes)<len(self.volumes) : self.volumes = np.array(_volumes)
+            if len(self.v_phonon)==len(self.volumes):
+                print("\nOK, I found all needed  data from _Yphon\n")
+            else:
+                print("xxxxxx", self.v_phonon, self.volumes)
+                print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
+                sys.exit()
+            return
+
         if self.qhamode=="debye":
             self.qha_items = self.vasp_db.db['qha'].find({'metadata.tag': self.tag})
         elif self.qhamode=="phonon":
@@ -1096,7 +1149,7 @@ class thelecMDB():
                 if self.hasSCF:
                     blat, beta = self.calc_thermal_expansion(i)
                     if blat < 0: 
-                        print ("\nPerhaps it has reached the upvolume limit at T =", self.volT[i], "\n")
+                        print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
                     try:
                         slat = interp1d(self.volumes, self.Slat[:,i])(self.volT[i])
@@ -1105,7 +1158,7 @@ class thelecMDB():
                         dlat = interp1d(self.volumes, self.Dlat)(self.volT[i])
                         cplat = clat+beta*beta*blat*self.volT[i]*self.T[i]
                     except:
-                        print ("\nPerhaps it has reached the upvolume limit at T =", self.volT[i], "\n")
+                        print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
 
                 #print (self.theall.shape)
@@ -1144,10 +1197,14 @@ class thelecMDB():
         self.find_vibrational()
         T = np.array(self.T_vib)
 
-        if self.td < 0:
+        if len(self._Yphon)!=0:
+            self.T = self._Yphon['T_vib']
+        elif self.td < 0:
             self.T = T_remesh(min(self.T_vib), min(self.t1,max(self.T_vib)), self.td)
+            #print ("xxxxx 2", len(self.T))
         else:
             self.T = T[T<=self.t1]
+            #print ("xxxxx 3", len(self.T))
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()

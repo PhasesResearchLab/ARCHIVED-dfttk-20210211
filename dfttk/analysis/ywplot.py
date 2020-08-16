@@ -499,9 +499,9 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
             ylim = 0.0
             if CoT:
                 xx = np.array(x)
-                xx = xx[xx!=0.0]
                 yy = np.array(y0)
                 yy = yy[xx!=0.0]
+                xx = xx[xx!=0.0]
                 yy = yy/xx
                 #xnew = np.linspace(0, math.sqrt(xlim), 100)
                 xnew = np.linspace(min(x), math.sqrt(xlim), 10)
@@ -1499,7 +1499,7 @@ PQ = 0.075
 EQ = 0.015
 PQ = 0.01
 EQ = 0.01
-CpMax = 40.
+CpMax = 50.
 Tupmax = 2000.0
 start = time.time()
 threcord = {}

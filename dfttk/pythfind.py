@@ -10,11 +10,13 @@ from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
 import dfttk.pythelec as pythelec
+import dfttk.pyphon as pyphon
 from dfttk.pythelec import thelecMDB
 import warnings
 import copy
 import os
 import sys
+import subprocess
 import shutil
 import numpy as np
 from fireworks.fw_config import config_to_dict
@@ -46,12 +48,18 @@ class thfindMDB ():
         #items = vasp_db.db['phonon'].find({})
         self.items = (self.vasp_db).db[args.qhamode].find({})
         self.tags = []
+        self._Yphon = []
         self.within = []
         self.containall = []
         self.containany = []
         self.nV = args.nV
+        self.get = args.get
         self.supercellN = args.supercellN
         self.toyphon = args.toyphon
+        self.pyphon = args.pyphon
+        self.t0 = args.t0
+        self.t1 = args.t1
+        self.td = args.td
         if args.within is not None: self.within, tmp = formula2composition(args.within)
         if args.containall is not None: self.containall, tmp = formula2composition(args.containall)
         if args.containany is not None: self.containany, tmp = formula2composition(args.containany)
@@ -74,9 +82,14 @@ class thfindMDB ():
     def run_console(self):
         if self.qhamode=='phonon': self.phonon_find()
         else: self.debye_find()
-        return self.tags
+        return self.tags, self._Yphon
 
     def toYphon(self,item, phase):
+        volumes = []
+        F_vib = []
+        CV_vib = []
+        S_vib = []
+        T_vib = pythelec.T_remesh(self.t0, self.t1, self.td, 129)
         print ("extract the superfij.out used by Yphon ...")
         if not os.path.exists(phase):
             os.mkdir(phase)
@@ -84,20 +97,28 @@ class thfindMDB ():
         if not os.path.exists(phdir):
             os.mkdir(phdir)
         for i in (self.vasp_db).db[self.qhamode].find({'metadata.tag': item['metadata']['tag']}):
-            vol = 'V{:08.4f}'.format(float(i['volume']))
-            voldir = phdir+'/'+vol
-            if not os.path.exists(voldir):
-               os.mkdir(voldir)
+            if float(i['volume']) in volumes: continue
+            volumes.append(float(i['volume']))
             structure = Structure.from_dict(i['unitcell'])
+            natom = len(structure.sites)
             poscar = structure.to(fmt="poscar")
             unitcell_l = str(poscar).split('\n')
             supercell_matrix = i['supercell_matrix']
             supercell_structure = copy.deepcopy(structure)
             supercell_structure.make_supercell(supercell_matrix)
+            natoms = len(supercell_structure.sites)
             poscar = supercell_structure.to(fmt="poscar")
             supercell_l = str(poscar).split('\n')
-            natom = len(structure.sites)
-            natoms = len(supercell_structure.sites)
+            vol = 'V{:010.6f}'.format(float(i['volume']))
+            voldir = phdir+'/'+vol
+            if not os.path.exists(voldir):
+               os.mkdir(voldir)
+            structure.to(filename=voldir+'/POSCAR')
+            with open (voldir+'/metadata.json','w') as out:
+                mm = item['metadata']
+                mm['volume'] = i['volume']
+                
+                out.write('{}\n'.format(mm))
             with open (voldir+'/superfij.out','w') as out:
                 for line in range (2,5):
                     out.write('{}\n'.format(unitcell_l[line]))
@@ -117,6 +138,28 @@ class thfindMDB ():
                     for yy in range(natoms*3-1):
                         out.write('{} '.format(hessian_matrix[xx,yy]))
                     out.write('{}\n'.format(hessian_matrix[xx,natoms*3-1]))
+            if self.pyphon and self.get:
+                cwd = os.getcwd()
+                os.chdir( voldir )
+                if not os.path.exists('vdos.out'):
+                    cmd = "Yphon -tranI 2 -DebCut 0.5 " + " <superfij.out"
+                    print(cmd, " at ", voldir)
+                    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                        universal_newlines=True)
+                try:
+                    if len(F_vib)==0:
+                        print ("Calling yphon to get f_vib, s_vib, cv_vib at ", phdir)
+                    with open("vdos.out", "r") as fp:
+                        f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT \
+                            = pyphon.vibrational_contributions(T_vib, dos_input=fp, energyunit='eV')
+                except:
+                    print ("Calling pyphon failed at ", voldir+'/vdos.out')
+                    sys.exit()
+                F_vib.append(f_vib)
+                S_vib.append(s_vib)
+                CV_vib.append(cv_vib)
+                os.chdir( cwd )
+        return {'T_vib':list(T_vib), 'volumes':volumes, 'F_vib':F_vib, 'S_vib':S_vib, 'CV_vib':CV_vib}
 
     def phonon_find(self):
         hit = []
@@ -131,44 +174,50 @@ class thfindMDB ():
                 mm = i['metadata']
             except:
                 continue
-            if ii > 0: 
-                if mm in hit:
-                    count[hit.index(mm)] += 1
+            if ii <= 0: continue 
+            if mm in hit:
+                if i['volume'] not in volumes[hit.index(mm)]:
                     volumes[hit.index(mm)].append(i['volume'])
-                else:
-                    ITEMS.append(i)
-                    hit.append(mm)
-                    count.append(1)
-                    volumes.append([i['volume']])
-                    structure = Structure.from_dict(i['unitcell'])
-                    natoms = len(structure.sites)
-                    supercell_matrix = i['supercell_matrix']
-                    self.supercellsize.append(natoms*int(np.linalg.det(np.array(supercell_matrix))+.5))
-                    formula_pretty = structure.composition.reduced_formula
-                    sa = SpacegroupAnalyzer(structure)
-                    phasename = formula_pretty+'_'\
-                        + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
-                    phases.append(phasename)
+                    count[hit.index(mm)] += 1
+            else:
+                ITEMS.append(i)
+                hit.append(mm)
+                count.append(1)
+                volumes.append([i['volume']])
+                structure = Structure.from_dict(i['unitcell'])
+                natoms = len(structure.sites)
+                supercell_matrix = i['supercell_matrix']
+                self.supercellsize.append(natoms*int(np.linalg.det(np.array(supercell_matrix))+.5))
+                formula_pretty = structure.composition.reduced_formula
+                sa = SpacegroupAnalyzer(structure)
+                phasename = formula_pretty+'_'\
+                    + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+                if phasename in phases:
+                    for jj in range (10000):
+                        nphasename = phasename + "#" + str(jj)
+                        if nphasename in phases: continue
+                        phasename = nphasename
+                        break
+                phases.append(phasename)
 
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
         for i,m in enumerate(hit):
+            if self.skipby(phases[i]): continue
             static_calculations = (self.vasp_db).collection.\
                 find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
-            skip_calc = False
             nS = 0
             for calc in static_calculations:
                 vol = calc['output']['structure']['lattice']['volume']
                 nS += 1
-                if vol not in volumes[i] : 
-                    skip_calc = True
-                    break
             if count[i] < self.nV: continue
-            elif count[i]>5 and skip_calc and self.nV>=6 : continue
             if self.supercellsize[i] < self.supercellN: continue
-            if self.skipby(phases[i]): continue
             sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
-            self.tags.append(m['tag'])
-            if self.toyphon: self.toYphon(ITEMS[i],phases[i])
+            if count[i]<6: continue
+            if self.toyphon: 
+                self.tags.append(m['tag'])
+                self._Yphon.append(self.toYphon(ITEMS[i],phases[i]))
+            else:
+                self.tags.append(m['tag'])
 
 
     def debye_find(self):
@@ -179,20 +228,26 @@ class thfindMDB ():
             try:
                 ii = len(i['debye'])
                 mm = i['metadata']
-                if ii > 6: 
-                    if mm in hit:
-                        count[hit.index(mm)] += 1
-                    else:
-                        hit.append(mm)
-                        count.append(1)
-                        structure = Structure.from_dict(i['structure'])
-                        formula_pretty = structure.composition.reduced_formula
-                        sa = SpacegroupAnalyzer(structure)
-                        phasename = formula_pretty+'_'\
-                            + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
-                        phases.append(phasename)
             except:
-               pass
+                continue
+            if ii < 6: continue
+            if mm in hit:
+                count[hit.index(mm)] += 1
+            else:
+                hit.append(mm)
+                count.append(1)
+                structure = Structure.from_dict(i['structure'])
+                formula_pretty = structure.composition.reduced_formula
+                sa = SpacegroupAnalyzer(structure)
+                phasename = formula_pretty+'_'\
+                    + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+                if phasename in phases:
+                    for jj in range (10000):
+                        nphasename = phasename + "#" + str(jj)
+                        if nphasename in phases: continue
+                        phasename = nphasename
+                        break
+                phases.append(phasename)
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
         for i,m in enumerate(hit):
             if self.skipby(phases[i]): continue
