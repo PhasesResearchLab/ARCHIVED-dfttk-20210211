@@ -1,2 +1,2 @@
 #These results are produced by the following command line
-dfttk thfind -w SiC -get -py -td -50 -plot
+dfttk thfind -xall CuW -ss 20 -get -py -td -50 -plot

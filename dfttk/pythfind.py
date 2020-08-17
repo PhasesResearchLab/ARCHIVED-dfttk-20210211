@@ -37,7 +37,10 @@ class thfindMDB ():
             workflow, current only get_wf_gibbs
     """
     def __init__(self, args):
-        self.qhamode = args.qhamode
+        if args.qhamode is not None:
+            self.qhamode = args.qhamode
+        else:
+            self.qhamode = 'phonon'
         if args.qhamode == 'debye' : self.qhamode = 'qha'
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -45,12 +48,14 @@ class thfindMDB ():
         #items = vasp_db.db['phonon'].find({F_vib: {$gt: 0}})
         #items = vasp_db.db['phonon'].find({'metadata.tag': "djdjd"})
         #items = vasp_db.db['phonon'].find({})
-        self.items = (self.vasp_db).db[args.qhamode].find({})
+        self.items = (self.vasp_db).db[self.qhamode].find({})
         self.tags = []
         self._Yphon = []
         self.within = []
         self.containall = []
         self.containany = []
+        self.excludeall = []
+        self.excludeany = []
         self.nV = args.nV
         self.get = args.get
         self.supercellN = args.supercellN
@@ -60,12 +65,21 @@ class thfindMDB ():
         if args.within is not None: self.within, tmp = formula2composition(args.within)
         if args.containall is not None: self.containall, tmp = formula2composition(args.containall)
         if args.containany is not None: self.containany, tmp = formula2composition(args.containany)
+        if args.excludeall is not None: self.excludeall, tmp = formula2composition(args.excludeall)
 
     def skipby(self, phase):
         els,tmp = formula2composition(phase.split('_')[0])
         if len (self.within) != 0:
             for e in els:
                 if e not in self.within: return True
+        if len (self.excludeall) != 0:
+            for e in self.excludeall:
+                rx = e not in els
+                if rx: break
+            if not rx: return True
+        if len (self.excludeany) != 0:
+            for e in self.excludeany:
+                return True
         if len (self.containall) != 0:
             for e in self.containall:
                if e not in els: return True

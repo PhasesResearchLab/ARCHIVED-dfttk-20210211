@@ -190,17 +190,23 @@ def getdos(xdn, xup, dope, NEDOS, gaussian, edn, eup, vde, ve, tdos): # Line 186
     dos = refdos(eBoF, 0.0, vde, edn, e, ve, tdos)
     ados = cumtrapz(dos, e, initial=0.0)
     idx = closest(e,0.0)
-    NELECTRONS = ados[idx] - e[idx]/(e[idx+1]-e[idx])*(ados[idx+1]-ados[idx])
+    for idx1 in range(idx-1, 0, -1):
+        if ados[idx1] != ados[idx] : break
+    NELECTRONS = ados[idx] - e[idx]/(e[idx1]-e[idx])*(ados[idx1]-ados[idx])
 
     dF = 0.0
-    #print ("NELECTRONS=", NELECTRONS)
     if dope != 0.0:
         NELECTRONS = NELECTRONS+dope
         idx = closest(ados,NELECTRONS)
-        if idx == (NEDOS-1) or ados[idx] == ados[idx+1]:
+        for idx1 in range(idx-1, 0, -1):
+            if ados[idx1] != ados[idx] : break
+        #if idx == (NEDOS-1) or ados[idx] == ados[idx+1]:
+        #print ("NELECTRONS=", NELECTRONS, "idx=", idx, ados[idx], "idx1=", idx1, ados[idx1], "NEDOS=", NEDOS)
+        if idx1 <= 0 or idx >= (NEDOS-1) or ados[idx] == ados[idx1]:
+            print ("NELECTRONS=", NELECTRONS, "idx=", idx, ados[idx], "idx1=", idx1, ados[idx1], "NEDOS=", NEDOS)
             # we are dopidxng too much
             raise ValueError('Too much doping')
-        dF = (NELECTRONS-ados[idx])/(ados[idx+1] - ados[idx])*(e[idx+1] - e[idx])+e[idx]
+        dF = (NELECTRONS-ados[idx])/(ados[idx1] - ados[idx])*(e[idx1] - e[idx])+e[idx]
                 # dF is the shift in the Fermi energy due to doping
         e = e - dF # This is done in a loop (line 289), but I think we can do without
 
@@ -816,7 +822,7 @@ def get_debye_T_from_phonon_Cv(temperature, clat, dlat, natoms, _td=50):
     return 0.5*(t0 + t1)
     """
 
-def vol_within(vol, volumes, thr=0.01):
+def vol_within(vol, volumes, thr=0.001):
     for i,v in enumerate(volumes):
         if (abs(vol-v) < thr*vol): return True
     return False
@@ -864,7 +870,7 @@ class thelecMDB():
 
     def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
-                phasename=None, pyphon=False, debug=False):
+                phasename=None, pyphon=False, debug=False, renew=False):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -889,6 +895,7 @@ class thelecMDB():
         self.phasename=phasename
         self.pyphon=pyphon
         self.debug=debug
+        self.rerun=renew
         #print ("iiiii=",len(self._Yphon))
 
 
@@ -907,12 +914,13 @@ class thelecMDB():
         if not os.path.exists(phdir):
             os.mkdir(phdir)
         for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
-            if float(i['volume']) in self.Vlat: continue
+            if vol_within(float(i['volume']), self.Vlat): continue
             self.Vlat.append(float(i['volume']))
 
             structure = Structure.from_dict(i['unitcell'])
             poscar = structure.to(fmt="poscar")
             unitcell_l = str(poscar).split('\n')
+            natom = len(structure.sites)
 
             supercell_matrix = i['supercell_matrix']
             supercell_structure = copy.deepcopy(structure)
@@ -920,7 +928,6 @@ class thelecMDB():
 
             sa = SpacegroupAnalyzer(supercell_structure)
             primitive_unitcell_structure = sa.find_primitive()
-            natom = len(primitive_unitcell_structure.sites)
             poscar = primitive_unitcell_structure.to(fmt="poscar")
             punitcell_l = str(poscar).split('\n')
 
@@ -938,7 +945,7 @@ class thelecMDB():
                 out.write('{}\n'.format(mm))
             with open (voldir+'/superfij.out','w') as out:
                 for line in range (2,5):
-                    out.write('{}\n'.format(punitcell_l[line]))
+                    out.write('{}\n'.format(unitcell_l[line]))
                 for line in range (2,5):
                     out.write('{}\n'.format(supercell_l[line]))
                 out.write('{} {}\n'.format(natoms, natoms//natom))
@@ -1052,7 +1059,7 @@ class thelecMDB():
             cmdline = copy.deepcopy(sys.argv)
             cmdline[0] = cmdline[0].split('/')[-1]
             fp.write('#These results are produced by the following command line\n')
-            fp.write('{}'.format(' '.join(cmdline)))
+            fp.write('{}\n'.format(' '.join(cmdline)))
 
 
     def get_static_calculations(self):
@@ -1164,12 +1171,14 @@ class thelecMDB():
                 E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
                     self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], BMvol5)
             else:
+                #print (self.theall[0,i,:].shape, len(self.volumes), len(self.energies))
                 E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
                     self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], BMvol4)
         else:
             E0, Flat, Fel, Slat, Sel = self.energies, self.Flat[:,i], \
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:]
 
+        #if True:
         try:
             if self.eqmode==4:
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
@@ -1212,7 +1221,7 @@ class thelecMDB():
                     else:
                         blat, beta = self.calc_thermal_expansion(i, kind='UnivariateSpline')
                     if blat < 0: 
-                        print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
+                        print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
                     try:
                         slat = interp1d(self.volumes, self.Slat[:,i])(self.volT[i])
@@ -1258,6 +1267,10 @@ class thelecMDB():
 
     def run_console(self):
         self.find_static_calculations()
+        if not self.rerun:
+            pdis298 = self.phasename+'/figures/vdis298.15.png'
+            if os.path.exists(pdis298): return None, None, None
+      
         self.find_vibrational()
 
         T = np.array(self.T_vib)
@@ -1270,11 +1283,11 @@ class thelecMDB():
             self.T = T[T<=self.t1]
             #print ("xxxxx 3", len(self.T))
 
-        if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
-        else : self.get_static_calculations()
         if not self.pyphon: self.get_qha()
         self.hasSCF = True
         self.check_vol()
+        if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
+        else : self.get_static_calculations()
         return self.calc_thermodynamics()
 
 

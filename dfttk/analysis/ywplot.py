@@ -25,6 +25,8 @@ from scipy.optimize import curve_fit
 from scipy.constants import physical_constants
 from scipy.optimize import brentq
 from scipy.integrate import cumtrapz, trapz, simps
+from pymatgen import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 
 import re
 import json
@@ -1535,6 +1537,10 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
 
   thermo = np.loadtxt(thermofile, comments="#", dtype=np.float)
   thermo[np.isnan(thermo)] = 0.0
+  if len (thermo) < 1:
+      print("\nCorrupted thermofile for", thermofile, "Please check it!")
+      return
+
   for i,cp in enumerate(thermo[:,6]):
     if cp > CpMax: 
       thermo = thermo[0:i,:]
@@ -1554,6 +1560,8 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   H298 = f2(T0)
   f2=interp1d(thermo[:,0], thermo[:,3])
   S298 = f2(T0)
+
+  Plot298(folder, V298, volumes)
 
   threcord.update({"H298.15 (J/mol-atom)":H298})
   threcord.update({"S298.15 (J/mol-atom/K)":S298})
@@ -1586,6 +1594,96 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
+
+
+def Plot298(folder, V298, volumes):
+  import dfttk.scripts.config_dfttk as dfttkconfig
+  PATH_TO_STORE_CONFIG = dfttkconfig.default_path()
+  plotdatabase = dfttkconfig.get_abspath(PATH_TO_STORE_CONFIG)+'/analysis/database/'
+  #print (plotdatabase, folder)
+  ydir = folder+'/../Yphon/'
+  
+  for root, dirs, files in os.walk(ydir):
+    structure = Structure.from_file(ydir+dirs[len(dirs)//2]+'/POSCAR')
+    break
+
+  try:
+    natom = len(structure.sites)
+    sa = SpacegroupAnalyzer(structure)
+    ngroup = sa.get_space_group_number()
+  except:
+    return
+      
+  #print(natom,ngroup)
+
+  i1 = 0
+  for ii,vv in enumerate(volumes):
+    if float(vv) < V298:
+      i1 += 1
+  i1 -= 1
+  i1 = max(i1, 0)
+  i1 = min(i1, len(volumes)-2)
+  dV = float(volumes[i1+1]) - float(volumes[i1])
+  ff1 = (float(volumes[i1+1]) - V298)/dV
+  file1 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1]))
+  file2 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1+1]))
+  phdir298 = ydir+'/Phonon298.15'
+  if not os.path.exists(phdir298):
+      os.mkdir(phdir298)
+  cmd = "Ymix -f "+str(ff1)+ " "+file1+ " "+file2 +" >"+phdir298+"/superfij.out"
+  print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      universal_newlines=True)
+
+  cwd = os.getcwd()
+  os.chdir( phdir298 )
+
+  cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+  cmd = "gnuplot vdos.plt; convert -flatten -rotate 90 -density 120x120 vdos.eps vdos.png"
+  #print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+  
+  #copyfile("vdos.png", folder+'/vdos298.15.png')
+  os.rename("vdos.eps", cwd+'/'+folder+'/vdos298.15.eps')
+  os.rename("vdos.png", cwd+'/'+folder+'/vdos298.15.png')
+
+ 
+  dfile = ""
+  if ngroup>=1 and ngroup<=2:
+    dfile = plotdatabase+"/dfile.tri"
+  elif ngroup>=3 and ngroup<=15:
+    dfile = plotdatabase+"/dfile.mon"
+  elif ngroup>=16 and ngroup<=74:
+    dfile = plotdatabase+"/dfile.oth"
+  elif ngroup>=75 and ngroup<=142:
+    dfile = plotdatabase+"/dfile.tet"
+  elif ngroup>=143 and ngroup<=167:
+    dfile = plotdatabase+"/dfile.rho"
+  elif ngroup>=168 and ngroup<=194:
+    dfile = plotdatabase+"/dfile.hcp"
+  elif ngroup>=195 and ngroup<=220:
+    dfile = plotdatabase+"/dfile.scc"
+  elif ngroup>=221 and ngroup<=224:
+    dfile = plotdatabase+"/dfile.bcc"
+  elif ngroup>=225 and ngroup<=230:
+    dfile = plotdatabase+"/dfile.fcc"
+    
+  if dfile != "":
+    dfile0 = dfile.split('/')[-1]
+    copyfile(dfile,dfile0)
+    cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out"
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      universal_newlines=True)
+    cmd = "gnuplot vdis.plt; convert -flatten -rotate 90 -density 120x120 vdis.eps vdis.png"
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      universal_newlines=True)
+    os.rename("vdis.eps", cwd+'/'+folder+'/vdis298.15.eps')
+    os.rename("vdis.png", cwd+'/'+folder+'/vdis298.15.png')
+  os.chdir( cwd )
 
 
 if __name__ == '__main__':

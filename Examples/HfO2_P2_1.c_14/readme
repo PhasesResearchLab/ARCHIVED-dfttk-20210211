@@ -1,0 +1,2 @@
+#These results are produced by the following command line
+dfttk thfind -all HfO -ss 20 -get -py -td -50 -plot -eq 4

@@ -3,7 +3,7 @@
 DFTTK: Density Functional Theory Tool Kit
 =========================================
 
-**Ultimate goals:** Postprocessing the result produce by the DFTTK package
+**Ultimate goals:** High-throughput postprocessing the result produce by the DFTTK package
 Copyright © Phases Research Lab (https://www.phaseslab.com/)
 
 - Features
@@ -11,8 +11,10 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
  - High-throughput. It can postprocess plenty of data stored in MongoDB with one simple command.
  - Compatible with Yphon package (https://www.sciencedirect.com/science/article/pii/S0010465514002288) and
    phonopy (https://phonopy.github.io/phonopy/)
+ - Included more than 10 examples in the Example folder
+ - Can recover corrupted data that are not completely finished by the workflow
  - Can handle the thermal electron contribution to the thermodynamic properties
- - Can plot more than 10 figures of thermodynamic properties in the publishable accuracy
+ - Can plot more than most of thermodynamic properties, phonon dispersion/dos  in the publishable accuracy
  - High accuaracy with temperature as low as a few 10th K
  - Can produce more than 20 thermodynamic properties, as a function of temperature, including:
    atomic volume
@@ -31,15 +33,12 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
    electronic contribution to the specific heat
    Seebeck coefficient
    Lorenz number
+   Absolute thermal electric force
 
 
 - The following workflows are currently implemented:
-
  - thelec : process the downloaded from the database, covering phonon/debye approach
  - thfind : find what have in the database and download process the data
- - can recover corrupted data that are not completely finished by the workflow
-
-- Included more than 10 examples in the Example folder
 
 Usage of thelec module:
 usage: dfttk thelec [-h] [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]
