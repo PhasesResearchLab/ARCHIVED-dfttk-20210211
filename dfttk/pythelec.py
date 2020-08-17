@@ -4,6 +4,7 @@
 from __future__ import division
 import sys
 import os
+import subprocess
 import math
 import copy
 import numpy as np
@@ -15,6 +16,8 @@ from scipy.integrate import quadrature
 from scipy.interpolate import UnivariateSpline
 from atomate.vasp.database import VaspCalcDb
 from pymatgen import Structure
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
+import dfttk.pyphon as ywpyphon
 from dfttk.utils import sort_x_by_y
 
 
@@ -306,7 +309,7 @@ def closest(e,val):
         idx = idx + 1
     return idx
 
-def gfind(mu_el, pe, pdos, NELECTRONS, Beta):
+def gfind(mu_el, pe, pdos, NELECTRONS, Beta, IntegrationFunc=trapz):
     """
     Calculate the number of electron difference from 0K given chemical potential. the purpose is the find the
     chemical potential to make zero of number of electron difference from 0K
@@ -328,11 +331,11 @@ def gfind(mu_el, pe, pdos, NELECTRONS, Beta):
     tc = tc[np.where(tc<200)]
     k = len(tc)
     fn = pdos[0:k]/(np.exp(tc[0:k])+1.0)
-    return trapz(fn, pe[0:k])- NELECTRONS
+    return IntegrationFunc(fn, pe[0:k])- NELECTRONS
 
 
 # line 363
-def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
+def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0, IntegrationFunc=trapz): #line 363
     """
     Calculate thermal free energy from electronic density of states (e DOS)
 
@@ -349,13 +352,42 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
     """
 
     #print ("dF=", dF)
-    mu_el = brentq(gfind, mu_ref-10.0, mu_ref+10.0, args=(pe, pdos, NELECTRONS, Beta), maxiter=10000)
+    if 1==1:
+        mu_el = brentq(gfind, mu_ref-10.0, mu_ref+10.0, args=(pe, pdos, NELECTRONS, Beta, IntegrationFunc), maxiter=10000)
+    else:
+        t0 = mu_ref
+        d0 = gfind(t0, pe, pdos, NELECTRONS, Beta, IntegrationFunc)
+        if d0 > 0.0: td = -0.1
+        elif d0 <0.0: td = 0.1
+        else: return t0
+        for i in range(999):
+            t1 = t0 + td
+            d1 = gfind(t1, pe, pdos, NELECTRONS, Beta, IntegrationFunc)
+            if d1*d0 < 0.0: break
+            elif d1*d0 == 0.0: break
+            t0 = t1
+            d0 = d1
+            td = td + td
+        for i in range(999):
+            t2 = (t0 + t1)*0.5
+            d2 = gfind(t2, pe, pdos, NELECTRONS, Beta, IntegrationFunc)
+            if d2*d0 < 0.0:
+                t1 = t2
+                d1 = d2
+            else:
+                t0 = t2
+                d0 = d2
+            if abs(t1-t0) <1.e-8:
+                mu_el = 0.5*(t0+t1)
+                break
+        #mu_el = brentq(gfind, t0, t1, args=(pe, pdos, NELECTRONS, Beta), maxiter=10000)
+        print("xxxxxxx", mu_el,mu_old)
     tc = Beta*(pe-mu_el)
     tc = tc[np.where(tc<200)]
     k1 = len(tc)
     tf = 1.0/(np.exp(tc)+1.0)
     fn = pdos[0:k1]*pe[0:k1]*tf
-    u = trapz(fn, pe[0:k1])
+    u = IntegrationFunc(fn, pe[0:k1])
 
     k0 = closest(tc,-200)
     tf0 = tf[k0:]
@@ -363,22 +395,25 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
     pe = pe[k0:k1]
     tf1 = 1.0 - tf0 + 1.e-60 # 1.e-60 is used to avoid log exception
     fn = pdos*(tf0*np.log(tf0)+tf1*np.log(tf1))
-    s = trapz(fn, pe)
+    s = IntegrationFunc(fn, pe)
 
     tf = tf0*(1.0-tf0)
     fn = pdos*tf
     fn2 = pdos*tf*(pe-mu_el)
-    Q_el = trapz(fn, pe)
-    Q_p = trapz(fn[pe<=dF], pe[pe<=dF])
-    Q_e = trapz(fn[pe>dF], pe[pe>dF])
-    Y_el = trapz(fn2, pe)
+    Q_el = IntegrationFunc(fn, pe)
+    Q_p = IntegrationFunc(fn[pe<=dF], pe[pe<=dF])
+    Q_e = IntegrationFunc(fn[pe>dF], pe[pe>dF])
+    Y_el = IntegrationFunc(fn2, pe)
 
     fn = pdos*(pe-mu_el)*tf
-    e_ = trapz(fn, pe)/Q_el
-    fn = pdos[0:k1]*(pe[0:k1]-mu_el-e_)**2*tf
-    cv = trapz(fn, pe[0:k1])
+    if Q_el!=0.0:
+        e_ = IntegrationFunc(fn, pe)/Q_el
+        fn = pdos[0:k1]*(pe[0:k1]-mu_el-e_)**2*tf
+        cv = IntegrationFunc(fn, pe[0:k1])
+    else:
+        cv = 0.0
     fn = pdos[0:k1]*(pe[0:k1]-mu_el)**2*tf
-    c_mu = trapz(fn, pe[0:k1])
+    c_mu = IntegrationFunc(fn, pe[0:k1])
 
 #   hole/electron concentration by effective carrier
     tf = tf0*(1.0-tf0)
@@ -387,12 +422,12 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
     fmu = f2(mu_el)
     x = np.hstack([pe[pe<mu_el],mu_el])
     y = np.hstack([fn[pe<mu_el],fmu])
-    W_p = trapz(y,x)
+    W_p = IntegrationFunc(y,x)
     x = np.hstack([mu_el, pe[pe>mu_el]])
     y = np.hstack([fmu, fn[pe>mu_el]])
-    W_e = trapz(y,x)
-    #W_e = trapz(fn[pe>mu_el], pe[pe>mu_el])
-    #W_e = trapz(fn[pe>dF], pe[pe>dF])
+    W_e = IntegrationFunc(y,x)
+    #W_e = IntegrationFunc(fn[pe>mu_el], pe[pe>mu_el])
+    #W_e = IntegrationFunc(fn[pe>dF], pe[pe>dF])
 
 #   hole/electron concentration by alternative difination
     fn = pdos*(1.0-tf0)
@@ -406,7 +441,7 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
         fmu = 0.
     x = np.hstack([pe[pe<dF],dF])
     y = np.hstack([fn[pe<dF],fmu])
-    Y_p = trapz(y,x)
+    Y_p = IntegrationFunc(y,x)
 
     fn = pdos*tf0
     f2 = interp1d(pe, fn, kind='linear')
@@ -420,7 +455,7 @@ def caclf(pe, pdos, NELECTRONS, Beta, mu_ref=0.0, dF=0.0): #line 363
         fmu = 0.
     x = np.hstack([dF, pe[pe>dF]])
     y = np.hstack([fmu, fn[pe>dF]])
-    Y_e = trapz(y,x)
+    Y_e = IntegrationFunc(y,x)
 
     return mu_el, u, -s*k_B, cv*k_B*Beta*Beta, Q_el, Y_el, Q_p, Q_e, c_mu*k_B*Beta*Beta, W_p, W_e, Y_p, Y_e
 
@@ -446,7 +481,7 @@ def T_remesh(t0, t1, td, _nT=-1):
 
 
 def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, 
-    _T=[], dos=sys.stdin, fout=sys.stdout, vol=None):
+    _T=[], dos=sys.stdin, fout=sys.stdout, vol=None, IntegrationFunc=trapz):
     """
     Calculate thermal free energy from electronic density of states (e DOS)
 
@@ -510,13 +545,16 @@ def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
     elif td>0.0:
       T = np.arange(t0,t1+td,td) # temperature
     else:
-      T = T_remesh(t0,t1,td,_nT=129)
+      if self.debug:
+        T = T_remesh(t0,t1,td,_nT=65)
+      else:
+        T = T_remesh(t0,t1,td,_nT=129)
     nT = len(T)
     U_el = np.zeros(nT)
     S_el = np.zeros(nT)
     C_el = np.zeros(nT) # electronic specific heat
     C_mu = np.zeros(nT) # electronic specific heat at constant chemical potential
-    M_el = np.zeros(nT) # electronic chemical potential
+    M_el = np.zeros(nT) # electronic chemical potential, i.e., absolute thermal electric force
     Q_el = np.zeros(nT) # total number of thermal Carrier
     Y_el = np.zeros(nT)
     Q_p = np.zeros(nT)
@@ -531,7 +569,7 @@ def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
     for i in range(0,nT):
         if T[i]==0.0: continue
         Beta = 1.0e0/(T[i]*k_B)
-        M_el[i], U_el[i], S_el[i], C_el[i], Q_el[i],Y_el[i], Q_p[i],Q_e[i],  C_mu[i], W_p[i], W_e[i], Y_p[i], Y_e[i] = caclf(e, dos, NELECTRONS, Beta, M_el[i-1], dF=-dF)
+        M_el[i], U_el[i], S_el[i], C_el[i], Q_el[i],Y_el[i], Q_p[i],Q_e[i],  C_mu[i], W_p[i], W_e[i], Y_p[i], Y_e[i] = caclf(e, dos, NELECTRONS, Beta, M_el[i-1], dF=-dF, IntegrationFunc=IntegrationFunc)
         if Q_el[i]>0.0:
             seebeck_coefficients[i] = -1.0e6*Y_el[i]/Q_el[i]/T[i]
 
@@ -826,7 +864,7 @@ class thelecMDB():
 
     def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
-                _Yphon=[]):
+                phasename=None, pyphon=False, debug=False):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -848,8 +886,127 @@ class thelecMDB():
         self.elmode = elmode
         self.smooth = smooth
         self.plot = plot
-        self._Yphon=_Yphon
+        self.phasename=phasename
+        self.pyphon=pyphon
+        self.debug=debug
         #print ("iiiii=",len(self._Yphon))
+
+
+    def toYphon(self):
+        self.Vlat = []
+        self.Flat = []
+        self.Clat = []
+        self.Slat = []
+        if self.debug:
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=65)
+        else:
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=129)
+
+        print ("extract the superfij.out used by Yphon ...")
+        phdir = self.phasename+'/Yphon'
+        if not os.path.exists(phdir):
+            os.mkdir(phdir)
+        for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
+            if float(i['volume']) in self.Vlat: continue
+            self.Vlat.append(float(i['volume']))
+
+            structure = Structure.from_dict(i['unitcell'])
+            poscar = structure.to(fmt="poscar")
+            unitcell_l = str(poscar).split('\n')
+
+            supercell_matrix = i['supercell_matrix']
+            supercell_structure = copy.deepcopy(structure)
+            supercell_structure.make_supercell(supercell_matrix)
+
+            sa = SpacegroupAnalyzer(supercell_structure)
+            primitive_unitcell_structure = sa.find_primitive()
+            natom = len(primitive_unitcell_structure.sites)
+            poscar = primitive_unitcell_structure.to(fmt="poscar")
+            punitcell_l = str(poscar).split('\n')
+
+            natoms = len(supercell_structure.sites)
+            poscar = supercell_structure.to(fmt="poscar")
+            supercell_l = str(poscar).split('\n')
+            vol = 'V{:010.6f}'.format(float(i['volume']))
+            voldir = phdir+'/'+vol
+            if not os.path.exists(voldir):
+               os.mkdir(voldir)
+            structure.to(filename=voldir+'/POSCAR')
+            with open (voldir+'/metadata.json','w') as out:
+                mm = i['metadata']
+                mm['volume'] = i['volume']
+                out.write('{}\n'.format(mm))
+            with open (voldir+'/superfij.out','w') as out:
+                for line in range (2,5):
+                    out.write('{}\n'.format(punitcell_l[line]))
+                for line in range (2,5):
+                    out.write('{}\n'.format(supercell_l[line]))
+                out.write('{} {}\n'.format(natoms, natoms//natom))
+                for line in range (7,natoms+8):
+                    out.write('{}\n'.format(supercell_l[line]))
+                force_constant_matrix = np.array(i['force_constants'])
+                hessian_matrix = np.empty((natoms*3, natoms*3), dtype=float)
+                for ii in range(natoms):
+                    for jj in range(natoms):
+                        for x in range(3):
+                            for y in range(3):
+                                hessian_matrix[ii*3+x, jj*3+y] = -force_constant_matrix[ii,jj,x,y]
+                for xx in range(natoms*3):
+                    for yy in range(natoms*3-1):
+                        out.write('{} '.format(hessian_matrix[xx,yy]))
+                    out.write('{}\n'.format(hessian_matrix[xx,natoms*3-1]))
+
+            cwd = os.getcwd()
+            os.chdir( voldir )
+            if not os.path.exists('vdos.out'):
+                cmd = "Yphon -tranI 2 -DebCut 0.5 " + " <superfij.out"
+                print(cmd, " at ", voldir)
+                output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+
+            if len(self.Flat)==0:
+                print ("Calling yphon to get f_vib, s_vib, cv_vib at ", phdir)
+            with open("vdos.out", "r") as fp:
+                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT \
+                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
+
+            self.Flat.append(f_vib)
+            self.Slat.append(s_vib)
+            self.Clat.append(cv_vib)
+            os.chdir( cwd )
+
+        if len(self.Vlat)<=0:
+            print("\nFATAL ERROR! cannot find required data from phonon collection for metadata tag:", self.tag,"\n")
+            sys.exit()
+        self.Slat = np.array(sort_x_by_y(self.Slat, self.Vlat))
+        self.Clat = np.array(sort_x_by_y(self.Clat, self.Vlat))
+        self.Flat = np.array(sort_x_by_y(self.Flat, self.Vlat))
+        self.Vlat = np.array(sort_x_by_y(self.Vlat, self.Vlat))
+        self.Dlat = np.full((len(self.Vlat)), 400.)
+        self.volT = np.zeros(len(self.T_vib))
+        self.GibT = np.zeros(len(self.T_vib))
+
+
+    def check_vol(self):
+        print ("\nChecking compatibility between qha/Yphon data and static calculation:\n")
+        for i,v in enumerate (self.Vlat):
+            print (v, self.energies[list(self.volumes).index(v)])
+        if len(self.Vlat)!=len(self.volumes):
+            print("\nWarning! The static/qha calculations are not inconsistent! Let me see if I can resolve it\n")
+        _volumes = list(self.volumes)
+        for i, vol in enumerate(_volumes):
+            if vol not in self.Vlat:
+                del _volumes[i]
+                del self.energies[i]
+                del self.dos_objs[i]
+                print ("data in static calculation with volume=", vol, "is discarded")
+        if len(_volumes)<len(self.volumes) : self.volumes = np.array(_volumes)
+        if len(self.Vlat)==len(self.volumes) and len(self.Vlat)>=5:
+            print("\nOK, I found all needed  data\n")
+        else:
+            print("xxxxxx", self.Vlat, self.volumes)
+            print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
+            sys.exit()
 
 
     # get the energies, volumes and DOS objects by searching for the tag
@@ -875,9 +1032,8 @@ class thelecMDB():
                 print ("\n")
                 self.formula_pretty = structure.composition.reduced_formula
                 self.natoms = len(structure.sites)
-                from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
                 sa = SpacegroupAnalyzer(structure)
-                self.phasename = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+                self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
     
         # sort everything in volume order
         # note that we are doing volume last because it is the thing we are sorting by!
@@ -888,6 +1044,10 @@ class thelecMDB():
         #self.volumes = sort_x_by_y(volumes,volumes)
         self.volumes = np.array(list(map(float,sorted(volumes))))
         print ("found volumes from static calculations:", volumes)
+
+        if self.phasename is None: self.phasename = self.formula_pretty+'_'+self.phase
+        if not os.path.exists(self.phasename):
+            os.mkdir(self.phasename)
 
 
     def get_static_calculations(self):
@@ -903,7 +1063,11 @@ class thelecMDB():
             prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
                 self.gaussian, self.natom, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
             """
-            F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Q_el, Q_p, Q_e, C_mu, T, W_p, W_e, Y_p, Y_e = runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=dos, fout=fvib, vol=volumes[i])
+            if 1==1:
+                iFunc = trapz
+            else:
+                iFunc = simps
+            F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Q_el, Q_p, Q_e, C_mu, T, W_p, W_e, Y_p, Y_e = runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=dos, fout=fvib, vol=volumes[i], IntegrationFunc=iFunc)
             Tuple of 14 float array containing
             thermal electron free energy, entropy, specific heat, M_el, seebeck_coefficients, 
             effective number of charge carrier, Q_p, Q_e, constant chemical potential specific heat, temperature.
@@ -913,42 +1077,8 @@ class thelecMDB():
 
 
     def find_vibrational(self):
-        #print ("xxxxx=",len(self._Yphon))
-        if len(self._Yphon)!=0:
-            self.T_vib = self._Yphon['T_vib']
-            #print ("to be used", len(self.T_vib), "temperatures", self.T_vib)
-            #sys.exit()
-            self.s_phonon = self._Yphon['S_vib']
-            self.c_phonon = self._Yphon['CV_vib']
-            self.f_phonon = self._Yphon['F_vib']
-            self.v_phonon = self._Yphon['volumes']
-            self.s_phonon = sort_x_by_y(self.s_phonon, self.v_phonon)
-            self.c_phonon = sort_x_by_y(self.c_phonon, self.v_phonon)
-            self.f_phonon = sort_x_by_y(self.f_phonon, self.v_phonon)
-            self.v_phonon = sort_x_by_y(self.v_phonon, self.v_phonon)
-            if len(self.v_phonon)<=0:
-                print("\nFATAL ERROR! Wrong Yphon call.\n")
-                sys.exit()
-            print ("\nChecking compatibility between _Yphon and static calculation at volumes with energies:\n")
-            #print(list(self.volumes))
-            for i,v in enumerate (self.v_phonon):
-                print (v, self.energies[list(self.volumes).index(v)])
-            if len(self.v_phonon)!=len(self.volumes):
-                print("\nWarning! It appears that the calculations are not all done! Let me see if I can do something\n")
-            _volumes = list(self.volumes)
-            for i, vol in enumerate(_volumes):
-                if vol not in self.v_phonon:
-                    del _volumes[i]
-                    del self.energies[i]
-                    del self.dos_objs[i]
-                    print ("data in static calculation with volume=", vol, "will be discarded")
-            if len(_volumes)<len(self.volumes) : self.volumes = np.array(_volumes)
-            if len(self.v_phonon)==len(self.volumes):
-                print("\nOK, I found all needed  data from _Yphon\n")
-            else:
-                print("xxxxxx", self.v_phonon, self.volumes)
-                print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
-                sys.exit()
+        if self.pyphon:
+            self.toYphon()
             return
 
         if self.qhamode=="debye":
@@ -964,97 +1094,48 @@ class thelecMDB():
                 self.qha_items = self.vasp_db.db['qha'].find({'metadata.tag': self.tag})
     
         try:
+            sys.stdout.write("\nTrying to get quasiharmonic mode : {}... \n".format(self.qhamode))
             self.T_vib = self.qha_items[0][self.qhamode]['temperatures'][::self.everyT]
         except:
             try:
-                print("\nno data entry found for quasiharmonic mode :", self.qhamode, "\n")
-                print("trying to get from phonon.\n")
                 self.qha_items = self.vasp_db.db['qha_phonon'].find({'metadata.tag': self.tag})
                 self.T_vib = self.qha_items[0][self.qhamode]['temperatures'][::self.everyT]
             except:
-                print("\nWARNING! no data entry found for quasiharmonic mode :", self.qhamode, "\n")
-                print("checking if some phonon calculations are done ...\n")
-                phonon_items = self.vasp_db.db['phonon'].find({'metadata.tag': self.tag})
-                v_phonon = []
-                f_phonon = []
-                s_phonon = []
-                c_phonon = []
-                self.T_vib = None
-                for calc in phonon_items:
-                    pvol = calc['volume']
-                    if pvol not in v_phonon:
-                        if pvol in self.volumes:
-                            print("Found:", pvol, "within Static calculations:\n", self.volumes)
-                            if self.T_vib==None: self.T_vib = calc['temperatures'][::self.everyT]
-                            v_phonon.append(pvol)
-                            f_phonon.append(calc['F_vib'])
-                            s_phonon.append(calc['S_vib'])
-                            c_phonon.append(calc['CV_vib'])
-    
-                self.s_phonon = sort_x_by_y(s_phonon, v_phonon)
-                self.c_phonon = sort_x_by_y(c_phonon, v_phonon)
-                self.f_phonon = sort_x_by_y(f_phonon, v_phonon)
-                self.v_phonon = sort_x_by_y(v_phonon, v_phonon)
-    
-                if len(self.volumes)<=0:
-                    print("\nFATAL ERROR! I cannot find any results for entry !", self.tag, "\n")
-                    sys.exit()
-
-                print ("\nFound some calculation at volumes with energies:\n")
-                for i,v in enumerate (self.v_phonon):
-                    print (v, self.energies[list(self.volumes).index(v)])
-                if len(v_phonon)==len(self.volumes):
-                    print("\nOK, I found all needed  data from phonon collection\n")
-                else:
-                    print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
-                    sys.exit()
+                self.toYphon()
+                self.pyphon = True
 
 
-    def get_vibrational(self):
-        sys.stdout.write("\nTrying to get quasiharmonic mode : {}... ".format(self.qhamode))
-        try:
-        #if True:
-            _Vlat = self.qha_items[0][self.qhamode]['volumes']
-            _Slat = self.qha_items[0][self.qhamode]['entropies']
-            _Clat = self.qha_items[0][self.qhamode]['heat_capacities']
-            _Flat = self.qha_items[0][self.qhamode]['helmholtz_energies']
-            _Dlat = self.qha_items[0]['debye']['debye_temperatures']
-            Vlat = []
-            Slat = []
-            Clat = []
-            Flat = []
-            Dlat = []
-            for i, vol in enumerate(_Vlat):
-                if vol not in self.volumes: continue
-                if vol in Vlat: continue
-                Vlat.append(vol)
-                Slat.append(_Slat[i])
-                Clat.append(_Clat[i])
-                Flat.append(_Flat[i])
-                Dlat.append(_Dlat[i])
-    
-            Slat = sort_x_by_y(Slat, Vlat)
-            Clat = sort_x_by_y(Clat, Vlat)
-            Flat = sort_x_by_y(Flat, Vlat)
-            Dlat = sort_x_by_y(Dlat, Vlat)
-            self.Slat = np.array(Slat)[:,::self.everyT]
-            self.Clat = np.array(Clat)[:,::self.everyT]
-            self.Flat = np.array(Flat)[:,::self.everyT]
-            self.Dlat = np.array(Dlat)
-            self.volT = self.qha_items[0][self.qhamode]['optimum_volumes'][::self.everyT]
-            self.GibT = self.qha_items[0][self.qhamode]['gibbs_free_energy'][::self.everyT]
-            self.hasSCF = True
-        except:
-            try:
-                self.Slat = np.array(self.s_phonon)[:,::self.everyT]
-                self.Clat = np.array(self.c_phonon)[:,::self.everyT]
-                self.Flat = np.array(self.f_phonon)[:,::self.everyT]
-                self.Dlat = np.full((len(self.volumes)), 400.)
-                self.hasSCF = True
-            except:
-                self.hasSCF = False
-        if self.hasSCF: print ("Good NEWS! found!")
-        else: print ("Bad NEWS! not found!")
+    def get_qha(self):
+        _Vlat = self.qha_items[0][self.qhamode]['volumes']
+        _Slat = self.qha_items[0][self.qhamode]['entropies']
+        _Clat = self.qha_items[0][self.qhamode]['heat_capacities']
+        _Flat = self.qha_items[0][self.qhamode]['helmholtz_energies']
+        _Dlat = self.qha_items[0]['debye']['debye_temperatures']
+        Vlat = []
+        Slat = []
+        Clat = []
+        Flat = []
+        Dlat = []
+        for i, vol in enumerate(_Vlat):
+            if vol in Vlat: continue
+            Vlat.append(vol)
+            Slat.append(_Slat[i])
+            Clat.append(_Clat[i])
+            Flat.append(_Flat[i])
+            Dlat.append(_Dlat[i])
+
+        Slat = sort_x_by_y(Slat, Vlat)
+        Clat = sort_x_by_y(Clat, Vlat)
+        Flat = sort_x_by_y(Flat, Vlat)
+        Dlat = sort_x_by_y(Dlat, Vlat)
+        Vlat = sort_x_by_y(Vlat, Vlat)
+        self.Slat = np.array(Slat)[:,::self.everyT]
+        self.Clat = np.array(Clat)[:,::self.everyT]
+        self.Flat = np.array(Flat)[:,::self.everyT]
+        self.Dlat = np.array(Dlat)
+        self.Vlat = np.array(Vlat)
+        self.volT = self.qha_items[0][self.qhamode]['optimum_volumes'][::self.everyT]
+        self.GibT = self.qha_items[0][self.qhamode]['gibbs_free_energy'][::self.everyT]
         if self.td < 0:
             s = []
             f = []
@@ -1066,17 +1147,13 @@ class thelecMDB():
             self.Slat = np.array(s)
             self.Clat = np.array(c)
             self.Flat = np.array(f)
-            if hasattr(self, 'volT'):
-                self.volT = interp1d(self.T_vib, self.volT)(self.T)
-                self.GibT = interp1d(self.T_vib, self.GibT)(self.T)
+            self.volT = interp1d(self.T_vib, self.volT)(self.T)
+            self.GibT = interp1d(self.T_vib, self.GibT)(self.T)
         self.Slat[np.isnan(self.Slat)] = 0
-        if not hasattr(self, 'volT'):
-            #print(self.T)
-            self.volT = np.zeros(len(self.T))
-            self.GibT = np.zeros(len(self.T))
 
     
-    def calc_thermal_expansion(self,i):
+    def calc_thermal_expansion(self,i,kind='cubic'):
+        if self.T[i]==0.0: beta=0.0
         if self.smooth:
             if self.eqmode==5:
                 E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
@@ -1085,46 +1162,28 @@ class thelecMDB():
                 E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
                     self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], BMvol4)
         else:
-            #print ("I did not smooth")
             E0, Flat, Fel, Slat, Sel = self.energies, self.Flat[:,i], \
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:]
 
-        if self.eqmode==4:
-            try:
+        try:
+            if self.eqmode==4:
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
                     E0+Flat+Fel, BMvol4, N=7)
-            except:
-                return -1,0
-
-            if self.T[i]==0.0:
-                beta=0.0
-            else:
-                #print (E0, Flat, Fel, Slat, Sel, self.T[i])
-                beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel), 
-                    BMvol4) + P)/self.T[i]/blat
-        elif self.eqmode==5:
-            try:
+                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel), 
+                        BMvol4) + P)/self.T[i]/blat
+            elif self.eqmode==5:
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
                     E0+Flat+Fel, BMvol5, N=7)
-            except:
-                return -1,0 
-
-            if self.T[i]==0.0:
-                beta=0.0
+                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel),
+                        BMvol5) + P)/self.T[i]/blat
             else:
-                beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel),
-                    BMvol5) + P)/self.T[i]/blat
-        else:
-            try:
                 blat, self.volT[i], newF = CenDifB(self.volT[i], self.volumes, 
-                    E0+Flat+Fel, BMvol4, N=7,kind='UnivariateSpline')
-            except:
-                return -1,0 
-
-            if newF!=None: self.GibT[i] = newF
-            beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind='UnivariateSpline')/blat
-
-        return blat, beta
+                    E0+Flat+Fel, BMvol4, N=7,kind=kind)
+                if newF!=None: self.GibT[i] = newF
+                if self.T[i]!=0.0: beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind=kind)/blat
+            return blat, beta
+        except:
+            return -1.0, 0.0
 
     
     def calc_thermodynamics(self):
@@ -1133,11 +1192,7 @@ class thelecMDB():
         angstrom = 1e-30
         toJmol = Faraday_constant/self.natoms
         toGPa = electron_volt/angstrom*1.e-9
-    
-        phase = self.formula_pretty+'_'+self.phasename
-        if not os.path.exists(phase):
-            os.mkdir(phase)
-        thermofile = phase+'/'+self.outf
+        thermofile = self.phasename+'/'+self.outf
         
         with open(thermofile, 'w') as fvib:
             fvib.write('#Found quasiharmonic mode : {}\n'.format(self.qhamode))
@@ -1147,7 +1202,10 @@ class thelecMDB():
                 fvib.write('#T, F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Lorenz_number[WΩK−2], Q_el, Q_p, Q_e, C_mu, W_p, W_e, Y_p, Y_e Vol Gibbs_energy\n')
             for i in range(len(self.T)):
                 if self.hasSCF:
-                    blat, beta = self.calc_thermal_expansion(i)
+                    if self.elmode==0: 
+                        blat, beta = self.calc_thermal_expansion(i, kind='cubic')
+                    else:
+                        blat, beta = self.calc_thermal_expansion(i, kind='UnivariateSpline')
                     if blat < 0: 
                         print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
@@ -1192,13 +1250,14 @@ class thelecMDB():
                     self.volT[i], self.GibT[i]))
         return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
 
+
     def run_console(self):
         self.find_static_calculations()
         self.find_vibrational()
-        T = np.array(self.T_vib)
 
-        if len(self._Yphon)!=0:
-            self.T = self._Yphon['T_vib']
+        T = np.array(self.T_vib)
+        if self.pyphon:
+            self.T = self.T_vib
         elif self.td < 0:
             self.T = T_remesh(min(self.T_vib), min(self.t1,max(self.T_vib)), self.td)
             #print ("xxxxx 2", len(self.T))
@@ -1208,7 +1267,9 @@ class thelecMDB():
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
-        self.get_vibrational()
+        if not self.pyphon: self.get_qha()
+        self.hasSCF = True
+        self.check_vol()
         return self.calc_thermodynamics()
 
 

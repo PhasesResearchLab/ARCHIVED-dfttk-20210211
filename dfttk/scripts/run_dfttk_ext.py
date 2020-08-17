@@ -17,7 +17,7 @@ import os
 import sys
 import shutil
 
-def ext_thelec(args, _Yphon=[]):
+def ext_thelec(args):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
     """
     Postprocess for thermodynamic properties, Seebeck, Lorenz number etc
@@ -64,7 +64,7 @@ def ext_thelec(args, _Yphon=[]):
     if abs(dope)<5.e-9:
         ndosmx = 100001
         gaussian = 10000.
-
+        
     #call API
     if metatag != None:
         from fireworks.fw_config import config_to_dict
@@ -72,7 +72,7 @@ def ext_thelec(args, _Yphon=[]):
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
-            smooth=smooth, plot=plot, _Yphon=_Yphon)
+            smooth=smooth, plot=plot, debug=args.debug, phasename=args.phasename, pyphon=args.pyphon)
         volumes, energies, thermofile = proc.run_console()
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
@@ -86,6 +86,9 @@ def run_ext_thelec(subparsers):
     # begin process by Yi Wang, July 23, 2020
     #SUB-PROCESS: thelec
     pthelec = subparsers.add_parser("thelec", help="Calculate Seebeck and Lorenz number.")
+    pthelec.add_argument("-py", "--pyphon", dest="pyphon", action='store_true', default=False,
+                      help="use Yphon to recalculate vibrational properties. \n"
+                           "Default: False")
     pthelec.add_argument("-T0", "-t0", dest="t0", nargs="?", type=float, default=0.0,
                       help="Low temperature limit. \n"
                            "Default: 0")
@@ -101,9 +104,9 @@ def run_ext_thelec(subparsers):
     pthelec.add_argument("-xup", "--xup", dest="xup", nargs="?", type=float, default=100,
                       help="High band energy limit. \n"
                            "Default: 100")
-    pthelec.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=0.0,
+    pthelec.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=-1.e-8,
                       help="dope level (electrons). \n"
-                           "Default: 0")
+                           "Default: -1.e-8 for numerical stability")
     pthelec.add_argument("-ne", "--ndosmx", dest="ndosmx", nargs="?", type=int, default=10001,
                       help="new DOS mesh. \n"
                            "Default: 10001")
@@ -131,21 +134,27 @@ def run_ext_thelec(subparsers):
     pthelec.add_argument("-qhamode", "-qhamode", dest="qhamode", nargs="?", type=str, default=None,
                       help="quasiharmonic mode: debye, phonon, or yphon. \n"
                            "Default: debye")
+    pthelec.add_argument("-pn", "-phasename", dest="phasename", nargs="?", type=str, default=None,
+                      help="assigan phase name. \n"
+                           "Default: None")
     pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=0,
                       help="Mode to calculate LTC. 0: Symmetrical Central differential;  \n"
                            "                       4: 4-parameter BM fitting.  \n"
                            "                       5: 5-parameter BM fitting.  \n"
                            "Default: 0")
-    pthelec.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=1,
+    pthelec.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=0,
                       help="Mode to interpolate thermal electronic contribution:"
                            "                       0: interp1d;  \n"
                            "                       1: UnivariateSpline.  \n"
-                           "Default: 1")
+                           "Default: 0")
     pthelec.add_argument("-s", "-smooth", dest="smooth", action='store_true', default=False,
                       help="smooth the LTC. \n"
                            "Default: False")
     pthelec.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
                       help="plot the figure. \n"
+                           "Default: False")
+    pthelec.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
+                      help="turn on debug mode by reducing the mesh. \n"
                            "Default: False")
     pthelec.add_argument("-expt", "-expt", dest="expt", nargs="?", type=str, default=None,
                       help="json file path for experimental thermodynamic properties for plot. \n"
@@ -181,14 +190,11 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-ss", "--supercellsize", dest="supercellN", nargs="?", type=int, default=0,
                       help="only return phonon calculation with supercell size larger than. \n"
                            "Default: 0")
-    pthfind.add_argument("-g", "--get", dest="get", action='store_true', default=False,
+    pthfind.add_argument("-get", "--get", dest="get", action='store_true', default=False,
                       help="get the thermodyamic data for all found entries. \n"
                            "Default: False")
-    pthfind.add_argument("-ty", "--toyphon", dest="toyphon", action='store_true', default=False,
-                      help="extract the superfij.out used by Yphon for all found entries. \n"
-                           "Default: False")
     pthfind.add_argument("-py", "--pyphon", dest="pyphon", action='store_true', default=False,
-                      help="together with -g and -ty, use Yphon to recalculate vibrational properties. \n"
+                      help="use Yphon to recalculate vibrational properties. \n"
                            "Default: False")
     pthfind.add_argument("-T0", "-t0", dest="t0", nargs="?", type=float, default=0.0,
                       help="Low temperature limit. \n"
@@ -205,9 +211,9 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-xup", "--xup", dest="xup", nargs="?", type=float, default=100,
                       help="High band energy limit. \n"
                            "Default: 100")
-    pthfind.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=0.0,
+    pthfind.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=-1.e-8,
                       help="dope level (electrons). \n"
-                           "Default: 0")
+                           "Default: -1.e-8 for numerical stability")
     pthfind.add_argument("-ne", "--ndosmx", dest="ndosmx", nargs="?", type=int, default=10001,
                       help="new DOS mesh. \n"
                            "Default: 10001")
@@ -240,16 +246,19 @@ def run_ext_thfind(subparsers):
                            "                       4: 4-parameter BM fitting.  \n"
                            "                       5: 5-parameter BM fitting.  \n"
                            "Default: 0")
-    pthfind.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=1,
+    pthfind.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=0,
                       help="Mode to interpolate thermal electronic contribution:"
                            "                       0: interp1d;  \n"
                            "                       1: UnivariateSpline.  \n"
-                           "Default: 1")
+                           "Default: 0")
     pthfind.add_argument("-s", "-smooth", dest="smooth", action='store_true', default=False,
                       help="smooth the LTC. \n"
                            "Default: False")
     pthfind.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
                       help="plot the figure. \n"
+                           "Default: False")
+    pthfind.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
+                      help="turn on debug mode by reducing the mesh. \n"
                            "Default: False")
     pthfind.add_argument("-expt", "-expt", dest="expt", nargs="?", type=str, default=None,
                       help="json file path for experimental thermodynamic properties for plot. \n"
@@ -275,13 +284,11 @@ def ext_thfind(args):
             workflow, current only get_wf_gibbs
     """
     proc=thfindMDB(args)
-    tags,_Yphon = proc.run_console()
+    tags = proc.run_console()
     #print("xxxxx=",tags,_Yphon)
     if args.get:
-        for i,tag in enumerate(tags):
-            print("\nDownloading data by metadata tag:", tag, "\n")
-            args.metatag = tag
-            if len(_Yphon) > 0:
-                ext_thelec(args, _Yphon=_Yphon[i])
-            else:
-                ext_thelec(args)
+        for t in tags:
+            print("\nDownloading data by metadata tag:", t['tag'], "\n")
+            args.metatag = t['tag'] 
+            args.phasename = t['phasename'] 
+            ext_thelec(args)
