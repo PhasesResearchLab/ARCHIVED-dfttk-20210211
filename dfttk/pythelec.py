@@ -1048,6 +1048,11 @@ class thelecMDB():
         if self.phasename is None: self.phasename = self.formula_pretty+'_'+self.phase
         if not os.path.exists(self.phasename):
             os.mkdir(self.phasename)
+        with open (self.phasename+"/readme", "w") as fp: 
+            cmdline = copy.deepcopy(sys.argv)
+            cmdline[0] = cmdline[0].split('/')[-1]
+            fp.write('#These results are produced by the following command line\n')
+            fp.write('{}'.format(' '.join(cmdline)))
 
 
     def get_static_calculations(self):

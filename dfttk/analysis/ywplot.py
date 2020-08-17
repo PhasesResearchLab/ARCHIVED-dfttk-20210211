@@ -514,7 +514,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
                 ax.set_ylim([0.0,max(ynew)*1.5])
                 xnew = xx
                 ynew = yy
-                fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(xlim)+"_T2.png"
+                fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(xlim)+"_oT2.png"
             else:
                 for i,v in enumerate(x):
                     if v <= xlim: ylim=max(ylim,y0[i])
@@ -536,10 +536,13 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
             if ylim==0.0: ylim=1.e-4
             ax.set_ylim([0.0,ylim*1.5])
             tmp = ""
-            if CoT: tmp = "_T"
+            if CoT: tmp = "_oT"
             fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(elonly)+'_el'+tmp+".png"
         else:
-            fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+"2.png"
+            if fitted!=None:
+                fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+"_fitted.png"
+            else:
+                fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
             ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
         if elonly==None:
             if CoT:
