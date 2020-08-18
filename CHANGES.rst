@@ -44,10 +44,8 @@ Changelog
     run_ext_thelec(subparsers)
 
   - in the dfttk/analysis directory:
-   - debye_ext.py is renamed as debye_ext.py
+   - debye.py is renamed as debye_ext.py
     - to include the vibrational entropy (S_vib) and heat capacity (C_vib) into the "qha" MongoDB collection
-
-   - debye_ext.py is renamed as debye_ext.py
 
    - quasiharmonic.py:
     - copy the S_vib and C_vib from the "phonon" collection into the "qha_phonon" MongoDB collection
