@@ -19,6 +19,7 @@ from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import dfttk.pyphon as ywpyphon
 from dfttk.utils import sort_x_by_y
+from dfttk.analysis.ywplot import myjsonout
 
 
 k_B = physical_constants['Boltzmann constant in eV/K'][0]
@@ -1041,7 +1042,16 @@ class thelecMDB():
                 self.natoms = len(structure.sites)
                 sa = SpacegroupAnalyzer(structure)
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
-    
+                key_vasp_parameters ={}
+                key_vasp_parameters['pseudo_potential'] = calc['input']['pseudo_potential']
+                pot = calc['orig_inputs']['kpoints']
+                kpoints = {}
+                kpoints['generation_style'] = pot['generation_style']
+                kpoints['kpoints'] = pot['kpoints']
+                key_vasp_parameters['kpoins'] = kpoints
+                key_vasp_parameters['bandgap'] = calc['output']['bandgap']
+                self.key_vasp_parameters = key_vasp_parameters
+
         # sort everything in volume order
         # note that we are doing volume last because it is the thing we are sorting by!
     
@@ -1201,8 +1211,10 @@ class thelecMDB():
         angstrom = 1e-30
         toJmol = Faraday_constant/self.natoms
         toGPa = electron_volt/angstrom*1.e-9
-        thermofile = self.phasename+'/'+self.outf
+        with open(self.phasename+'/key_vasp_parameters.json', 'w') as fp:
+            myjsonout(self.key_vasp_parameters, fp, indent="", comma="")
         
+        thermofile = self.phasename+'/'+self.outf
         with open(thermofile, 'w') as fvib:
             fvib.write('#Found quasiharmonic mode : {}\n'.format(self.qhamode))
             if self.hasSCF:

@@ -6,8 +6,13 @@ DFTTK: Density Functional Theory Tool Kit
 **Ultimate goals:** High-throughput postprocessing the result produce by the DFTTK package
 Copyright © Phases Research Lab (https://www.phaseslab.com/)
 
-- Features
+This branch is based the robust_relax branch
 
+- The following extensions are currently implemented:
+ - thelec : process the downloaded from the database, covering phonon/debye approach
+ - thfind : search what have in the database and batch processing the data
+
+- Features
  - High-throughput DFT calculation and postprosess.
  - Can postprocess plenty of data stored in MongoDB with one simple command.
  - Can look through the MongoDB database to see what phases have been calculated by various conditions
@@ -20,8 +25,10 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
  - Avoid numerical differential as much as possible, made data smoothness greatly enhanced
  - Thermal expansion coefficients are calculated by thermodynamic relation with respect to volume
  - Can use the parabolic description of phonon DOS in low frequency region
- - High accuaracy with temperature as low as a few 10th K
- - Parabolic temperature series make the low temperature property more accurate (with option "-td -50")
+ - Can handle phonons for temperature at 0 K and a few tenth K for which the original codes mostly failed
+ - Can picked the results from correpted calculations due to reasons such as tow wide temperature range
+ - temperature can be made parabolic with option "-td -5" for better accuracy and efficiency
+ - Can call the thelec module from the thfind module for batch processing
  - Dope under rigid band approximation made it fast of thermoelectric properties
  - Can report the effect of thermal expansion/temperature on Seebeck coefficient, Lorenz number, thermal carrier concentrations
  - Can produce/plot more than 20 thermodynamic properties, as a function of temperature, including:
@@ -44,10 +51,53 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
    Lorenz number
    Absolute thermal electric force
 
+- Change List:
+ - added codes in the dfttk/scripts directory:
+  - run_dfttk_ext.py
+   - handle the argumetns for the thelec and thfind modules
 
-- The following workflows are currently implemented:
- - thelec : process the downloaded from the database, covering phonon/debye approach
- - thfind : find what have in the database and download process the data
+ - added python code in the dfttk directory:
+  - pyfind.py
+   - database search engine
+
+  - pythelec.py
+   - for compatibiliy with Yphon
+   - generating the majority of thermodynamic properties, such as thermal expansion coefficient, Seebech coefficients, Lorenz number etc
+
+  - pyphon.py for
+   - calculate the phonon contributions to the various thermodynamic properties
+
+ - added python code in the dfttk/analysis directory:
+  - database
+   - for plot phonon dispersions for all crystalline systems
+
+  - ywutils.py
+   - general utils code
+
+  - ywplot.py
+   - for plots of ~20 different phonon and thermodynamic properties in the png format 
+
+ - changed codes:
+  - in the dfttk/scripts directory:
+   - run_dfttk.py
+    - added the following lines aimed to handle the argumetns for the thelec and thfind modules
+
+    # extension by Yi Wang, finalized on August 4, 2020
+    # -----------------------------------
+    from dfttk.scripts.run_dfttk_ext import run_ext_thelec
+    run_ext_thelec(subparsers)
+
+  - in the dfttk/analysis directory:
+   - debye_ext.py is renamed as debye_ext.py
+    - to include the vibrational entropy (S_vib) and heat capacity (C_vib) into the "qha" MongoDB collection
+
+   - debye_ext.py is renamed as debye_ext.py
+
+   - quasiharmonic.py:
+    - copy the S_vib and C_vib from the "phonon" collection into the "qha_phonon" MongoDB collection
+
+
+
 
 Usage of thelec module:
 usage: dfttk thelec [-h] [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]

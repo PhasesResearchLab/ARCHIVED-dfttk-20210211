@@ -5,4 +5,5 @@ dir "Yphon" - all data input/output for Yphon, e.x., hessian matrix (superfij.ou
 dir "figures" - plots in png format for most of the thermodynamic properities
 file "readme" - This file
 file "record.json" - SGTE fitting record for heat capacity, Gibbs energy, enthalpy, and entropy at given temperature range
+file "key_vasp_parameters.json" - The calculated band gap, pseudopotential, and kpoints
 

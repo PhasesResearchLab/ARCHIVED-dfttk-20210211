@@ -1,4 +1,3 @@
-#!/global/project/projectdirs/m891/yiwang62/anaconda3/bin/python
 #!/usr/bin/python -x
 
 import sys
@@ -1646,7 +1645,8 @@ def Plot298(folder, V298, volumes):
   cwd = os.getcwd()
   os.chdir( phdir298 )
 
-  cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  #cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
