@@ -10,16 +10,16 @@ qunit=1.0
 eunit=1.000000
 funit=1.000000
 p0 = 0.000000
-pp0 = 0.440484
-p1 = 0.440484
-pp1 = 0.254314
-p2 = 0.694798
-pp2 = 0.254314
-p3 = 0.949112
-pp3 = 0.254314
-p4 = 1.203426
+pp0 = 0.430470
+p1 = 0.430470
+pp1 = 0.248532
+p2 = 0.679002
+pp2 = 0.248532
+p3 = 0.927534
+pp3 = 0.248532
+p4 = 1.176066
 
-set xtics ( '{/Symbol G}' qunit*0.000000, 'X' qunit*0.440484, '{/Symbol G}' qunit*0.694798, 'L' qunit*0.949112, 'X' qunit*1.203426)
+set xtics ( '{/Symbol G}' qunit*0.000000, 'X' qunit*0.430470, '{/Symbol G}' qunit*0.679002, 'L' qunit*0.927534, 'X' qunit*1.176066)
 
 set key left top
 set ylabel "Frequency (THz)"
