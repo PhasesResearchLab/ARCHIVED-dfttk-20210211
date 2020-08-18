@@ -959,7 +959,13 @@ class CheckRelaxScheme(FiretaskBase):
 
             vasp_db.db['relax_scheme'].insert_one(relax_scheme_data)
 
-            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
+            #Only if ISIF=4 passed, then run phonon
+            if 4 in relax_scheme:
+                relax_phonon = True
+            else:
+                relax_phonon = False
+
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure, 'relax_phonon': relax_phonon})
         else:
             raise ValueError('Please run RobustOptimizeFW firstly.')
 

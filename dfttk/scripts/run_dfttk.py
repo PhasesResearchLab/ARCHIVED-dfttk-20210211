@@ -132,6 +132,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     phonon_supercell_matrix = settings.get('phonon_supercell_matrix', None)
     phonon_supercell_matrix_min = settings.get('phonon_supercell_matrix_min', None)
     phonon_supercell_matrix_max = settings.get('phonon_supercell_matrix_max', None)
+    optimize_sc = settings.get('optimize_sc', False)
     #float, the mimimum of temperature in QHA process, e.g. 5
     t_min = settings.get('t_min', 5)
     #float, the maximum of temperature in QHA process, e.g. 2000
@@ -217,7 +218,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
-                 phonon_supercell_matrix_max=phonon_supercell_matrix_max, level=level)
+                 phonon_supercell_matrix_max=phonon_supercell_matrix_max, optimize_sc=optimize_sc, level=level)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
@@ -296,7 +297,7 @@ def run(args):
                     user_settings.update({'phonon': True})
                 phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
                 if phonon_supercell_matrix is None:
-                    phonon_supercell_matrix = 'atoms'
+                    user_settings.update({"phonon_supercell_matrix": "atoms"})
 
                 wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 

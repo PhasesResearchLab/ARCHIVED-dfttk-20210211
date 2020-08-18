@@ -69,7 +69,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
-                        phonon_supercell_matrix_max=120):
+                        phonon_supercell_matrix_max=120, optimize_sc=False):
     """
     E - V
     curve
@@ -153,7 +153,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
             phonon_supercell_matrix = supercell_scaling_by_atom_lat_vol(structure, min_obj=phonon_supercell_matrix_min,
                                             max_obj=phonon_supercell_matrix_max, scale_object=phonon_supercell_matrix,
                                             target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
-                                            verbose=False, sc_tolerance=1e-5)
+                                            verbose=False, sc_tolerance=1e-5, optimize_sc=optimize_sc)
         ph_scm_size = np.array(phonon_supercell_matrix).shape
         if not (ph_scm_size[0] == 3 and ph_scm_size[1] == 3):
             raise ValueError('Current phonon_supercell_matrix({}) is not correct.'.format(phonon_supercell_matrix))
