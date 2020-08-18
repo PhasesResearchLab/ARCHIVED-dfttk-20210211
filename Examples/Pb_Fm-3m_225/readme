@@ -1,2 +1,3 @@
-#These results are produced by the following command line
-dfttk thfind -xall CuW -ss 20 -get -py -td -50 -plot
+#These results are produced by the following command line on 2020-08-18 09:30:10.365675
+dfttk thfind -ss 20 -get -py -td -50 -plot -smooth -eq 4 -el 1 -xall CuW
+with "plot" done on 2020-08-18 09:30:28.398308

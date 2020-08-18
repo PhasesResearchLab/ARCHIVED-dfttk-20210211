@@ -513,7 +513,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
                 f2 = UnivariateSpline(xx, yy, s=0)
                 ynew = f2(xnew)
                 ax.set_xlim([0.0,xlim])
-                ax.set_ylim([0.0,max(ynew)*1.5])
+                ax.set_ylim([0.0,max(ynew)*1.2])
                 xnew = xx
                 ynew = yy
                 fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(xlim)+"_oT2.png"
@@ -526,17 +526,16 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         elif elonly!=None:
             ylim = 0.0
             for i,v in enumerate(x):
-                tmp = 0.0
-                if v!=0.0: tmp = (y0[i]-y1[i])/v
                 if v <= elonly: 
                     if CoT:
-                        if v>0.0: ylim=max(ylim,tmp)
-                        else: break
+                        if v!=0.0: 
+                            tmp = (y0[i]-y1[i])/v
+                            ylim=max(ylim,tmp)
                     else:
                         if v>0.0: ylim=max(ylim,(y0[i]-y1[i]))
             ax.set_xlim([0.0,elonly])
             if ylim==0.0: ylim=1.e-4
-            ax.set_ylim([0.0,ylim*1.5])
+            ax.set_ylim([0.0,ylim*1.2])
             tmp = ""
             if CoT: tmp = "_oT"
             fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(elonly)+'_el'+tmp+".png"
@@ -563,8 +562,10 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
                 ax.plot(x,y2,'-.',linewidth=2,color='r', label="$C_{el}/T$")
                 plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
         else:
-            ax.plot(x,y2,'-.',linewidth=2,color='r', label="$C_{el}$")
-            plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
+            tmp = y2.max()
+            if tmp > 1.e-2:
+                ax.plot(x,y2,'-.',linewidth=2,color='r', label="$C_{el}$")
+                plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
 
     if CoT and xlim!=None:
         plt.xlabel("$T^2 (K^2)$")
@@ -1539,7 +1540,7 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   thermo[np.isnan(thermo)] = 0.0
   if len (thermo) < 1:
       print("\nCorrupted thermofile for", thermofile, "Please check it!")
-      return
+      return False
 
   for i,cp in enumerate(thermo[:,6]):
     if cp > CpMax: 
@@ -1587,13 +1588,20 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
-  thermoplot(folder,"heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
+  tmp = 0.0
+  for i,v in enumerate(thermo[:,0]):
+    if v >300: break
+    tmp = max(tmp, thermo[i,6]-thermo[i,8])
+  if tmp>1.e-2:
+    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70)
   thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim)
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
+
+  return True
 
 
 def Plot298(folder, V298, volumes):

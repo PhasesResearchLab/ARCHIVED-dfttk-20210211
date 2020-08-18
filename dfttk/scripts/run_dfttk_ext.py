@@ -73,16 +73,39 @@ def ext_thelec(args):
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, plot=plot, debug=args.debug, 
-            phasename=args.phasename, pyphon=args.pyphon, renew=args.rerun)
+            phasename=args.phasename, pyphon=args.pyphon, renew=args.renew)
         volumes, energies, thermofile = proc.run_console()
         if volumes is None: return
+        record_cmd(thermofile)
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
-            plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim)
+            if plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim): record_cmd_continue(thermofile, 'plot')
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
+
+
+from datetime import datetime
+def record_cmd(fdir):
+    dir = fdir
+    if not os.path.isdir(dir):
+        dir = '/'.join(fdir.split('/')[0:-1])
+        if dir == "": dir = "./"
+        with open (dir+"/readme", "w") as fp:
+            cmdline = copy.deepcopy(sys.argv)
+            cmdline[0] = cmdline[0].split('/')[-1]
+            fp.write('#These results are produced by the following command line on {}\n'.format(datetime.now()))
+            fp.write('{}\n'.format(' '.join(cmdline)))
+
+
+def record_cmd_continue(fdir, cmd):
+    dir = fdir
+    if not os.path.isdir(dir):
+        dir = '/'.join(fdir.split('/')[0:-1])
+        if dir == "": dir = "./"
+        with open (dir+"/readme", "a") as fp:
+            fp.write('with "{}" done on {}\n'.format(cmd, datetime.now()))
 
 
 def shared_aguments(pthelec):
@@ -153,8 +176,8 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
                       help="plot the figure. \n"
                            "Default: False")
-    pthelec.add_argument("-rerun", "-rerun", dest="rerun", action='store_true', default=False,
-                      help="rerun/plot the figure. \n"
+    pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
+                      help="renew/plot the figure. \n"
                            "Default: False")
     pthelec.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
                       help="turn on debug mode by reducing the mesh. \n"

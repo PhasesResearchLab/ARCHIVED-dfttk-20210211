@@ -895,7 +895,7 @@ class thelecMDB():
         self.phasename=phasename
         self.pyphon=pyphon
         self.debug=debug
-        self.rerun=renew
+        self.renew=renew
         #print ("iiiii=",len(self._Yphon))
 
 
@@ -1055,11 +1055,6 @@ class thelecMDB():
         if self.phasename is None: self.phasename = self.formula_pretty+'_'+self.phase
         if not os.path.exists(self.phasename):
             os.mkdir(self.phasename)
-        with open (self.phasename+"/readme", "w") as fp: 
-            cmdline = copy.deepcopy(sys.argv)
-            cmdline[0] = cmdline[0].split('/')[-1]
-            fp.write('#These results are produced by the following command line\n')
-            fp.write('{}\n'.format(' '.join(cmdline)))
 
 
     def get_static_calculations(self):
@@ -1267,7 +1262,7 @@ class thelecMDB():
 
     def run_console(self):
         self.find_static_calculations()
-        if not self.rerun:
+        if not self.renew:
             pdis298 = self.phasename+'/figures/vdis298.15.png'
             if os.path.exists(pdis298): return None, None, None
       

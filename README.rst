@@ -8,15 +8,23 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
 
 - Features
 
- - High-throughput. It can postprocess plenty of data stored in MongoDB with one simple command.
+ - High-throughput DFT calculation and postprosess.
+ - Can postprocess plenty of data stored in MongoDB with one simple command.
+ - Can look through the MongoDB database to see what phases have been calculated by various conditions
  - Compatible with Yphon package (https://www.sciencedirect.com/science/article/pii/S0010465514002288) and
    phonopy (https://phonopy.github.io/phonopy/)
  - Included more than 10 examples in the Example folder
  - Can recover corrupted data that are not completely finished by the workflow
  - Can handle the thermal electron contribution to the thermodynamic properties
- - Can plot more than most of thermodynamic properties, phonon dispersion/dos  in the publishable accuracy
+ - Can plot most of common thermodynamic properties, phonon dispersion/dos  in the publishable accuracy
+ - Avoid numerical differential as much as possible, made data smoothness greatly enhanced
+ - Thermal expansion coefficients are calculated by thermodynamic relation with respect to volume
+ - Can use the parabolic description of phonon DOS in low frequency region
  - High accuaracy with temperature as low as a few 10th K
- - Can produce more than 20 thermodynamic properties, as a function of temperature, including:
+ - Parabolic temperature series make the low temperature property more accurate (with option "-td -50")
+ - Dope under rigid band approximation made it fast of thermoelectric properties
+ - Can report the effect of thermal expansion/temperature on Seebeck coefficient, Lorenz number, thermal carrier concentrations
+ - Can produce/plot more than 20 thermodynamic properties, as a function of temperature, including:
    atomic volume
    free energy
    entropy
@@ -28,6 +36,7 @@ Copyright © Phases Research Lab (https://www.phaseslab.com/)
    bulk modulus
    Debye temperature
    Debye temperature by Debye model (if it can find)
+   Heat capacity diveded temperature vs square of temperature
    electronic contribution to the free energy
    electronic contribution to the entropy
    electronic contribution to the specific heat
