@@ -2,6 +2,54 @@
 Changelog
 =========
 
+0.22 (2020-08-18)
+================
+- Change List:
+ - added codes in the dfttk/scripts directory:
+  - run_dfttk_ext.py
+   - handle the argumetns for the thelec and thfind modules
+
+ - added python code in the dfttk directory:
+  - pyfind.py
+   - database search engine
+
+  - pythelec.py
+   - for compatibiliy with Yphon
+   - generating the majority of thermodynamic properties, such as thermal expansion coefficient, Seebech coefficients, Lorenz number etc
+
+  - pyphon.py for
+   - calculate the phonon contributions to the various thermodynamic properties
+
+ - added python code in the dfttk/analysis directory:
+  - database
+   - for plot phonon dispersions for all crystalline systems
+
+  - ywutils.py
+   - general utils code
+
+  - ywplot.py
+   - for plots of ~20 different phonon and thermodynamic properties in the png format 
+
+ - changed codes:
+  - in the dfttk/scripts directory:
+   - run_dfttk.py
+    - added the following lines aimed to handle the argumetns for the thelec and thfind modules
+
+    # extension by Yi Wang, finalized on August 4, 2020
+    # -----------------------------------
+    from dfttk.scripts.run_dfttk_ext import run_ext_thelec
+    run_ext_thelec(subparsers)
+
+  - in the dfttk/analysis directory:
+   - debye_ext.py is renamed as debye_ext.py
+    - to include the vibrational entropy (S_vib) and heat capacity (C_vib) into the "qha" MongoDB collection
+
+   - debye_ext.py is renamed as debye_ext.py
+
+   - quasiharmonic.py:
+    - copy the S_vib and C_vib from the "phonon" collection into the "qha_phonon" MongoDB collection
+
+
 0.2 (2020-03-30)
 ================
 
