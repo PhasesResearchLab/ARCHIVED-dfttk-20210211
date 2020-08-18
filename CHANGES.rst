@@ -4,6 +4,9 @@ Changelog
 
 0.22 (2020-08-18)
 ================
+
+(Contributor: `@YiWang`_, `@mxf469`_)
+
 - Change List:
  - added codes in the dfttk/scripts directory:
   - run_dfttk_ext.py
@@ -49,7 +52,6 @@ Changelog
    - quasiharmonic.py:
     - copy the S_vib and C_vib from the "phonon" collection into the "qha_phonon" MongoDB collection
 
-
 0.2 (2020-03-30)
 ================
 
@@ -80,3 +82,4 @@ Initial release. Includes
 .. _`@bocklund`: https://github.com/bocklund
 .. _`@mxf469`: https://github.com/mxf469
 .. _`@hitliaomq`: https://github.com/hitliaomq
+.. _`@YiWang`: https://github.com/yiwang62
