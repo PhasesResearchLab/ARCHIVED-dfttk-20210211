@@ -732,7 +732,26 @@ def CenDifB(_v, vol, F, BMfunc, N=7,kind='cubic'):
         result += (CenDif(v+dV*(i+1), vol, F, kind=kind) - CenDif(v-dV*(i+1), vol, F, kind=kind))/(2.0*(i+1)*dV)
     return result*v/(n), v, ff
 
-def BMDifB(_v, vol, F, BMfunc, N=7):
+def BMDifB(_v, _vol, _F, BMfunc, N=7):
+    F = list(copy.deepcopy(_F))
+    vol = list(copy.deepcopy(_vol))
+
+    """
+    # will only use 3 points above minimum volume 
+    val, idx = min((val, idx) for (idx, val) in enumerate(_F))
+    for i in range(len(_F)-1, 3, -1):
+        if i>idx+3: 
+            del vol[i]
+            del F[i]
+    if len(F) < 5: return -1, 0,0,0
+    """
+
+    F = np.array(F)
+    vol = np.array(vol)
+    # check if instability exists at the high volume part F(i) > F[i-1] for BM fitting
+    for i in range(-1, -3, -1):
+        if F[i] <= F[i-1]: return -1, 0,0,0
+           
     dV = 0.01*(max(vol) - min(vol))
     if _v!=0.0:
         v = brentq(BMfitP, _v-N*dV, _v+N*dV, args=(vol, F, BMfunc), maxiter=10000)
@@ -1044,10 +1063,12 @@ class thelecMDB():
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
                 key_vasp_parameters ={}
                 key_vasp_parameters['pseudo_potential'] = calc['input']['pseudo_potential']
+                key_vasp_parameters['ENCUT'] = calc['input']['incar']['ENCUT']
+                key_vasp_parameters['NEDOS'] = calc['input']['incar']['NEDOS']
                 pot = calc['orig_inputs']['kpoints']
                 kpoints = {}
                 kpoints['generation_style'] = pot['generation_style']
-                kpoints['kpoints'] = pot['kpoints']
+                kpoints['kpoints'] = pot['kpoints'][0]
                 key_vasp_parameters['kpoins'] = kpoints
                 key_vasp_parameters['bandgap'] = calc['output']['bandgap']
                 self.key_vasp_parameters = key_vasp_parameters
@@ -1183,16 +1204,24 @@ class thelecMDB():
             E0, Flat, Fel, Slat, Sel = self.energies, self.Flat[:,i], \
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:]
 
-        #if True:
-        try:
+        #try:
+        if True:
+            if i==0:
+                val, idx = min((val, idx) for (idx, val) in enumerate(self.energies))
+                self.volT[i] = self.volumes[idx]
+            elif self.volT[i]==0:
+                self.volT[i]=self.volT[i-1]
             if self.eqmode==4:
+                #print ("iiii", self.T[i], self.volT[i], E0+Flat+Fel)
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
                     E0+Flat+Fel, BMvol4, N=7)
+                if blat < 0: return -1.0, 0.0
                 if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel), 
                         BMvol4) + P)/self.T[i]/blat
             elif self.eqmode==5:
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
                     E0+Flat+Fel, BMvol5, N=7)
+                if blat < 0: return -1.0, 0.0
                 if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel),
                         BMvol5) + P)/self.T[i]/blat
             else:
@@ -1200,9 +1229,10 @@ class thelecMDB():
                     E0+Flat+Fel, BMvol4, N=7,kind=kind)
                 if newF!=None: self.GibT[i] = newF
                 if self.T[i]!=0.0: beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind=kind)/blat
+                if blat < 0: return -1.0, 0.0
             return blat, beta
-        except:
-            return -1.0, 0.0
+        #except:
+        #return -1.0, 0.0
 
     
     def calc_thermodynamics(self):
@@ -1243,10 +1273,13 @@ class thelecMDB():
                 #print (self.theall.shape)
                 prp_T = np.zeros((self.theall.shape[0]))
                 for j in range(len(prp_T)):
+                    prp_T[j] = interp1d(self.volumes, self.theall[j,i,:], kind='cubic')(self.volT[i])
+                    """
                     if self.elmode==0: 
                         prp_T[j] = interp1d(self.volumes, self.theall[j,i,:], kind='cubic')(self.volT[i])
                     else:
                         prp_T[j] = UnivariateSpline(self.volumes, self.theall[j,i,:])(self.volT[i])
+                    """
     
                 # 0 K limit for the Lorenz number
                 L = 2.443004551768e-08 #(1.380649e-23/1.60217662e-19*3.14159265359)**2/3

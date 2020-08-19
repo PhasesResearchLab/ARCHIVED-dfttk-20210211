@@ -231,6 +231,7 @@ if __name__ == '__main__':
     #t0 = td  # low temperature
     natom = 1
     dmu = 0
+    unit = 1
 
     # handling the command line option
     # TODO: use proper argparse module for this
@@ -261,8 +262,11 @@ if __name__ == '__main__':
         if (count > len(sys.argv)):
           break
         natom = int(sys.argv[count])
+      elif (sys.argv[count] == "-moleatom"):
+        unit = physical_constants['Avogadro constant'][0]
       count = count + 1
 
+    unit = unit/natom
     # for all temperatures
     T = np.arange(t0,t1+td,td) # temperature
     F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT \
@@ -277,7 +281,7 @@ if __name__ == '__main__':
         
         sys.stdout.write('{:10.7g} {:10.7g} {:10.7g} {:10.7g} {:10.7g} {:10.7g} {:10.7g} \
         {:10.7g} {:10.7g} {:10.7g} {:10.7g} {:10.7g} {:10.7g}\n'.format(\
-        T[i], F_ph[i], U_ph[i], S_ph[i], C_ph_mu[i], C_ph_n[i], \
+        T[i], F_ph[i]*unit, U_ph[i]*unit, S_ph[i]*unit, C_ph_mu[i]*unit, C_ph_n[i], \
         tmp0, tmp1, Sound_ph[i], Sound_nn[i], \
         N_ph[i], NN_ph[i], debyeT[i]))
 

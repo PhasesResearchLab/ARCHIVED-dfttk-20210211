@@ -1,0 +1,33 @@
+#!/bin/csh
+#set filename = "force_constants.hdf5"
+if ( "$1" != "" ) then
+  set filename = "$1"
+endif
+
+head -5 unitcell.VASP | tail -3 >superfij.out
+head -5 supercell.VASP | tail -3 >>superfij.out
+set line = `python phonopy2yphon.py -getnatoms`
+set natom = `echo $line | awk '{print $1}'`
+set natoms = `echo $line | awk '{print $2}'`
+@ ncell = $natoms / $natom
+echo $natoms $ncell >>superfij.out
+echo direct >>superfij.out
+tail -n +9 supercell.VASP >>superfij.out
+python phonopy2yphon.py >>superfij.out
+Yphon -nqwave 10 <superfij.out >t.0
+set last = `grep ' Mapping of Supercell of Primitive cell' t.0 -n -a | tail -1 | awk '{print $1}' | sed 's/://g'`
+if ( "$last" == "" ) then
+    echo "error: CANNOT find line ' Mapping of Supercell of Primitive cell'"
+    exit(1)
+endif
+set natom = `grep " Atom(s) in the Primitive cell" t.0 | awk '{print $1}'`
+@ nline = "$natom" + 2
+tail -n +$last t.0 | head -$nline | tail -n +3 >t.1
+
+head -5 unitcell.VASP | tail -3 >superfij.out
+head -5 supercell.VASP | tail -3 >>superfij.out
+echo 48 2 >>superfij.out
+echo direct >>superfij.out
+tail -n +9 supercell.VASP >>superfij.out
+python phonopy2yphon.py -map t.1 >>superfij.out
+\rm t.0 t.1

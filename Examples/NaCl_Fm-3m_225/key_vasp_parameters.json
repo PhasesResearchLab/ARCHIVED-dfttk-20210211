@@ -1,0 +1,13 @@
+{
+    "bandgap": 5.003699999999999,
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [[15, 15, 15]]
+    },
+
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Na_pv", "Cl"],
+        "pot_type": "paw"
+    }
+}

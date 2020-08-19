@@ -1,8 +1,10 @@
 {
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
     "bandgap": 0.0,
     "kpoins": {
         "generation_style": "Monkhorst",
-        "kpoints": [[8, 6, 4]]
+        "kpoints": [8, 6, 4]
     },
 
     "pseudo_potential": {

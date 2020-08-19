@@ -1,0 +1,13 @@
+{
+    "bandgap": 0.0,
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [[20, 20, 20]]
+    },
+
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Hf_pv"],
+        "pot_type": "paw"
+    }
+}

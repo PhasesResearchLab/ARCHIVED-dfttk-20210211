@@ -1,0 +1,13 @@
+{
+    "bandgap": 0.0,
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [[18, 18, 11]]
+    },
+
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Ti_sv"],
+        "pot_type": "paw"
+    }
+}
