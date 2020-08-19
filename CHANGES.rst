@@ -33,6 +33,11 @@ Changelog
   - ywplot.py
    - for plots of ~20 different phonon and thermodynamic properties in the png format 
 
+* made Yphon compatibile with phonopy
+ - added codes in the CRO-soc directory:
+   - phonopy2yphon, phonopy2yphon.py
+    - convert the phonopy force constant matrix in hdf5 format into superfij.out format used by Yphon
+
  - changed codes:
   - in the dfttk/scripts directory:
    - run_dfttk.py
