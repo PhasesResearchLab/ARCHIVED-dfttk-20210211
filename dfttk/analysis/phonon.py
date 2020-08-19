@@ -194,3 +194,8 @@ def phonon_stable(structure, supercell_matrix, force_constants, qpoint_mesh=(50,
     ph_dos_obj = get_phonon_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh)
     phonon_freq = ph_dos_obj._total_dos._frequency_points
     phonon_dos = ph_dos_obj._total_dos._dos
+    freq_min = np.amin(phonon_freq)
+    if freq_min > 0:
+        return True
+    else:
+        pass
