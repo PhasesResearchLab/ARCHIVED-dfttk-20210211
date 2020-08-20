@@ -1,3 +1,3 @@
-#These results are produced by the following command line on 2020-08-19 20:29:02.239299
-dfttk thfind -ss 20 -get -py -td -50 -plot -eq 4 -renew
-with "plot" done on 2020-08-19 20:29:19.896404
+#These results are produced by the following command line on 2020-08-20 17:17:36.453209
+dfttk thelec -metatag 75e23138-7713-4ba7-a165-d9e20482784c -td -50 -plot -renew -py
+with "plot" done on 2020-08-20 17:17:54.369352

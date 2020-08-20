@@ -73,7 +73,7 @@ def ext_thelec(args):
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, plot=plot, debug=args.debug, 
-            phasename=args.phasename, pyphon=args.pyphon, renew=args.renew)
+            phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF)
         volumes, energies, thermofile = proc.run_console()
         if volumes is None: return
         record_cmd(thermofile)
@@ -178,6 +178,10 @@ def shared_aguments(pthelec):
                            "Default: False")
     pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
                       help="renew/plot the figure. \n"
+                           "Default: False")
+    pthelec.add_argument("-fitF", "-fitF", dest="fitF", action='store_true', default=False,
+                      help="USE with CARE! apply for the case of poor data quality. \n"
+                           "Enforce second order fitting to the vibrational and electronic free energy.\n"
                            "Default: False")
     pthelec.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
                       help="turn on debug mode by reducing the mesh. \n"

@@ -699,38 +699,58 @@ def BMsmooth(_V, _E0, _Flat, _Fel, _Slat, _Sel, BMfunc):
     return E0, Flat, Fel, Slat, Sel
 
 def CenDif(v, vol, F, N=7,kind='cubic'):
-    dV = 0.01*(max(vol) - min(vol))
+    vn = min(vol)
+    vx = max(vol)
+    dV = 0.001*(vx-vn)
     if kind=='cubic':
         f2 = interp1d(vol, F, kind='cubic')
     else:
         f2 = UnivariateSpline(vol, F)
-    result = 0.0 
-    n = N//2
-    for i in range(0, n):
-        #print (v, f2(v+dV*(i+1)) , f2(v-dV*(i+1)))
-        result += (f2(v+dV*(i+1)) - f2(v-dV*(i+1)))/(2.0*(i+1)*dV)
-    #sys.exit()
-    return result/n
+
+    try:
+        nx = N//2
+        result = 0.0 
+        for i in range(0, nx):
+            result += (f2(v+dV*(i+1)) - f2(v-dV*(i+1)))/(2.0*(i+1)*dV)
+        return result/nx
+    except:
+        return None
 
 
 def CenDifB(_v, vol, F, BMfunc, N=7,kind='cubic'):
-    dV = 0.01*(max(vol) - min(vol))
-    try: 
-    #if True:
-      if _v!=0.0:
-          v = brentq(BMfitP, _v-N*dV, _v+N*dV, args=(vol, F, BMfunc), maxiter=10000)
-      else:
-          v = brentq(BMfitP, min(vol), max(vol), args=(vol, F, BMfunc), maxiter=10000)
-      #ff = BMfitF(v, vol, F, BMfunc)
-      ff = interp1d(vol, F)(v)
+    vn = min(vol)
+    vx = max(vol)
+    xx = np.linspace(vn,vx,1000)
+    if kind=='cubic':
+        f2 = interp1d(vol, F, kind='cubic')
+    else:
+        f2 = UnivariateSpline(vol, F)
+    yy = f2(xx)
+    val, idx = min((val, idx) for (idx, val) in enumerate(yy))
+    if idx <N//2 or idx>=len(xx)-N//2-2:
+        return 0, -1.0, 0.
+    
+    try:
+        #print ("eeeee, idx", idx, xx[idx-1], xx[idx+1], vn, vx)
+        v = brentq(CenDif, xx[idx-1], xx[idx+1], args=(vol, F, N, kind), maxiter=10000)
+        ff = interp1d(vol, F)(v)
     except:
-      v = _v
-      ff = None
-    result = 0.0 
+        return 0, -1.0, 0.
+
     n = N//2
-    for i in range(0, n):
-        result += (CenDif(v+dV*(i+1), vol, F, kind=kind) - CenDif(v-dV*(i+1), vol, F, kind=kind))/(2.0*(i+1)*dV)
-    return result*v/(n), v, ff
+    dV = xx[1]-xx[0]
+    for nx in range(n, 0, -1):
+        if v-dV*(nx+1) > vn:
+            if v+dV*(nx+1) < vx: break
+    if nx < 1: return 0, -1.0, 0.
+
+    try:
+        result = 0.0 
+        for i in range(0, nx):
+            result += (CenDif(v+dV*(i+1), vol, F, kind=kind) - CenDif(v-dV*(i+1), vol, F, kind=kind))/(2.0*(i+1)*dV)
+        return result*v/(nx), v, ff
+    except:
+        return 0, -1.0, 0.
 
 def BMDifB(_v, _vol, _F, BMfunc, N=7):
     F = list(copy.deepcopy(_F))
@@ -890,7 +910,7 @@ class thelecMDB():
 
     def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
-                phasename=None, pyphon=False, debug=False, renew=False):
+                phasename=None, pyphon=False, debug=False, renew=False, fitF=False):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
         self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
@@ -916,6 +936,7 @@ class thelecMDB():
         self.pyphon=pyphon
         self.debug=debug
         self.renew=renew
+        self.fitF=fitF
         #print ("iiiii=",len(self._Yphon))
 
 
@@ -962,7 +983,10 @@ class thelecMDB():
             with open (voldir+'/metadata.json','w') as out:
                 mm = i['metadata']
                 mm['volume'] = i['volume']
+                mm['energy'] = self.energies[(list(self.volumes)).index(i['volume'])]
                 out.write('{}\n'.format(mm))
+            with open (voldir+'/OSZICAR','w') as out:
+                out.write('   1 F= xx E0= {}\n'.format(self.energies[(list(self.volumes)).index(i['volume'])]))
             with open (voldir+'/superfij.out','w') as out:
                 for line in range (2,5):
                     out.write('{}\n'.format(unitcell_l[line]))
@@ -1206,29 +1230,44 @@ class thelecMDB():
 
         #try:
         if True:
-            if i==0:
-                val, idx = min((val, idx) for (idx, val) in enumerate(self.energies))
-                self.volT[i] = self.volumes[idx]
-            elif self.volT[i]==0:
-                self.volT[i]=self.volT[i-1]
+            FF = Flat+Fel
+            if self.fitF:
+                p2 = np.poly1d(np.polyfit(self.volumes, FF, 2))
+                FF = p2(self.volumes)
+                #p1 = np.poly1d(np.polyfit(self.volumes, FF, 1))
+                #FF = p1(self.volumes)
+            """
+            """
+            
+            if self.volT[i]==0:
+                if i==0:
+                    val, idx = min((val, idx) for (idx, val) in enumerate(self.energies))
+                    self.volT[i] = self.volumes[idx]
+                else:
+                    self.volT[i]=self.volT[i-1]
             if self.eqmode==4:
                 #print ("iiii", self.T[i], self.volT[i], E0+Flat+Fel)
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
-                    E0+Flat+Fel, BMvol4, N=7)
+                    E0+FF, BMvol4, N=7)
                 if blat < 0: return -1.0, 0.0
-                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel), 
+                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+FF+self.T[i]*(Slat+Sel), 
                         BMvol4) + P)/self.T[i]/blat
             elif self.eqmode==5:
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
                     E0+Flat+Fel, BMvol5, N=7)
                 if blat < 0: return -1.0, 0.0
-                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+Flat+Fel+self.T[i]*(Slat+Sel),
+                if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+FF+self.T[i]*(Slat+Sel),
                         BMvol5) + P)/self.T[i]/blat
             else:
+                #print ("eeeeeee=", self.T[i])
                 blat, self.volT[i], newF = CenDifB(self.volT[i], self.volumes, 
-                    E0+Flat+Fel, BMvol4, N=7,kind=kind)
+                    E0+FF, BMvol4, N=7,kind=kind)
                 if newF!=None: self.GibT[i] = newF
-                if self.T[i]!=0.0: beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind=kind)/blat
+                if self.T[i]!=0.0: 
+                    try:
+                        beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind=kind)/blat
+                    except:
+                        return -1.0, 0.0
                 if blat < 0: return -1.0, 0.0
             return blat, beta
         #except:
@@ -1302,7 +1341,8 @@ class thelecMDB():
                     format(self.T[i], prp_T[0], prp_T[1], prp_T[2], prp_T[3], prp_T[4], L, 
                     prp_T[5], prp_T[6], prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13], 
                     self.volT[i], self.GibT[i]))
-        return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
+        #return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
+        return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
     def run_console(self):
@@ -1326,6 +1366,13 @@ class thelecMDB():
         if not self.pyphon: self.get_qha()
         self.hasSCF = True
         self.check_vol()
+        self.energies_orig = copy.deepcopy(self.volumes)
+        if self.fitF:
+            self.energies_orig = copy.deepcopy(self.energies)
+            self.energies = BMfitF(self.volumes, self.volumes, self.energies_orig, BMvol4)
+            #print ("eeeee", self.energies_orig-self.energies)
+   
+
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
         return self.calc_thermodynamics()

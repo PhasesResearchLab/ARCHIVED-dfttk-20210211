@@ -1,2 +1,3 @@
-#These results are produced by the following command line on 2020-08-19 20:20:17.457099
-dfttk thfind -ss 20 -get -py -td -50 -plot -eq 4 -renew
+#These results are produced by the following command line on 2020-08-20 17:43:26.296542
+dfttk thfind -all PbTiO -td -50 -plot -renew -py -get -fitF -ss 20 -el 1
+with "plot" done on 2020-08-20 17:43:42.855849
