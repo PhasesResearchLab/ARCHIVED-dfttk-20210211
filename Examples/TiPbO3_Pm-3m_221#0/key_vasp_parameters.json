@@ -1,8 +1,10 @@
 {
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
     "bandgap": 1.7213000000000003,
     "kpoins": {
         "generation_style": "Gamma",
-        "kpoints": [[9, 9, 9]]
+        "kpoints": [9, 9, 9]
     },
 
     "pseudo_potential": {

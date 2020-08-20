@@ -1,3 +1,3 @@
-#These results are produced by the following command line on 2020-08-18 18:58:21.319826
-dfttk thfind -ss 20 -get -py -td -50 -plot -smooth -eq 4 -el 1 -renew
-with "plot" done on 2020-08-18 18:58:34.853526
+#These results are produced by the following command line on 2020-08-19 20:34:14.304754
+dfttk thfind -ss 20 -get -py -td -50 -plot -eq 4 -renew
+with "plot" done on 2020-08-19 20:34:27.579703
