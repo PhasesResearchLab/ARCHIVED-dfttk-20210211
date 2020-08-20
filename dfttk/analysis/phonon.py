@@ -7,6 +7,8 @@ from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen.io.phonopy import get_phonopy_structure
 from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
 from dfttk.utils import J_per_mol_to_eV_per_atom
+from scipy.integrate import trapz
+import numpy as np
 
 
 def get_f_vib_phonopy(structure, supercell_matrix, vasprun_path,
@@ -190,12 +192,38 @@ def get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mes
                                     phonon_pdos=phonon_pdos, save_data=save_data, save_fig=save_fig)
     return (ph_band_obj, ph_dos_obj)
 
-def phonon_stable(structure, supercell_matrix, force_constants, qpoint_mesh=(50, 50, 50), stable_tor=0.03):
+def phonon_stable(structure, supercell_matrix, force_constants, qpoint_mesh=(50, 50, 50), stable_tor=0.003):
+    '''
+    Judge the stability of structure from phonon
+
+    Parameters
+    ----------
+    structure : pymatgen.Structure
+        Unitcell (not supercell) of interest.
+    supercell_matrix : numpy.ndarray
+        3x3 matrix of the supercell deformation, e.g. [[3, 0, 0], [0, 3, 0], [0, 0, 3]].
+    force_constants: list
+        force constants
+    qpoint_mesh : list
+        Mesh of q-points to calculate thermal properties on.
+    stable_tor: float
+        The tolerance for the percentage of negative frequency. 
+        If the percentage of negative frequency is lagre than the tor, then the structure is unstable
+
+    Return
+    ------
+        structure_stability: bool
+            True for stable, False for unstable
+    '''
+    structure_stability = True
     ph_dos_obj = get_phonon_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh)
     phonon_freq = ph_dos_obj._total_dos._frequency_points
     phonon_dos = ph_dos_obj._total_dos._dos
     freq_min = np.amin(phonon_freq)
-    if freq_min > 0:
-        return True
-    else:
-        pass
+    if freq_min < 0:
+        integrate_full = trapz(phonon_dos, x=phonon_freq)
+        ind_freq_le0 = np.where(phonon_freq < 0)
+        integrate_le0 = trapz(phonon_dos[ind_freq_le0], x=phonon_freq[ind_freq_le0])
+        if integrate_le0/integrate_full > stable_tor:
+            structure_stability = False
+    return structure_stability
