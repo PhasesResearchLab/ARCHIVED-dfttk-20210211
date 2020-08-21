@@ -451,6 +451,9 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         #f2 = interp1d(x, y)
         ynew = BMvol(xnew, f2)
         ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
+    elif thermodynamicproperty.lower()!="Effective charge carrier concentration ($e/cm^{3}$)".lower():
+        #ax.set_yscale('symlog')
+        ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
@@ -1599,6 +1602,8 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
+  thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
+      list(thermo[:,18]/thermo[:,1]*1e24))
 
   return True
 

@@ -1,6 +1,4 @@
 # -------- energy in eV, temperature in K
-# assume every variable starting with a-h  and o-z are real numbers
-# common block named comcon
 from __future__ import division
 import sys
 import math
@@ -10,6 +8,7 @@ from scipy.constants import eV, physical_constants
 from scipy.optimize import brentq
 from scipy.integrate import cumtrapz, trapz, simps
 from scipy.interpolate import interp1d
+from dfttk.analysis.ywplot import myjsonout
 
 
 kB_eV = physical_constants['Boltzmann constant in eV/K'][0]
@@ -43,7 +42,7 @@ def isint(value):
 
 
 # read phonon density of state from file f
-def getdos(f): # Line 186
+def getdos(f,natom): # Line 186
     """
 
     Parameters
@@ -54,6 +53,7 @@ def getdos(f): # Line 186
     -------
     freq : phonon frequency (array)
     pdos : phonon dos (array)
+    quality : weigh of positive frequency 
     """
     # read the file
     lines = f.readlines() # read in all lines then determine is it is WIEN2k DOS (in the unit eV) file or VASP DOS file
@@ -68,6 +68,7 @@ def getdos(f): # Line 186
         
     freq = np.array(list(map(float,freq)))
     pdos = np.array(list(map(float,pdos)))
+    quality = trapz(pdos,freq)
     pdos = pdos[freq>=0]
     freq = freq[freq>=0]
     NF = len(freq)
@@ -91,8 +92,11 @@ def getdos(f): # Line 186
     #print ("af=", A, B, d, a1, i)
     fnew.extend(freq[Nlow:])
     pnew.extend(pdos[Nlow:])
+    good = trapz(pnew,fnew)
+    quality = good/quality
+    if natom is not None: pnew = 3*natom/good*np.array(pnew)
 
-    return np.array(list(map(float,fnew))), np.array(list(map(float,pnew)))
+    return np.array(list(map(float,fnew))), np.array(list(map(float,pnew))), quality
 
 
 def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
@@ -204,8 +208,8 @@ def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
         return u-T*s, u, s, cv, cv_n, sound_ph, u_nn/nn/h, n, nn, debye
 
 
-def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J'):
-    freq, pdos = getdos(dos_input)
+def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J', natom=None):
+    freq, pdos, quality = getdos(dos_input, natom)
     nT = T.size
     F_ph = np.zeros(nT)
     U_ph = np.zeros(nT)
@@ -221,7 +225,7 @@ def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J'):
     for i in range(nT):
         F_ph[i], U_ph[i], S_ph[i], C_ph_mu[i], C_ph_n[i], sound_ph[i], sound_nn[i], N_ph[i], NN_ph[i], debyeT[i] = caclf(freq, pdos, T[i], dmu=_dmu,energyunit=energyunit)
 
-    return F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, sound_ph, sound_nn, N_ph, NN_ph, debyeT
+    return F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, sound_ph, sound_nn, N_ph, NN_ph, debyeT, quality
 
 if __name__ == '__main__':
     # initialize temperatures

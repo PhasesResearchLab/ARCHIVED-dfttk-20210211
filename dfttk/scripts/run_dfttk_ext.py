@@ -16,6 +16,7 @@ import copy
 import os
 import sys
 import shutil
+from dfttk.analysis.ywplot import myjsonout
 
 def ext_thelec(args):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
@@ -70,42 +71,44 @@ def ext_thelec(args):
         from fireworks.fw_config import config_to_dict
         from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
+        readme = {}
+        record_cmd(readme)
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, plot=plot, debug=args.debug, 
             phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF)
-        volumes, energies, thermofile = proc.run_console()
+        volumes, energies, thermofile, comments = proc.run_console()
         if volumes is None: return
-        record_cmd(thermofile)
+        readme.update(comments)
+        #record_cmd(thermofile, readme)
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
-            if plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim): record_cmd_continue(thermofile, 'plot')
+            if plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim): 
+                record_cmd_print(thermofile, readme)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
 
 
 from datetime import datetime
-def record_cmd(fdir):
+def record_cmd(readme):
+    cmdline = copy.deepcopy(sys.argv)
+    cmdline[0] = cmdline[0].split('/')[-1]
+    readme['command']='{}'.format(' '.join(cmdline))
+    readme['start at']='{}'.format(datetime.now())
+    #fp.write('#These results are produced by the following command line on {}\n'.format(datetime.now()))
+    #fp.write('{}\n'.format(' '.join(cmdline)))
+
+
+def record_cmd_print(fdir, readme):
     dir = fdir
+    readme['finished at'] = '{}'.format(datetime.now())
     if not os.path.isdir(dir):
         dir = '/'.join(fdir.split('/')[0:-1])
         if dir == "": dir = "./"
         with open (dir+"/readme", "w") as fp:
-            cmdline = copy.deepcopy(sys.argv)
-            cmdline[0] = cmdline[0].split('/')[-1]
-            fp.write('#These results are produced by the following command line on {}\n'.format(datetime.now()))
-            fp.write('{}\n'.format(' '.join(cmdline)))
-
-
-def record_cmd_continue(fdir, cmd):
-    dir = fdir
-    if not os.path.isdir(dir):
-        dir = '/'.join(fdir.split('/')[0:-1])
-        if dir == "": dir = "./"
-        with open (dir+"/readme", "a") as fp:
-            fp.write('with "{}" done on {}\n'.format(cmd, datetime.now()))
+            myjsonout(readme, fp, indent="", comma="")
 
 
 def shared_aguments(pthelec):

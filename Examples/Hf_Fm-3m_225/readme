@@ -1,3 +1,3 @@
-#These results are produced by the following command line on 2020-08-20 17:51:38.891431
+#These results are produced by the following command line on 2020-08-20 18:22:48.647534
 dfttk thfind -w HfO -td -50 -plot -renew -py -get -fitF -ss 20 -el 1
-with "plot" done on 2020-08-20 17:51:49.473659
+with "plot" done on 2020-08-20 18:23:01.655742

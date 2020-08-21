@@ -945,6 +945,7 @@ class thelecMDB():
         self.Flat = []
         self.Clat = []
         self.Slat = []
+        self.quality = []
         if self.debug:
             self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=65)
         else:
@@ -1018,12 +1019,14 @@ class thelecMDB():
             if len(self.Flat)==0:
                 print ("Calling yphon to get f_vib, s_vib, cv_vib at ", phdir)
             with open("vdos.out", "r") as fp:
-                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT \
-                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
+                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality \
+                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV', natom=self.natom)
+                self.quality.append(quality)
 
             self.Flat.append(f_vib)
             self.Slat.append(s_vib)
             self.Clat.append(cv_vib)
+            self.quality.append(quality)
             os.chdir( cwd )
 
         if len(self.Vlat)<=0:
@@ -1085,17 +1088,17 @@ class thelecMDB():
                 self.natoms = len(structure.sites)
                 sa = SpacegroupAnalyzer(structure)
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
-                key_vasp_parameters ={}
-                key_vasp_parameters['pseudo_potential'] = calc['input']['pseudo_potential']
-                key_vasp_parameters['ENCUT'] = calc['input']['incar']['ENCUT']
-                key_vasp_parameters['NEDOS'] = calc['input']['incar']['NEDOS']
+                key_comments ={}
+                key_comments['pseudo_potential'] = calc['input']['pseudo_potential']
+                key_comments['ENCUT'] = calc['input']['incar']['ENCUT']
+                key_comments['NEDOS'] = calc['input']['incar']['NEDOS']
                 pot = calc['orig_inputs']['kpoints']
                 kpoints = {}
                 kpoints['generation_style'] = pot['generation_style']
                 kpoints['kpoints'] = pot['kpoints'][0]
-                key_vasp_parameters['kpoins'] = kpoints
-                key_vasp_parameters['bandgap'] = calc['output']['bandgap']
-                self.key_vasp_parameters = key_vasp_parameters
+                key_comments['kpoins'] = kpoints
+                key_comments['bandgap'] = calc['output']['bandgap']
+                self.key_comments = key_comments
 
         # sort everything in volume order
         # note that we are doing volume last because it is the thing we are sorting by!
@@ -1280,8 +1283,8 @@ class thelecMDB():
         angstrom = 1e-30
         toJmol = Faraday_constant/self.natoms
         toGPa = electron_volt/angstrom*1.e-9
-        with open(self.phasename+'/key_vasp_parameters.json', 'w') as fp:
-            myjsonout(self.key_vasp_parameters, fp, indent="", comma="")
+        #with open(self.phasename+'/key_comments.json', 'w') as fp:
+        #    myjsonout(self.key_comments, fp, indent="", comma="")
         
         thermofile = self.phasename+'/'+self.outf
         with open(thermofile, 'w') as fvib:
@@ -1345,11 +1348,26 @@ class thelecMDB():
         return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
+    def add_comments(self):
+        vn = min(self.volT)
+        vx = max(self.volT)
+        for ix,vol in enumerate(self.volumes):
+           if vol>vn: break
+        n = 0
+        q = 0.0
+        for i in range(ix-1, len(self.volumes)):
+            n = n+1
+            q = self.quality[i]
+            if self.volumes[i] > vx: break
+        q /= n
+        self.key_comments['phonon quality'] = '{:8.6}'.format(q)
+     
+           
     def run_console(self):
         self.find_static_calculations()
         if not self.renew:
             pdis298 = self.phasename+'/figures/vdis298.15.png'
-            if os.path.exists(pdis298): return None, None, None
+            if os.path.exists(pdis298): return None, None, None, None
       
         self.find_vibrational()
 
@@ -1375,7 +1393,9 @@ class thelecMDB():
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
-        return self.calc_thermodynamics()
+        self.add_comments()
+        a,b,c = self.calc_thermodynamics()
+        return a,b,c,self.key_comments
 
 
 if __name__ == '__main__':
