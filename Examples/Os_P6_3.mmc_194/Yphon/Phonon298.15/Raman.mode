@@ -1,0 +1,105 @@
+
+Primitive lattice vector from Supercell
+
+    2.751072000000      0.000000000000      0.000000000000  
+   -1.375536000000      2.382498000000      0.000000000000  
+    0.000000000000      0.000000000000      4.351365000000  
+
+Supercell lattice vector
+
+    4.126608000000      7.147494000000      4.351365000000  
+    8.253216000000      0.000000000000     -4.351365000000  
+   -4.126608000000      7.147494000000     -4.351365000000  
+
+Supercell is a transformation of the Primitive cell by
+
+    3.000000000000      3.000000000000      1.000000000000  
+    3.000000000000      0.000000000000     -1.000000000000  
+    0.000000000000      3.000000000000     -1.000000000000  
+
+The tranforming Matrix is truncated into
+
+    3.000000000000      3.000000000000      1.000000000000  
+    3.000000000000      0.000000000000     -1.000000000000  
+    0.000000000000      3.000000000000     -1.000000000000  
+
+  54 Atom(s) in the Supercell
+
+
+Used Primitive lattice vector
+
+    2.751072000000      0.000000000000      0.000000000000  
+   -1.375536000000      2.382498000000      0.000000000000  
+    0.000000000000      0.000000000000      4.351365000000  
+
+   2 Atom(s) in the Primitive cell
+
+ 0.6666660000 0.3333330000 0.2499990000 Os    0
+ 0.3333330000 0.6666660000 0.7500000000 Os    1
+
+ Mapping of Supercell of Primitive cell
+
+Atom  0 Os   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
+Atom  1 Os  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53
+
+MAXimum interaction DIS = 8.681702, Dynamical Matrix will be averaged over 1 cell(s) built by 2 centered atom(s)
+
+ Os PI=   0 SI=   7 at   0.305556   0.583333   0.472222 Index=   2   2  -1
+ Os PI=   1 SI=  42 at   0.694444   0.416667   0.527778 Index=   3   3  -1
+
+Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
+
+Restore the translational invariance : Section time 0.340 Sec., Total time = 0.340 Sec.
+
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.350 Sec.
+
+ Used q-mesh 5x5x5
+
+Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 0.360 Sec.
+
+  1  B2g Modes of silent_mode 
+  0  B2g   6.2206  (  207.50)
+
+  1  E2g Modes of raman_active 
+  0  E2g   4.7975  (  160.03)
+
+  1  A2u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
+  0  A2u  -0.0000  (   -0.00)
+
+  1  E1u Modes of ir_active : P=  0.866, 0.500, 0.000 ( 1.000,-0.000, 0.000)  with one tranlational mode 
+  0  E1u   0.0000  (    0.00)
+
+Handling symmetry : Section time 0.000 Sec., Total time = 0.360 Sec.
+
+ 1 Exact Q points found
+
+
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.360 Sec.
+
+Frequencies in Gamma point without & with NA term) 
+
+      without         with         without    with     LOTO        IR    irrep
+              (THz)                     (cm-1)
+   0   6.2206        6.2206         207.50   207.50    0.0000   0.0000
+   1   4.7975        4.7975         160.03   160.03    0.0000   0.0000
+   2   4.7975        4.7975         160.03   160.03    0.0000   0.0000
+   3   0.0000        0.0000           0.00     0.00    0.0000   1.4142
+   4   0.0000        0.0000           0.00     0.00    0.0000   1.4142
+   5  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
+
+          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.360 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.360 Sec.
+         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.360 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.360 Sec.
+
+Calculating PDOS from the 384 frequencies
+
+
+384 frequencies
+
+
+Primmitive Q/PI2 vectors in the Inverse space
+
+    0.363494666806      0.209863764838     -0.000000000000  
+    0.000000000000      0.419727529677      0.000000000000  
+    0.000000000000     -0.000000000000      0.229812943754  

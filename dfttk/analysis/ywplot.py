@@ -422,7 +422,8 @@ def proStoichiometricCp():
     #except:
       pass
 
-def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,xlabel="T (K)", xlim=None, elonly=None, expt=None, CoT=False):
+def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=None,xT=None,xlabel="T (K)", 
+    ylabel=None, ytext=None, xlim=None, elonly=None, expt=None, CoT=False):
     global mindex
     mindex = 0
     cwd = os.getcwd()
@@ -451,9 +452,11 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         #f2 = interp1d(x, y)
         ynew = BMvol(xnew, f2)
         ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
-    elif thermodynamicproperty.lower()!="Effective charge carrier concentration ($e/cm^{3}$)".lower():
-        #ax.set_yscale('symlog')
-        ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
+    elif thermodynamicproperty.lower()=="Effective charge carrier concentration ($e/cm^{3}$)".lower():
+        ax.set_yscale('symlog')
+        yy = np.array(y)[np.array(x)>0]
+        xx = np.array(x)[np.array(x)>0]
+        ax.plot(xx,yy,'-',linewidth=2,color='b', label=thermodynamicproperty)
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
@@ -466,7 +469,18 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
         ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,4))
         #if yhigh > 1.e-2 : ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         #else : ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+      if reflin is not None:
+        ax.plot(x,reflin,'--',linewidth=2,color='k')
       ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
+      if ytext is not None:
+        x0 = np.array(ytext[0])
+        y0 = np.array(ytext[1])
+        s0 = ytext[2]
+        for i in range (len(s0)):
+          #print(x0[i], y0[i], s0[i])
+          ax.text(x0[i], y0[i], s0[i], color='r', rotation=90)
+      """
+      """
       if fitted!=None:
         ax.plot(xT[::5],fitted[::5],'--',fillstyle='none', marker='o', markersize=12, linewidth=2,color='k', label="fitted")
       if xlim!=None: 
@@ -576,9 +590,11 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
     if CoT:
         plt.ylabel("$C/T$ (J/mol-atom/K/K)")
     else:
-        plt.ylabel(thermodynamicproperty)
+        if ylabel!=None: plt.ylabel(ylabel)
+        else: plt.ylabel(thermodynamicproperty)
     ax.legend(loc=0, prop={'size': 24})
     figures.update({thermodynamicproperty:folder.split('/')[-1]+'/'+fname})
+    #print("eeeeee", fname)
     fig.savefig(fname,bbox_inches='tight')
     plt.close(fig)
     os.chdir( cwd )
@@ -586,13 +602,20 @@ def thermoplot(folder,thermodynamicproperty,x,y,yzero=None,fitted=None,xT=None,x
 def plot_expt (expt, prp, ax, CoT=False, xlim=None):
     global mindex
     if expt!=None:
-        for k1 in expt:
-            val1 = expt[k1]
+        for val1 in expt:
             for k2 in val1:
                 if k2=='property':
                     if val1[k2]==prp:
-                        xval = np.array(val1['T'])
-                        yval = np.array(val1['val'])
+                        try:
+                            xval = np.array(val1['T'])
+                            yval = np.array(val1['val'])
+                        except:
+                            try:
+                                lines = np.array(val1['data'])
+                                xval = lines[0:-2:2]
+                                yval = lines[1:-1:2]
+                            except:
+                                continue
                         Author = val1['Author']
                         Unit = val1['Unit']
                         natom = val1['natom']
@@ -819,10 +842,10 @@ def Genergy(thermofile,dir0):
   if not os.path.exists(folder):
     os.mkdir(folder)
 
-  vdos_e_Cij = thermofile.replace('/vdos_e','/vdos_e_Cij')
-  #print(" I am he",  vdos_e_Cij)
-  if not os.path.exists(vdos_e_Cij) : 
-    vdos_e_Cij = thermofile.replace('/vdos_e','/vdos_Cij')
+  tmp = [s for s in thermofile.split('/') if s!=""]
+  tmp[-1] = 'vdos_Cij'
+  vdos_e_Cij = '/'.join(tmp)
+  #print("Cij",vdos_e_Cij)
   if os.path.exists(vdos_e_Cij) :
     vdos_e_Cij = np.loadtxt(vdos_e_Cij, comments="#", dtype=np.float)
     ij = 0
@@ -1517,18 +1540,20 @@ SGTErec = {}
 structure = {}
 expt = None
 Uncertainty = {}
+nphases = 0
 debug = False
 fitCp = True
 paper = True
 phdft = "phonon"
-justplot = None
+expt = None
+xlim = None
 pvdos = False
 
 phases = []
 papers = []
 PhaseName = {}
 
-def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
+def plotAPI(thermofile, volumes=None, energies=None, expt=None, xlim=None):
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
   phasedir = ('/').join(phasedir[0:-1])
   if phasedir=="": phasedir="."
@@ -1536,7 +1561,7 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   print("All figures have been outputed into: ", folder, "  with T uplimt:", xlim, "\n\nEnjoy!\n")
   if not os.path.exists(folder):
     os.mkdir(folder)
-  thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies)
+  if volumes is not None: thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies)
 
   thermo = np.loadtxt(thermofile, comments="#", dtype=np.float)
   thermo[np.isnan(thermo)] = 0.0
@@ -1544,6 +1569,13 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
       print("\nCorrupted thermofile for", thermofile, "Please check it!")
       return False
 
+  if xlim is not None:
+      for i,x in enumerate(thermo[:,0]):
+          if x>=xlim:
+              thermo = thermo[0:i,:]
+              xlim = None
+              break
+           
   for i,cp in enumerate(thermo[:,6]):
     if cp > CpMax: 
       thermo = thermo[0:i,:]
@@ -1564,7 +1596,7 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
   f2=interp1d(thermo[:,0], thermo[:,3])
   S298 = f2(T0)
 
-  Plot298(folder, V298, volumes)
+  if volumes is not None: Plot298(folder, V298, volumes)
 
   threcord.update({"H298.15 (J/mol-atom)":H298})
   threcord.update({"S298.15 (J/mol-atom/K)":S298})
@@ -1607,6 +1639,161 @@ def plotAPI(thermofile, volumes, energies, expt=None, xlim=None):
 
   return True
 
+
+def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None):
+  #print(expt)
+  phasedir = [substr for substr in thermofile.split('/') if substr!=""]
+  phasedir = ('/').join(phasedir[0:-1])
+  if phasedir=="": phasedir="."
+  folder = phasedir+"/figures/"
+  print("All figures have been outputed into: ", folder, "  with T uplimt:", xlim, "\n\nEnjoy!\n")
+  if not os.path.exists(folder):
+    os.mkdir(folder)
+  if volumes is not None: thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies)
+
+  thermo = np.loadtxt(thermofile, comments="#", dtype=np.float)
+  thermo[np.isnan(thermo)] = 0.0
+  if len (thermo) < 1:
+      print("\nCorrupted thermofile for", thermofile, "Please check it!")
+      return False
+
+  if xlim is not None:
+      for i,x in enumerate(thermo[:,0]):
+          if x>=xlim:
+              thermo = thermo[0:i,:]
+              xlim = None
+              break
+           
+  for i,cp in enumerate(thermo[:,6]):
+    if cp > CpMax: 
+      thermo = thermo[0:i,:]
+      break
+    
+  """
+  f2=interpolate.splrep(thermo[:,0], thermo[:,1])
+  V298 = float(interpolate.splev(T0, Vstack))
+  Hstack=interpolate.splrep(thermo[:,0], thermo[:,4])
+  H298 = float(interpolate.splev(T0, Hstack))
+  Sstack=interpolate.splrep(thermo[:,0], thermo[:,3])
+  S298 = float(interpolate.splev(T0, Sstack))
+  """
+  f2=interp1d(thermo[:,0], thermo[:,1])
+  V298 = f2(T0)
+  f2=interp1d(thermo[:,0], thermo[:,4])
+  H298 = f2(T0)
+  f2=interp1d(thermo[:,0], thermo[:,3])
+  S298 = f2(T0)
+
+  #print(H298,V298,S298)
+
+  if volumes is not None: Plot298(folder, V298, volumes)
+
+  threcord.update({"H298.15 (J/mol-atom)":H298})
+  threcord.update({"S298.15 (J/mol-atom/K)":S298})
+
+  zthermo.update({"temperature (K)":list(thermo[:,0])})
+  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
+  zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
+  zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
+  zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
+  zthermo.update({"Cp (J/mol-atom/K)":list(thermo[:,6])})
+  proStoichiometricCp()
+  with open(folder + '/../record.json', 'w') as fp:
+    myjsonout(SGTErec, fp, indent="", comma="")
+  myjsonout(SGTErec, sys.stdout, indent="", comma="")
+
+  thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
+  thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
+  #print(thermo[:,4]-H298)
+  thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
+  thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
+
+  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(1.e06*thermo[:,5]),yzero=0.0, xlim=xlim)
+  ncols = [6,8]
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
+  tmp = 0.0
+  for i,v in enumerate(thermo[:,0]):
+    if v >300: break
+    tmp = max(tmp, thermo[i,6]-thermo[i,8])
+  if tmp>1.e-2:
+    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=xlim)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=70)
+  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim)
+  T = copy.deepcopy(thermo[:,0])
+  t22 = copy.deepcopy(thermo[:,22])
+  if T[0]==0.0: 
+      T[0]=1.e-8
+      t22[0]=1.e-8
+
+  Lfactor = physical_constants['Boltzmann constant'][0]/physical_constants['atomic unit of charge'][0]**2/physical_constants['Avogadro constant'][0]
+  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,21]/t22/T),xlim=xlim)
+  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list((thermo[:,6]-thermo[:,8])/t22*Lfactor),xlim=xlim)
+  thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,19]), xlim=xlim)
+  thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
+      list(thermo[:,22]/thermo[:,1]*1e24))
+
+
+def addvdos(x,y,f,w,h):
+  for i,v in enumerate(x):
+    dx = v - f
+    y[i] += math.exp(-(dx/w)**2)*h
+
+
+def plotRaman(folder, fp, vdos):
+  lines=fp.readlines()
+  for i,line in enumerate(lines):
+    if line.startswith("Setting workspace & pre-optimizing : Section time "):
+      lines = lines[i+2:]
+      break
+  
+  I = []
+  M = []
+  F = []
+  A = []
+  for i,line in enumerate(lines):
+    if line.startswith("Handling symmetry : Section time "): break
+    ff = [f for f in line.strip().split(" ") if f!=""]
+    if len(ff) < 3: continue
+    if ff[2]=="Modes":
+      active = ff[4]
+      continue
+    M.append(ff[1])
+    I.append(ff[0])
+    F.append(ff[2])
+    A.append(active)
+  #print(I,M,F,A)  
+  x = vdos[:,0]*1.e-12
+  y = vdos[:,1]*1.e+12
+  yy = np.zeros((len(y)), dtype=float)
+  yph = np.zeros((len(F)), dtype=float)
+  #print(x)
+  #print(y)
+  w = max(x)*0.001
+  #h = trapz(y,x)/max(x)
+  h = 0.1*max(y)
+  x0 = []
+  y0 = []
+  s0 = []
+  for i,f in enumerate(F):
+    #print ("eeeee", h)
+    if M[i].lower().startswith("e"): hh = h*2
+    elif M[i].lower().startswith("t"): hh = h*3
+    else: hh = h
+    yph[i] = hh
+    if float(f)<1.e-3: continue
+    #print("eeeeee", f,w,hh)
+    addvdos(x,yy,float(f),w,hh)
+    x0.append(float(f))
+    y0.append(hh)
+    s0.append(M[i])
+  if len(s0)>0:
+    thermoplot("./","Gamma point phonons",list(x),list(yy), 
+      reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[x0,y0,s0], ylabel="Phonon DOS ($THz^{-1}$)")
+    fn = "Gamma_point_phonons.png"
+    os.rename(fn, folder+'/'+fn)
 
 def Plot298(folder, V298, volumes):
   import dfttk.scripts.config_dfttk as dfttkconfig
@@ -1664,7 +1851,21 @@ def Plot298(folder, V298, volumes):
   os.rename("vdos.eps", cwd+'/'+folder+'/vdos298.15.eps')
   os.rename("vdos.png", cwd+'/'+folder+'/vdos298.15.png')
 
- 
+  cmd = "pos2s Symmetry.pos"
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+
+  if os.path.exists("vdos.out") :
+    cmd = "Yphon -tranI 2 -eps -nqwave 100 -Gfile symmetry.mode <superfij.out >Raman.mode"
+    os.rename("vdos.out", 'vdos.sav')
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+    os.rename("vdos.sav", 'vdos.out')
+    vdos = np.loadtxt("vdos.out", comments="#", dtype=np.float)
+    if os.path.exists("Raman.mode") :
+      with open ("Raman.mode", "r") as fp:
+        plotRaman(cwd+'/'+folder, fp, vdos)      
+
   dfile = ""
   if ngroup>=1 and ngroup<=2:
     dfile = plotdatabase+"/dfile.tri"
@@ -1726,6 +1927,11 @@ if __name__ == '__main__':
         if (count > len(sys.argv)):
           break
         phdft = sys.argv[count]
+      elif (sys.argv[count] == "-xlim"):
+        count = count + 1
+        if (count > len(sys.argv)):
+          break
+        xlim = float(sys.argv[count])
       elif (sys.argv[count] == "-T0"):
         count = count + 1
         if (count > len(sys.argv)):
@@ -1794,7 +2000,9 @@ if __name__ == '__main__':
     
     
     if justplot==None: lines = sys.stdin.readlines()
-    else: lines = [justplot]
+    else: 
+        plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim)
+        sys.exit()
     
     sys.stdout.write("G(T)=a+b*T+c*T*Ln(T)+d*T*T+e*T*T*T+f/T (J/mol-atom)\n")
     sys.stdout.write("Phase,comp")

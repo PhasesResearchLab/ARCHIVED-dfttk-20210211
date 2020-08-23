@@ -1,0 +1,20 @@
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 0.0,
+    "command": "dfttk thfind -get -py -ss 20 -plot -renew -td -50",
+    "finished at": "2020-08-22 21:36:18.750405",
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [20, 20, 20]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["W_pv"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 21:35:41.798923"
+}

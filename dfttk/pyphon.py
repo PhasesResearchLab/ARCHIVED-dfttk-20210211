@@ -130,7 +130,10 @@ def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
     #print ("u0=",u0, len(hmu))
     if T > 0: Beta = 1/(kB*T)
     else:
-        return u0,u0,0,0,0,0,0,0,0,0
+        if energyunit=='eV':
+            return u0/eV,u0/eV,0,0,0,0,0,0,0,0
+        else:
+            return u0,u0,0,0,0,0,0,0,0,0
 
 
     tc = Beta*(hmu-dmu)
@@ -273,8 +276,10 @@ if __name__ == '__main__':
     unit = unit/natom
     # for all temperatures
     T = np.arange(t0,t1+td,td) # temperature
-    F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT \
+    F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality\
         = vibrational_contributions(T, dos_input=sys.stdin, _dmu=dmu, energyunit='J')
+
+    sys.stderr.write ("\nThe phonon quality= {:08.6f}\n\n".format(quality))
 
     for i in range(T.size):
         tmp0 = 0.0

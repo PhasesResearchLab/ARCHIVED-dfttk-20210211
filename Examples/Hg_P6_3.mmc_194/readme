@@ -1,0 +1,20 @@
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 0.02410000000000001,
+    "command": "dfttk thfind -get -py -all Hg -T1 400 -plot -renew -td -50 -fitF",
+    "finished at": "2020-08-22 20:46:10.214900",
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [18, 18, 11]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Hg"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 20:45:35.801766"
+}

@@ -1,2 +1,2 @@
 #!/bin/csh -f
-Yphon -tranI 2 -eps -pdis dfile.mon 
+Yphon -Gfile symmetry.mode -nqwave 1000 -tranI 2 

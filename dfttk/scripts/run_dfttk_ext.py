@@ -183,8 +183,11 @@ def shared_aguments(pthelec):
                       help="renew/plot the figure. \n"
                            "Default: False")
     pthelec.add_argument("-fitF", "-fitF", dest="fitF", action='store_true', default=False,
-                      help="USE with CARE! apply for the case of poor data quality. \n"
-                           "Enforce second order fitting to the vibrational and electronic free energy.\n"
+                      help="USE with CARE! apply for the case of poor data quality. Enforce linear\n"
+                           "fitting to the vibrational and electronic free energy together enforce 4-parameter\n"
+                           "Birch–Murnaghan fitting to the 0 K static energies. A file named 'fitF' must be\n"
+                           "set in that phase folder using 'touch fitF' to make the option take effect.\n"
+                           "Note: The regualar run will skip the phase folder if a file name 'fitF' is seen there.\n"
                            "Default: False")
     pthelec.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
                       help="turn on debug mode by reducing the mesh. \n"

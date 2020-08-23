@@ -1,3 +1,20 @@
-#These results are produced by the following command line on 2020-08-20 17:46:49.723579
-dfttk thfind -w CuW -td -50 -plot -renew -py -get -fitF -ss 20 -el 1
-with "plot" done on 2020-08-20 17:47:22.232577
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 0.0,
+    "command": "dfttk thfind -get -py -ss 20 -plot -renew -td -50",
+    "finished at": "2020-08-22 21:22:43.530919",
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [8, 6, 4]
+    },
+
+    "phonon quality": "0.994148",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Cu", "W_pv"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 21:21:45.007378"
+}

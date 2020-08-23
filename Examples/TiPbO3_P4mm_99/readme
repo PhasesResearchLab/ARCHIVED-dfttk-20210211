@@ -1,2 +1,20 @@
-#These results are produced by the following command line on 2020-08-20 12:31:42.455017
-dfttk thelec -metatag c520e091-75fe-40bb-abdb-d81b6362f985 -py -td -50 -plot -noel
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 1.9318999999999997,
+    "command": "dfttk thelec -metatag c520e091-75fe-40bb-abdb-d81b6362f985 -py -td -50 -plot -noel -renew",
+    "finished at": "2020-08-22 20:18:14.679850",
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [9, 9, 8]
+    },
+
+    "phonon quality": "0.994601",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Ti_sv", "Pb_d", "O"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 20:17:47.566959"
+}

@@ -1,3 +1,20 @@
-#These results are produced by the following command line on 2020-08-20 18:23:16.536626
-dfttk thfind -w HfO -td -50 -plot -renew -py -get -fitF -ss 20 -el 1
-with "plot" done on 2020-08-20 18:23:33.036957
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 0.0,
+    "command": "dfttk thfind -get -py -ss 20 -plot -renew -td -50",
+    "finished at": "2020-08-22 21:25:59.305457",
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [18, 18, 11]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Hf_pv"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 21:25:26.270851"
+}

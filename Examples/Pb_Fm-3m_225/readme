@@ -1,3 +1,20 @@
-#These results are produced by the following command line on 2020-08-20 17:17:36.453209
-dfttk thelec -metatag 75e23138-7713-4ba7-a165-d9e20482784c -td -50 -plot -renew -py
-with "plot" done on 2020-08-20 17:17:54.369352
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 0.0,
+    "command": "dfttk thfind -w Pb -plot -get -td -50 -py -fitF -noel -renew",
+    "finished at": "2020-08-22 20:16:18.556409",
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [20, 20, 20]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Pb_d"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 20:15:46.348994"
+}

@@ -2,8 +2,8 @@
     "ENCUT": 520.0,
     "NEDOS": 5001,
     "bandgap": 0.0,
-    "command": "dfttk thfind -w Ti -py -get -td -50 -renew -plot",
-    "finished at": "2020-08-20 23:00:40.774079",
+    "command": "dfttk thfind -get -py -ss 20 -plot -renew -td -50",
+    "finished at": "2020-08-22 21:33:41.098184",
     "kpoins": {
         "generation_style": "Gamma",
         "kpoints": [11, 11, 19]
@@ -16,5 +16,5 @@
         "pot_type": "paw"
     },
 
-    "start at": "2020-08-20 23:00:04.173377"
+    "start at": "2020-08-22 21:33:00.809414"
 }

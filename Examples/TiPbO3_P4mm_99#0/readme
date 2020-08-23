@@ -1,3 +1,20 @@
-#These results are produced by the following command line on 2020-08-20 17:42:51.166840
-dfttk thfind -all PbTiO -td -50 -plot -renew -py -get -fitF -ss 20 -el 1
-with "plot" done on 2020-08-20 17:43:07.124297
+{
+    "ENCUT": 520.0,
+    "NEDOS": 5001,
+    "bandgap": 1.9318999999999997,
+    "command": "dfttk thfind -get -py -all PbTiO -plot -renew -td -50 -noel -fitF",
+    "finished at": "2020-08-22 20:22:28.920878",
+    "kpoins": {
+        "generation_style": "Gamma",
+        "kpoints": [9, 9, 8]
+    },
+
+    "phonon quality": "0.994601",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Ti_sv", "Pb_d", "O"],
+        "pot_type": "paw"
+    },
+
+    "start at": "2020-08-22 20:22:00.931960"
+}

@@ -1,0 +1,4 @@
+phonon : True
+phonon_supercell_matrix : [[4.0, 0, 0], [0, 4.0, 0], [0, 0, 4.0]]
+t_min : .1
+t_max : 2000.1

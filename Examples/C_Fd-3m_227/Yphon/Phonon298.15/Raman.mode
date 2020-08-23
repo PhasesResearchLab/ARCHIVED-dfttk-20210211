@@ -1,0 +1,99 @@
+
+Primitive lattice vector from Supercell
+
+    0.000000000000      1.786887000000      1.786887000000  
+    1.786887000000      0.000000000000      1.786887000000  
+    1.786887000000      1.786887000000      0.000000000000  
+
+Supercell lattice vector
+
+    0.000000000000      7.147548000000      7.147548000000  
+    7.147548000000      0.000000000000      7.147548000000  
+    7.147548000000      7.147548000000      0.000000000000  
+
+Supercell is a transformation of the Primitive cell by
+
+    4.000000000000      0.000000000000      0.000000000000  
+    0.000000000000      4.000000000000      0.000000000000  
+    0.000000000000      0.000000000000      4.000000000000  
+
+The tranforming Matrix is truncated into
+
+    4.000000000000      0.000000000000      0.000000000000  
+    0.000000000000      4.000000000000      0.000000000000  
+    0.000000000000      0.000000000000      4.000000000000  
+
+ 128 Atom(s) in the Supercell
+
+
+Used Primitive lattice vector
+
+    0.000000000000      1.786887000000      1.786887000000  
+    1.786887000000      0.000000000000      1.786887000000  
+    1.786887000000      1.786887000000      0.000000000000  
+
+   2 Atom(s) in the Primitive cell
+
+ 0.0000000000 0.0000000000 0.0000000000  C    0
+ 0.2500000000 0.2500000000 0.2500000000  C    1
+
+ Mapping of Supercell of Primitive cell
+
+Atom  0  C   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
+Atom  1  C  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 100 101 102 103 104 105 106 107 108 109 110 111 112 113 114 115 116 117 118 119 120 121 122 123 124 125 126 127
+
+MAXimum interaction DIS = 10.419252, Dynamical Matrix will be averaged over 1 cell(s) built by 2 centered atom(s)
+
+  C PI=   0 SI=  26 at   0.250000   0.500000   0.500000 Index=   1   2   2
+  C PI=   1 SI=  86 at   0.312500   0.312500   0.562500 Index=   1   1   2
+
+Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
+
+Restore the translational invariance : Section time 9.310 Sec., Total time = 9.310 Sec.
+
+Solving frequencies in real space : Section time 0.040 Sec., Total time = 9.350 Sec.
+
+ Used q-mesh 5x5x5
+
+Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 9.390 Sec.
+
+  1  T2g Modes of raman_active 
+  0  T2g  38.1563  ( 1272.76)
+
+  1  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
+  0  T1u   0.0000  (    0.00)
+
+Handling symmetry : Section time 0.000 Sec., Total time = 9.390 Sec.
+
+ 64 Exact Q points found
+
+
+Finding exact Q points : Section time 0.010 Sec., Total time = 9.400 Sec.
+
+Frequencies in Gamma point without & with NA term) 
+
+      without         with         without    with     LOTO        IR    irrep
+              (THz)                     (cm-1)
+   0  38.1563       38.1563        1272.76  1272.76    0.0000   0.0000
+   1  38.1563       38.1563        1272.76  1272.76    0.0000   0.0000
+   2  38.1563       38.1563        1272.76  1272.76    0.0000   0.0000
+   3   0.0000        0.0000           0.00     0.00    0.0000   1.4142
+   4   0.0000        0.0000           0.00     0.00    0.0000   1.4142
+   5   0.0000        0.0000           0.00     0.00    0.0000   1.4142
+
+          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 9.400 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 9.400 Sec.
+         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 9.400 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 9.400 Sec.
+
+Calculating PDOS from the 384 frequencies
+
+
+384 frequencies
+
+
+Primmitive Q/PI2 vectors in the Inverse space
+
+   -0.279816239079      0.279816239079      0.279816239079  
+    0.279816239079     -0.279816239079      0.279816239079  
+    0.279816239079      0.279816239079     -0.279816239079  
