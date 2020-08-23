@@ -35,10 +35,10 @@ Used Primitive lattice vector
    5 Atom(s) in the Primitive cell
 
  0.5000000000 0.5000000000 0.5177046500 Ti    0
- 0.0000000000 0.0000000000 0.9589500000 Pb    1
- 0.5000000000 0.5000000000 0.1519342100  O    2
- 0.0000000000 0.5000000000 0.6286535700  O    3
- 0.5000000000 0.0000000000 0.6286555700  O    4
+ -0.0000000000 -0.0000000000 0.9589500600 Pb    1
+ 0.5000000000 0.5000000000 0.1519341800  O    2
+ 0.0000000000 0.5000000000 0.6286535400  O    3
+ 0.5000000000 0.0000000000 0.6286555400  O    4
 
  Mapping of Supercell of Primitive cell
 
@@ -48,7 +48,7 @@ Atom  2  O  24  25  26  27  28  29  30  31  32  33  34  35
 Atom  3  O  36  37  38  39  40  41  42  43  44  45  46  47
 Atom  4  O  48  49  50  51  52  53  54  55  56  57  58  59
 
-MAXimum interaction DIS = 8.835700, Dynamical Matrix will be averaged over 1 cell(s) built by 5 centered atom(s)
+MAXimum interaction DIS = 8.835701, Dynamical Matrix will be averaged over 1 cell(s) built by 5 centered atom(s)
 
  Ti PI=   0 SI=   1 at   0.452431   0.327431   0.297569 Index=   0  -2  -1
  Pb PI=   1 SI=  19 at   0.347017   0.347017   0.652983 Index=   1  -2  -1
@@ -58,19 +58,19 @@ MAXimum interaction DIS = 8.835700, Dynamical Matrix will be averaged over 1 cel
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.330 Sec., Total time = 0.330 Sec.
+Restore the translational invariance : Section time 0.400 Sec., Total time = 0.400 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.330 Sec.
+Solving frequencies in real space : Section time 0.020 Sec., Total time = 0.420 Sec.
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.050 Sec., Total time = 0.380 Sec.
+Setting workspace & pre-optimizing : Section time 0.050 Sec., Total time = 0.470 Sec.
 
   4   A1 Modes of ir_active : P=  0.000, 0.000,-1.000 ( 0.000, 0.000,-1.000)  with one tranlational mode 
   0   A1  22.6386  (  755.14)
   1   A1  12.1514  (  405.33)
   2   A1   5.0087  (  167.07)
-  3   A1   0.0000  (    0.00)
+  3   A1  -0.0000  (   -0.00)
 
   1   B1 Modes of raman_active 
   0   B1   7.9746  (  266.01)
@@ -80,14 +80,14 @@ Setting workspace & pre-optimizing : Section time 0.050 Sec., Total time = 0.380
   1    E   8.2532  (  275.30)
   2    E   7.4825  (  249.59)
   3    E   2.8187  (   94.02)
-  4    E   0.0000  (    0.00)
+  4    E  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.380 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.470 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.380 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.470 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -105,14 +105,14 @@ Frequencies in Gamma point without & with NA term)
    9   5.0090        5.0090         167.08   167.08    0.0000   1.7226
   10   2.9754        2.9754          99.25    99.25    0.0000   1.7008
   11   2.8174        2.8174          93.98    93.98    0.0000   1.7059
-  12   0.0000       -0.0000           0.00    -0.00    0.0000   2.2361
-  13   0.0000       -0.0000           0.00    -0.00    0.0000   2.2361
+  12  -0.0000       -0.0000          -0.00    -0.00    0.0000   2.2361
+  13  -0.0000       -0.0000          -0.00    -0.00    0.0000   2.2361
   14  -0.0000        0.0000          -0.00     0.00    0.0000   2.2361
 
-         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.470 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.470 Sec.
+         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.470 Sec.
+         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.470 Sec.
 
 Calculating PDOS from the 960 frequencies
 

@@ -46,38 +46,38 @@ MAXimum interaction DIS = 10.604595, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 1.080 Sec., Total time = 1.080 Sec.
+Restore the translational invariance : Section time 1.040 Sec., Total time = 1.040 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 1.080 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 1.040 Sec.
 
  Used q-mesh 6x6x6
 
-Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 1.090 Sec.
+Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 1.050 Sec.
 
   1  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
   0  T1u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 1.090 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 1.050 Sec.
 
  8 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 1.090 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 1.050 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
    0   0.0000        0.0000           0.00     0.00    0.0000   1.0000
-   1  -0.0000        0.0000          -0.00     0.00    0.0000   1.0000
-   2  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.0000
+   1   0.0000       -0.0000           0.00    -0.00    0.0000   1.0000
+   2  -0.0000        0.0000          -0.00     0.00    0.0000   1.0000
 
-         108 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.090 Sec.
-         216 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.090 Sec.
-         324 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.090 Sec.
-         432 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.090 Sec.
-         540 out of 648 Frequencied calculated!  Section time 0.010 Sec., Total time = 1.100 Sec.
-         648 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.100 Sec.
+         108 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
+         216 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
+         324 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
+         432 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
+         540 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
+         648 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.050 Sec.
 
 Calculating PDOS from the 648 frequencies
 

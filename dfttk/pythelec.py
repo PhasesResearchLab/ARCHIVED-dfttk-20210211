@@ -752,34 +752,17 @@ def CenDifB(_v, vol, F, BMfunc, N=7,kind='cubic'):
     except:
         return -1.0, -1.0, 0.
 
-def BMDifB(_v, _vol, _F, BMfunc, N=7):
-    F = list(copy.deepcopy(_F))
-    vol = list(copy.deepcopy(_vol))
+def BMDifB(_v, vol, F, BMfunc, N=7):
+    vn = min(vol)
+    vx = max(vol)
+    xx = np.linspace(vn,vx,1000)
+    yy = BMfitF(xx, vol, F, BMfunc)
+    val, idx = min((val, idx) for (idx, val) in enumerate(yy))
+    if idx <N//2 or idx>=len(xx)-N//2-2:
+        return -1.0, -1.0, 0.,0.
 
-    """
-    # will only use 3 points above minimum volume 
-    val, idx = min((val, idx) for (idx, val) in enumerate(_F))
-    for i in range(len(_F)-1, 3, -1):
-        if i>idx+3: 
-            del vol[i]
-            del F[i]
-    if len(F) < 5: return -1, 0,0,0
-    """
-
-    F = np.array(F)
-    vol = np.array(vol)
-    # check if instability exists at the high volume part F(i) > F[i-1] for BM fitting
-    for i in range(-1, -3, -1):
-        if F[i] <= F[i-1]: return -1, 0,0,0
-           
-    dV = 0.01*(max(vol) - min(vol))
-    if _v!=0.0:
-        v = brentq(BMfitP, _v-N*dV, _v+N*dV, args=(vol, F, BMfunc), maxiter=10000)
-    else:
-        v = brentq(BMfitP, min(vol), max(vol), args=(vol, F, BMfunc), maxiter=10000)
-
-    #ff = BMfitF(v, vol, F, BMfunc)
-    ff = interp1d(vol, F)(v)
+    v = brentq(BMfitP, xx[idx-1], xx[idx+1], args=(vol, F, BMfunc), maxiter=10000)
+    ff = BMfitF(v, vol, F, BMfunc)
     bb, pp = BMfitB(v, vol, F, BMfunc)
     return bb, v, ff, pp
 
@@ -1413,6 +1396,9 @@ class thelecMDB():
             if self.volumes[i] > vx: break
         q /= n
         self.key_comments['phonon quality'] = '{:8.6}'.format(q)
+        self.key_comments['METADATA'] = {'tag':self.tag}
+        self.key_comments['volumes'] = list(self.volumes)
+        self.key_comments['energies'] = list(self.energies)
      
            
     def run_console(self):

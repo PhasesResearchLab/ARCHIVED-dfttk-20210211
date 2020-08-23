@@ -473,6 +473,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         ax.plot(x,reflin,'--',linewidth=2,color='k')
       ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
       if ytext is not None:
+        ax.set_xlim([min(x)*1.05,max(x)*1.05])
         x0 = np.array(ytext[0])
         y0 = np.array(ytext[1])
         s0 = ytext[2]

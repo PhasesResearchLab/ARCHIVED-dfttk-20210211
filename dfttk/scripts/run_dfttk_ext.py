@@ -163,11 +163,11 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-pn", "-phasename", dest="phasename", nargs="?", type=str, default=None,
                       help="assigan phase name. \n"
                            "Default: None")
-    pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=0,
+    pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=4,
                       help="Mode to calculate LTC. 0: Symmetrical Central differential;  \n"
                            "                       4: 4-parameter BM fitting.  \n"
                            "                       5: 5-parameter BM fitting.  \n"
-                           "Default: 0")
+                           "Default: 4")
     pthelec.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=0,
                       help="Mode to interpolate thermal electronic contribution:"
                            "                       0: interp1d;  \n"

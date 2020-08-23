@@ -58,54 +58,54 @@ Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.090 
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 1.130 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 1.120 Sec.
 
   1   Ag Modes of raman_active 
-  0   Ag   5.6087  (  187.09)
+  0   Ag   5.5905  (  186.48)
 
   1  B1g Modes of raman_active 
-  0  B1g   5.6087  (  187.09)
+  0  B1g   5.5905  (  186.48)
 
   1  B2g Modes of raman_active 
-  0  B2g   4.1620  (  138.83)
+  0  B2g   4.1759  (  139.29)
 
   2  B1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
-  0  B1u   6.6725  (  222.57)
+  0  B1u   6.6632  (  222.26)
   1  B1u  -0.0000  (   -0.00)
 
   2  B3u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.894,-0.447,-0.000)  with one tranlational mode 
-  0  B3u   3.9163  (  130.64)
-  1  B3u   0.0000  (    0.00)
+  0  B3u   3.8799  (  129.42)
+  1  B3u  -0.0000  (   -0.00)
 
   2  B2u Modes of ir_active : P=  0.000, 1.000, 0.000 ( 0.000, 1.000, 0.000)  with one tranlational mode 
-  0  B2u   3.9163  (  130.64)
+  0  B2u   3.8799  (  129.42)
   1  B2u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 1.130 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 1.120 Sec.
 
  1 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 1.130 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 1.120 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0   6.6725        6.6725         222.57   222.57    0.0000   0.0000
-   1   5.6087        5.6087         187.09   187.09    0.0000   0.0000
-   2   5.6087        5.6087         187.09   187.09    0.0000   0.0000
-   3   4.1620        4.1620         138.83   138.83    0.0000   0.0000
-   4   3.9163        3.9163         130.64   130.64    0.0000   0.0000
-   5   3.9163        3.9163         130.63   130.63    0.0000   0.0000
-   6   0.0000        0.0000           0.00     0.00    0.0000   1.7321
+   0   6.6632        6.6632         222.26   222.26    0.0000   0.0000
+   1   5.5905        5.5905         186.48   186.48    0.0000   0.0000
+   2   5.5905        5.5905         186.48   186.48    0.0000   0.0000
+   3   4.1759        4.1759         139.29   139.29    0.0000   0.0000
+   4   3.8799        3.8799         129.42   129.42    0.0000   0.0000
+   5   3.8799        3.8799         129.42   129.42    0.0000   0.0000
+   6  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.7321
    7  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.7321
    8  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.7321
 
-         144 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.130 Sec.
-         288 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.130 Sec.
-         432 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.130 Sec.
-         576 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.130 Sec.
+         144 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.120 Sec.
+         288 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.120 Sec.
+         432 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.120 Sec.
+         576 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.120 Sec.
 
 Calculating PDOS from the 576 frequencies
 

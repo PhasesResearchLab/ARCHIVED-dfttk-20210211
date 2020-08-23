@@ -58,13 +58,13 @@ MAXimum interaction DIS = 9.104664, Dynamical Matrix will be averaged over 1 cel
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.320 Sec., Total time = 0.320 Sec.
+Restore the translational invariance : Section time 0.360 Sec., Total time = 0.360 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.330 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.370 Sec.
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.370 Sec.
+Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.410 Sec.
 
   4  T1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
   0  T1u  14.3514  (  478.71)
@@ -75,19 +75,19 @@ Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.370
   1  T2u Modes of silent_mode 
   0  T2u   7.8975  (  263.43)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.370 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.410 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 0.380 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.410 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
    0  14.4383       14.4383         481.61   481.61    0.0000   0.0247
-   1  14.3656       14.3656         479.19   479.19    0.0000   0.0181
+   1  14.3656       14.3656         479.18   479.18    0.0000   0.0181
    2  14.2714       14.2714         476.04   476.04    0.0000   0.0090
    3   8.1972        8.1972         273.43   273.43    0.0000   0.0180
    4   7.8918        7.8918         263.24   263.24    0.0000   0.0032
@@ -96,16 +96,16 @@ Frequencies in Gamma point without & with NA term)
    7   2.5814       -5.4652          86.11  -182.30    0.0000   1.2401
    8   2.5495       -5.3391          85.04  -178.09    0.0000   1.2405
    9   0.0000        2.7711           0.00    92.43    0.0000   1.5637
-  10   0.0000        2.5814           0.00    86.11    0.0000   1.5565
-  11   0.0000        2.5495           0.00    85.04    0.0000   1.5544
-  12  -5.3391        0.0000        -178.09     0.00    0.0000   2.2361
-  13  -5.4652       -0.0000        -182.30    -0.00    0.0000   2.2361
+  10  -0.0000        2.5814          -0.00    86.11    0.0000   1.5565
+  11  -0.0000        2.5495          -0.00    85.04    0.0000   1.5544
+  12  -5.3391       -0.0000        -178.09    -0.00    0.0000   2.2361
+  13  -5.4652        0.0000        -182.30     0.00    0.0000   2.2361
   14  -5.4973       -0.0000        -183.37    -0.00    0.0000   2.2361
 
-         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
-         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.380 Sec.
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.410 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.410 Sec.
+         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.410 Sec.
+         960 out of 960 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.420 Sec.
 
 Calculating PDOS from the 960 frequencies
 
