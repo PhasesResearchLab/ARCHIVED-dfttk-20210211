@@ -1,0 +1,47 @@
+{
+    "E-V": {
+        "Natoms": 14,
+        "energies": [-98.60656307, -99.14862999, -99.44668369, -99.53946071, -99.45937641, -99.23346516, -98.88453499],
+        "volumes": [122.44839688366696, 126.98356639410913, 131.51867074275054, 136.0537750827089, 140.58891563899792, 145.12402665037757, 149.65918867192622]
+    },
+
+    "ENCUT": 520.0,
+    "METADATA": {
+        "tag": "6b2d6676-8b52-454b-a656-ebd7dead68bc"
+    },
+
+    "NEDOS": 5001,
+    "Postprocess time": "2020-08-24 18:26:49.212104",
+    "bandgap": 5.2109,
+    "command": "dfttk thfind -get -py -plot -all MgAlO -renew",
+    "gamma phonons (cm^{-1})": {
+        "A1g 00000": [737.3, "raman_active"],
+        "A2u 00000": [723.8, "silent_mode"],
+        "A2u 00001": [611.3, "silent_mode"],
+        "Eg 00000": [396.3, "raman_active"],
+        "Eu 00000": [584.7, "silent_mode"],
+        "Eu 00001": [364.9, "silent_mode"],
+        "T1g 00000": [342.4, "silent_mode"],
+        "T1u 00000": [630.6, "ir_active"],
+        "T1u 00001": [544.9, "ir_active"],
+        "T1u 00002": [445.7, "ir_active"],
+        "T1u 00003": [296.9, "ir_active"],
+        "T2g 00000": [638.1, "raman_active"],
+        "T2g 00001": [533.6, "raman_active"],
+        "T2g 00002": [299.9, "raman_active"],
+        "T2u 00000": [440.2, "silent_mode"],
+        "T2u 00001": [256.1, "silent_mode"]
+    },
+
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [8, 8, 8]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Mg", "Al", "O"],
+        "pot_type": "paw"
+    }
+}
