@@ -58,54 +58,54 @@ MAXimum interaction DIS = 9.111361, Dynamical Matrix will be averaged over 1 cel
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.440 Sec., Total time = 0.440 Sec.
+Restore the translational invariance : Section time 0.410 Sec., Total time = 0.410 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.450 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.410 Sec.
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.490 Sec.
+Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.450 Sec.
 
   4  T1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
-  0  T1u  14.3239  (  477.79)
-  1  T1u  -5.4732  ( -182.57)
-  2  T1u   2.5868  (   86.29)
+  0  T1u  14.1093  (  470.63)
+  1  T1u  -5.8422  ( -194.88)
+  2  T1u   2.3727  (   79.14)
   3  T1u  -0.0000  (   -0.00)
 
   1  T2u Modes of silent_mode 
-  0  T2u   7.8160  (  260.71)
+  0  T2u   7.8023  (  260.26)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.490 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.450 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.490 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.450 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0  14.4153       14.4153         480.84   480.84    0.0000   0.0224
-   1  14.3155       14.3155         477.52   477.52    0.0000   0.0176
-   2  14.2456       14.2456         475.18   475.18    0.0000   0.0129
-   3   8.1139        8.1139         270.65   270.65    0.0000   0.0206
-   4   7.7891        7.7891         259.82   259.82    0.0000   0.0109
-   5   7.7649        7.7649         259.01   259.01    0.0000   0.0107
-   6   2.6064       -5.5464          86.94  -185.01    0.0000   1.2694
-   7   2.5866       -5.4393          86.28  -181.44    0.0000   1.2501
-   8   2.3945       -5.4367          79.87  -181.35    0.0000   1.2510
-   9   0.0000        2.6064           0.00    86.94    0.0000   1.5410
-  10  -0.0000        2.5866          -0.00    86.28    0.0000   1.5326
-  11  -0.0000        2.3945          -0.00    79.87    0.0000   1.5229
-  12  -5.4367       -0.0000        -181.35    -0.00    0.0000   2.2361
-  13  -5.4393       -0.0000        -181.44    -0.00    0.0000   2.2361
-  14  -5.5464        0.0000        -185.01     0.00    0.0000   2.2361
+   0  14.1983       14.1983         473.61   473.61    0.0000   0.0093
+   1  14.1071       14.1071         470.56   470.56    0.0000   0.0028
+   2  14.0284       14.0284         467.94   467.94    0.0000   0.0031
+   3   8.0790        8.0790         269.49   269.49    0.0000   0.0204
+   4   7.7806        7.7806         259.53   259.53    0.0000   0.0102
+   5   7.7492        7.7492         258.48   258.48    0.0000   0.0101
+   6   2.4016       -5.8832          80.11  -196.24    0.0000   1.2359
+   7   2.3718       -5.7999          79.11  -193.47    0.0000   1.2213
+   8   2.2798       -5.7975          76.04  -193.38    0.0000   1.2197
+   9   0.0000        2.4016           0.00    80.11    0.0000   1.5770
+  10   0.0000        2.3718           0.00    79.11    0.0000   1.5697
+  11  -0.0000        2.2798          -0.00    76.04    0.0000   1.5684
+  12  -5.7975        0.0000        -193.38     0.00    0.0000   2.2361
+  13  -5.7999       -0.0000        -193.47    -0.00    0.0000   2.2361
+  14  -5.8832       -0.0000        -196.24    -0.00    0.0000   2.2361
 
-         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.490 Sec.
-         480 out of 960 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.500 Sec.
-         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.500 Sec.
-         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.500 Sec.
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.450 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.450 Sec.
+         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.450 Sec.
+         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.450 Sec.
 
 Calculating PDOS from the 960 frequencies
 

@@ -213,6 +213,7 @@ def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
 
 def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J', natom=None):
     freq, pdos, quality = getdos(dos_input, natom)
+    #print ("eeeeeeee", natom)
     nT = T.size
     F_ph = np.zeros(nT)
     U_ph = np.zeros(nT)
@@ -227,6 +228,7 @@ def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J', 
 
     for i in range(nT):
         F_ph[i], U_ph[i], S_ph[i], C_ph_mu[i], C_ph_n[i], sound_ph[i], sound_nn[i], N_ph[i], NN_ph[i], debyeT[i] = caclf(freq, pdos, T[i], dmu=_dmu,energyunit=energyunit)
+    #print ("eeeeee",C_ph_mu*96484)
 
     return F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, sound_ph, sound_nn, N_ph, NN_ph, debyeT, quality
 

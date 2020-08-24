@@ -85,7 +85,7 @@ def ext_thelec(args):
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
-            if plotAPI(thermofile, volumes, energies, expt=expt, xlim=xlim): 
+            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim): 
                 record_cmd_print(thermofile, readme)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
@@ -164,9 +164,10 @@ def shared_aguments(pthelec):
                       help="assigan phase name. \n"
                            "Default: None")
     pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=4,
-                      help="Mode to calculate LTC. 0: Symmetrical Central differential;  \n"
-                           "                       4: 4-parameter BM fitting.  \n"
-                           "                       5: 5-parameter BM fitting.  \n"
+                      help="Mode to calculate equilibrium volume and LTC.\n"
+                           "    0: Symmetrical Central differential if the data is excellent; \n"
+                           "    4: 4-parameter BM fitting if the data is faitly good;  \n"
+                           "    5: 5-parameter BM fitting if the data is very good.  \n"
                            "Default: 4")
     pthelec.add_argument("-el", "--elmode", dest="elmode", nargs="?", type=int, default=0,
                       help="Mode to interpolate thermal electronic contribution:"

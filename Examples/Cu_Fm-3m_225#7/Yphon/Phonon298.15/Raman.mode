@@ -46,9 +46,9 @@ MAXimum interaction DIS = 10.603819, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 1.070 Sec., Total time = 1.070 Sec.
+Restore the translational invariance : Section time 1.080 Sec., Total time = 1.080 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.080 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 1.080 Sec.
 
  Used q-mesh 6x6x6
 

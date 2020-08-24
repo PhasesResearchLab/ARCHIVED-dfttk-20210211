@@ -479,7 +479,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         s0 = ytext[2]
         for i in range (len(s0)):
           #print(x0[i], y0[i], s0[i])
-          ax.text(x0[i], y0[i], s0[i], color='r', rotation=90)
+          ax.text(x0[i], y0[i], s0[i], color='r', rotation=90, horizontalalignment='left', verticalalignment='bottom')
       """
       """
       if fitted!=None:
@@ -1534,6 +1534,7 @@ EQ = 0.01
 CpMax = 50.
 Tupmax = 2000.0
 start = time.time()
+gamma_phonons = {}
 threcord = {}
 figures = {}
 zthermo = {}
@@ -1554,7 +1555,7 @@ phases = []
 papers = []
 PhaseName = {}
 
-def plotAPI(thermofile, volumes=None, energies=None, expt=None, xlim=None):
+def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None):
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
   phasedir = ('/').join(phasedir[0:-1])
   if phasedir=="": phasedir="."
@@ -1590,6 +1591,10 @@ def plotAPI(thermofile, volumes=None, energies=None, expt=None, xlim=None):
   Sstack=interpolate.splrep(thermo[:,0], thermo[:,3])
   S298 = float(interpolate.splev(T0, Sstack))
   """
+  global T0
+  if T0 > thermo[-1,0] : 
+    print ("\nWarning! T298 is reduced to", T0, "due to out of up limit\n")
+    T0 = thermo[-1,0]
   f2=interp1d(thermo[:,0], thermo[:,1])
   V298 = f2(T0)
   f2=interp1d(thermo[:,0], thermo[:,4])
@@ -1637,7 +1642,7 @@ def plotAPI(thermofile, volumes=None, energies=None, expt=None, xlim=None):
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
       list(thermo[:,18]/thermo[:,1]*1e24))
-
+  readme['gamma phonons (cm^{-1})']= gamma_phonons
   return True
 
 
@@ -1754,6 +1759,8 @@ def plotRaman(folder, fp, vdos):
   M = []
   F = []
   A = []
+  G = {}
+  global gamma_phonons
   for i,line in enumerate(lines):
     if line.startswith("Handling symmetry : Section time "): break
     ff = [f for f in line.strip().split(" ") if f!=""]
@@ -1765,6 +1772,12 @@ def plotRaman(folder, fp, vdos):
     I.append(ff[0])
     F.append(ff[2])
     A.append(active)
+    kk = '{} {:05}'.format(ff[1],int(ff[0]))
+    #THz = round(float(ff[2]),3)
+    #THz = str(round(float(ff[2]),3))+" THz",
+    #cm = str(round(float(ff[2])/0.0299792458,1))+" cm-1"
+    cm = round(float(ff[2])/0.0299792458,1)
+    if cm!=0: gamma_phonons[kk] = [cm, active]
   #print(I,M,F,A)  
   x = vdos[:,0]*1.e-12
   y = vdos[:,1]*1.e+12
@@ -1787,12 +1800,55 @@ def plotRaman(folder, fp, vdos):
     if float(f)<1.e-3: continue
     #print("eeeeee", f,w,hh)
     addvdos(x,yy,float(f),w,hh)
-    x0.append(float(f))
+    x0.append(float(f)-18*w)
     y0.append(hh)
     s0.append(M[i])
+  ix = sorted(range(len(x0)), key=lambda k: x0[k])
+  #print(ix)
+  _M = []
+  _x0 = []
+  _y0 = []
+  _s0 = []
+  for i in range(len(ix)):
+    _M.append(M[ix[i]])
+    _x0.append(x0[ix[i]])
+    _y0.append(y0[ix[i]])
+    ss = s0[ix[i]]
+    if len(ss)>1:
+      if ss[1].isdigit() or ss[1].isalpha():
+        ss = '$'+ss[0]+'_{'+ss[1:len(ss)]+'}$'
+      else: ss = '$'+ss+'$'
+    _s0.append(ss)
+  M = _M
+  x0 = _x0
+  y0 = _y0
+  s0 = _s0
+  
+  #print(x0)
+  #print(M)
+  nx0 = []
+  ny0 = []
+  ns0 = []
+  nn0 = []
+  #adjust y0 for overlapping text
+  for i,v in enumerate(x0):
+    ff = False
+    for j in range(len(nx0)):
+      if abs(x0[i] - nx0[j]) < 30*w:
+        ns0[j] = ns0[j]+'+'+s0[i]
+        nx0[j]= (nx0[j]*nn0[j]+x0[i])/(nn0[j]+1)
+        nn0[j] += 1
+        ff = True
+        break
+    if ff: continue
+    nx0.append(x0[i])
+    ny0.append(y0[i])
+    ns0.append(s0[i])
+    nn0.append(1)
+
   if len(s0)>0:
     thermoplot("./","Gamma point phonons",list(x),list(yy), 
-      reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[x0,y0,s0], ylabel="Phonon DOS ($THz^{-1}$)")
+      reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[nx0,ny0,ns0], ylabel="Phonon DOS ($THz^{-1}$)")
     fn = "Gamma_point_phonons.png"
     os.rename(fn, folder+'/'+fn)
 
@@ -1802,6 +1858,7 @@ def Plot298(folder, V298, volumes):
   plotdatabase = dfttkconfig.get_abspath(PATH_TO_STORE_CONFIG)+'/analysis/database/'
   #print (plotdatabase, folder)
   ydir = folder+'/../Yphon/'
+  #print ("I am here", os.getcwd())
   
   for root, dirs, files in os.walk(ydir):
     structure = Structure.from_file(ydir+dirs[len(dirs)//2]+'/POSCAR')
@@ -1852,9 +1909,14 @@ def Plot298(folder, V298, volumes):
   os.rename("vdos.eps", cwd+'/'+folder+'/vdos298.15.eps')
   os.rename("vdos.png", cwd+'/'+folder+'/vdos298.15.png')
 
-  cmd = "pos2s Symmetry.pos"
+  cmd = "pos2s Symmetry.pos -THR 0.0001"
+  print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
+  """
+  #temp for debug
+  """
+  #temp for debug
 
   if os.path.exists("vdos.out") :
     cmd = "Yphon -tranI 2 -eps -nqwave 100 -Gfile symmetry.mode <superfij.out >Raman.mode"

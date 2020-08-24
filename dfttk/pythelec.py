@@ -11,7 +11,7 @@ import numpy as np
 from scipy.constants import physical_constants
 from scipy.optimize import brentq, curve_fit
 from scipy.integrate import cumtrapz, trapz, simps
-from scipy.interpolate import interp1d, splev, splrep
+from scipy.interpolate import interp1d, splev, splrep, BSpline
 from scipy.integrate import quadrature
 from scipy.interpolate import UnivariateSpline
 from atomate.vasp.database import VaspCalcDb
@@ -891,7 +891,7 @@ class thelecMDB():
     and the equilibrium volume extracted from MongoDB in the last column
     """
 
-    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
+    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, db_file, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
                 phasename=None, pyphon=False, debug=False, renew=False, fitF=False):
         from atomate.vasp.database import VaspCalcDb
@@ -905,7 +905,7 @@ class thelecMDB():
         self.dope = dope
         self.ndosmx = ndosmx
         self.gaussian = gaussian
-        self.natom = natom
+        self.natfactor = natfactor
         self.outf = outf
         self.noel = noel
         self.everyT = everyT
@@ -1005,8 +1005,9 @@ class thelecMDB():
                 print ("Calling yphon to get f_vib, s_vib, cv_vib at ", phdir)
             with open("vdos.out", "r") as fp:
                 f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality \
-                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV', natom=self.natom)
+                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV', natom=self.natoms)
                 self.quality.append(quality)
+                #print ("eeeeeee", cv_vib*96484, self.natoms)
 
             self.Flat.append(f_vib)
             self.Slat.append(s_vib)
@@ -1111,13 +1112,13 @@ class thelecMDB():
         for i,dos in enumerate(self.dos_objs):
             #print ("processing dos object at volume: ", self.volumes[i], " with nT =", len(self.T))
             prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
-                self.gaussian, self.natom, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
+                self.gaussian, self.natfactor, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
             """
             if 1==1:
                 iFunc = trapz
             else:
                 iFunc = simps
-            F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Q_el, Q_p, Q_e, C_mu, T, W_p, W_e, Y_p, Y_e = runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, dos=dos, fout=fvib, vol=volumes[i], IntegrationFunc=iFunc)
+            F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Q_el, Q_p, Q_e, C_mu, T, W_p, W_e, Y_p, Y_e = runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, dos=dos, fout=fvib, vol=volumes[i], IntegrationFunc=iFunc)
             Tuple of 14 float array containing
             thermal electron free energy, entropy, specific heat, M_el, seebeck_coefficients, 
             effective number of charge carrier, Q_p, Q_e, constant chemical potential specific heat, temperature.
@@ -1202,7 +1203,7 @@ class thelecMDB():
         self.Slat[np.isnan(self.Slat)] = 0
 
     
-    def calc_equilibrium_volume(self):
+    def calc_TE_V_fitF(self):
 
         self.energies_orig = copy.deepcopy(self.energies)
         self.energies = BMfitF(self.volumes, self.volumes, self.energies_orig, BMvol4)
@@ -1231,40 +1232,35 @@ class thelecMDB():
         if self.T[0] == 0: self.beta[0] = 0
         self.blat[nT-4] = -1
         """
+
         #print("eeeee", nT, self.volT[-1])
-        dT = 1.0
-        if nT>2:
-            self.beta = np.zeros((min(len(self.T), nT+1)), dtype=float)
-            #f2 = UnivariateSpline(self.T[0:nT], self.volT[0:nT])
-            f2 = interp1d(self.T[0:nT], self.volT[0:nT],kind='cubic')
-            for i in range(0, nT):
-                N = 3
-                for j in range(3,0,-1):
-                    if self.T[i]-dT*N < self.T[0]: 
-                        N = N - 1
-                        continue
-                    if self.T[i]+dT*N > self.T[nT-1]:
-                        N = N - 1
-                        continue
-                if self.T[i]-3*dT < self.T[0]:
-                    self.beta[i] = (f2(self.T[i]+dT) - f2(self.T[i]))/dT/self.volT[i]
-                    continue
-                elif self.T[i]+3*dT > self.T[nT-4]:
-                    ix = min(nT-2, i)
-                    self.beta[i] = (self.volT[nT-1] - self.volT[ix])/(self.T[nT-1]-self.T[ix])/self.volT[i]
-                    #print ("eeeeeee", self.T[nT-4], self.beta[i], self.volT[nT-1] , self.volT[ix])
-                    continue
-                result = 0.0
-                for j in range(0, N):
-                    result += (f2(self.T[i]+dT*(j+1)) - f2(self.T[i]-dT*(j+1)))/(2.0*(j+1))
-                #print ("eeeeee", N, dT, self.volT[i])
-                self.beta[i] = result/N/dT/self.volT[i]
-            if self.T[0] == 0: self.beta[0] = 0
+        self.beta = np.zeros((min(len(self.T), nT+1)), dtype=float)
+        if nT < 2:
+           self.blat[0] = -1
+           return
+
+        #f2 = UnivariateSpline(self.T[0:nT], self.volT[0:nT])
+        for i in range(0, nT):
+            N = min (3, i)
+            N = min (N, nT-i-1)
+            if N==0:
+                if i==0:
+                    self.beta[i] = (self.volT[1] - self.volT[0])/(self.T[1] - self.T[0])/self.volT[i]
+                else:
+                    self.beta[i] = (self.volT[nT-1] - self.volT[nT-2])/(self.T[nT-1] - self.T[nT-2])/self.volT[i]
+                continue
+            result = 0.0
+            for j in range(0, N):
+                result += (self.volT[i+N] - self.volT[i])/(self.T[i+N] - self.T[i]) + \
+                          (self.volT[i-N] - self.volT[i])/(self.T[i-N] - self.T[i])
+            #print ("eeeeee", N, dT, self.volT[i])
+            self.beta[i] = 0.5*result/N/self.volT[i]
+        if self.T[0] == 0: self.beta[0] = 0
         
-        self.blat[nT-4] = -1
+        #self.blat[nT-4] = -1
 
 
-    def calc_thermal_expansion(self,i,kind='cubic'):
+    def calc_TE_V_general(self,i,kind='cubic'):
         if self.T[i]==0.0: beta=0.0
         if self.smooth:
             E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
@@ -1324,16 +1320,16 @@ class thelecMDB():
                 fvib.write('#T, F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Lorenz_number[WΩK−2], Q_el, Q_p, Q_e, C_mu, W_p, W_e, Y_p, Y_e Vol Gibbs_energy\n')
 
             if self.hasSCF:
-                if self.fitF: self.calc_equilibrium_volume()
+                if self.fitF: self.calc_TE_V_fitF()
 
             for i in range(len(self.T)):
                 if self.hasSCF:
                     if self.fitF:
                         blat, beta = self.blat[i], self.beta[i]
                     elif self.elmode==1: 
-                        blat, beta = self.calc_thermal_expansion(i, kind='UnivariateSpline')
+                        blat, beta = self.calc_TE_V_general(i, kind='UnivariateSpline')
                     else:
-                        blat, beta = self.calc_thermal_expansion(i, kind='cubic')
+                        blat, beta = self.calc_TE_V_general(i, kind='cubic')
                     if blat < 0: 
                         print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
@@ -1383,7 +1379,7 @@ class thelecMDB():
         return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
-    def add_comments(self):
+    def add_comput_inf(self):
         vn = min(self.volT)
         vx = max(self.volT)
         for ix,vol in enumerate(self.volumes):
@@ -1431,11 +1427,11 @@ class thelecMDB():
         if not self.pyphon: self.get_qha()
         self.hasSCF = True
         self.check_vol()
-        self.energies_orig = copy.deepcopy(self.volumes)
+        self.energies_orig = copy.deepcopy(self.energies)
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
-        self.add_comments()
+        self.add_comput_inf()
         a,b,c = self.calc_thermodynamics()
         return a,b,c,self.key_comments
 

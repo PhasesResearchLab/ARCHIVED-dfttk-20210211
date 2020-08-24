@@ -30,7 +30,7 @@ set xtics ( '{/Symbol G}' qunit*0.000000, 'M' qunit*0.183232, 'X' qunit*0.312797
 set key left top
 set ylabel "Frequency (THz)"
 
-plot [x=0:qunit*p7*1.0001] [funit*-2.000000:funit*25.000000] \
+plot [x=0:qunit*p7*1.0001] [funit*-2.000000:funit*26.000000] \
 'vline.dat' using (qunit*$1):(funit*$2) notitle w l lt 4, \
  'vdis.out' index 0 using (qunit*p0+qunit*$1):(funit*$5) notitle w l lt -1, \
  '' index 0 using (qunit*p0+qunit*$1):(funit*$6) notitle w l lt -1, \
