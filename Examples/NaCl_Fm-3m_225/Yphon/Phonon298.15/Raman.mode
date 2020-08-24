@@ -66,7 +66,7 @@ Handling symmetry : Section time 0.000 Sec., Total time = 6.930 Sec.
  64 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 6.940 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 6.930 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -79,7 +79,7 @@ Frequencies in Gamma point without & with NA term)
    4  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
    5  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
 
-          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 6.940 Sec.
+          96 out of 384 Frequencied calculated!  Section time 0.010 Sec., Total time = 6.940 Sec.
          192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 6.940 Sec.
          288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 6.940 Sec.
          384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 6.940 Sec.

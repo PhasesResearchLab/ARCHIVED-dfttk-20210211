@@ -1591,21 +1591,30 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   Sstack=interpolate.splrep(thermo[:,0], thermo[:,3])
   S298 = float(interpolate.splev(T0, Sstack))
   """
-  global T0
-  if T0 > thermo[-1,0] : 
-    print ("\nWarning! T298 is reduced to", T0, "due to out of up limit\n")
-    T0 = thermo[-1,0]
-  f2=interp1d(thermo[:,0], thermo[:,1])
-  V298 = f2(T0)
-  f2=interp1d(thermo[:,0], thermo[:,4])
-  H298 = f2(T0)
-  f2=interp1d(thermo[:,0], thermo[:,3])
-  S298 = f2(T0)
+  if T0 <= thermo[-1,0] : 
+    f2=interp1d(thermo[:,0], thermo[:,1])
+    V298 = f2(T0)
+    f2=interp1d(thermo[:,0], thermo[:,4])
+    H298 = f2(T0)
+    f2=interp1d(thermo[:,0], thermo[:,3])
+    S298 = f2(T0)
+  else:
+    print ("\nWarning! T0=", T0, "is higher than the T up limit:", thermo[-1,0], \
+    " no SGTE fitting will be performed\n")
 
-  if volumes is not None: Plot298(folder, V298, volumes)
+  if volumes is not None: 
+    if T0 <= thermo[-1,0] :
+      Plot298(folder, V298, volumes)
+    else:
+      print ("\nWarning! T0=", T0, "is higher than the T up limit:", thermo[-1,0], \
+      " phonon perperties will be reported at 0 K\n")
+      f2=interp1d(thermo[:,0], thermo[:,1])
+      V0 = f2(0)
+      Plot298(folder, V0, volumes)
 
-  threcord.update({"H298.15 (J/mol-atom)":H298})
-  threcord.update({"S298.15 (J/mol-atom/K)":S298})
+  if T0 <= thermo[-1,0] : 
+    threcord.update({"H298.15 (J/mol-atom)":H298})
+    threcord.update({"S298.15 (J/mol-atom/K)":S298})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
   zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
@@ -1613,14 +1622,16 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
   zthermo.update({"Cp (J/mol-atom/K)":list(thermo[:,6])})
-  proStoichiometricCp()
-  with open(folder + '/../record.json', 'w') as fp:
-    myjsonout(SGTErec, fp, indent="", comma="")
-  myjsonout(SGTErec, sys.stdout, indent="", comma="")
+  if T0 < thermo[-1,0] : 
+    proStoichiometricCp()
+    with open(folder + '/../record.json', 'w') as fp:
+      myjsonout(SGTErec, fp, indent="", comma="")
+    myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
   thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
-  thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
-  thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
+  if T0 <= thermo[-1,0] : 
+    thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
+    thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
   thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
 
   thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim)
@@ -1642,7 +1653,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
       list(thermo[:,18]/thermo[:,1]*1e24))
-  readme['gamma phonons (cm^{-1})']= gamma_phonons
+  if len(gamma_phonons)!=0: readme['gamma phonons (cm^{-1})']= gamma_phonons
   return True
 
 
@@ -1761,6 +1772,7 @@ def plotRaman(folder, fp, vdos):
   A = []
   G = {}
   global gamma_phonons
+  gamma_phonons = {}
   for i,line in enumerate(lines):
     if line.startswith("Handling symmetry : Section time "): break
     ff = [f for f in line.strip().split(" ") if f!=""]

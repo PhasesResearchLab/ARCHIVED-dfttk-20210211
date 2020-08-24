@@ -97,7 +97,7 @@ Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.300 
 
  Used q-mesh 3x3x3
 
-Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.420 Sec.
+Setting workspace & pre-optimizing : Section time 0.110 Sec., Total time = 0.410 Sec.
 
   8   Ag Modes of raman_active 
   0   Ag   6.2581  (  208.75)
@@ -163,7 +163,7 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.420
   6  B2u   3.0949  (  103.23)
   7  B2u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.420 Sec.
+Handling symmetry : Section time 0.010 Sec., Total time = 0.420 Sec.
 
  2 Exact Q points found
 

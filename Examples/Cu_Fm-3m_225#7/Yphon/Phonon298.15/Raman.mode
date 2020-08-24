@@ -48,11 +48,11 @@ Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
 Restore the translational invariance : Section time 1.080 Sec., Total time = 1.080 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 1.080 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.090 Sec.
 
  Used q-mesh 6x6x6
 
-Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 1.090 Sec.
+Setting workspace & pre-optimizing : Section time 0.000 Sec., Total time = 1.090 Sec.
 
   1  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
   0  T1u  -0.0000  (   -0.00)
