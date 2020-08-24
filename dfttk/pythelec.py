@@ -954,6 +954,9 @@ class thelecMDB():
             supercell_structure.make_supercell(supercell_matrix)
 
             sa = SpacegroupAnalyzer(supercell_structure)
+            #reduced_structure = supercell_structure.get_reduced_structure(reduction_algo='niggli')
+            #print ('niggli reduced structure', reduced_structure)
+            #poscar = reduced_structure.to(fmt="poscar")
             primitive_unitcell_structure = sa.find_primitive()
             poscar = primitive_unitcell_structure.to(fmt="poscar")
             punitcell_l = str(poscar).split('\n')
@@ -1069,6 +1072,9 @@ class thelecMDB():
             if structure is None:
                 structure = Structure.from_dict(calc['output']['structure'])
                 print(structure)
+                print ("\n")
+                reduced_structure = structure.get_reduced_structure(reduction_algo='niggli')
+                print ('niggli reduced structure', reduced_structure)
                 print ("\n")
                 self.formula_pretty = structure.composition.reduced_formula
                 self.natoms = len(structure.sites)

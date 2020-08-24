@@ -62,6 +62,7 @@ class thfindMDB ():
         self.t0 = args.t0
         self.t1 = args.t1
         self.td = args.td
+        self.findbandgap = args.findbandgap
         if args.within is not None: self.within, tmp = formula2composition(args.within)
         if args.containall is not None: self.containall, tmp = formula2composition(args.containall)
         if args.containany is not None: self.containany, tmp = formula2composition(args.containany)
@@ -141,13 +142,20 @@ class thfindMDB ():
             static_calculations = (self.vasp_db).collection.\
                 find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
             nS = 0
+            gapfound = False
             for calc in static_calculations:
                 vol = calc['output']['structure']['lattice']['volume']
                 nS += 1
-            if count[i] < self.nV: continue
-            if self.supercellsize[i] < self.supercellN: continue
-            sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
-            if count[i]>=6: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
+                bandgap = calc['output']['bandgap']
+                if not gapfound: gapfound = float(bandgap) > 0.0
+            if self.findbandgap:
+                #if gapfound: print ("eeeeee", gapfound, bandgap, phases[i])
+                if gapfound: sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
+            else:
+                if count[i] < self.nV: continue
+                if self.supercellsize[i] < self.supercellN: continue
+                sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
+                if count[i]>=6: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
 
 
     def debye_find(self):

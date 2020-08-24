@@ -1,21 +1,21 @@
 
 Primitive lattice vector from Supercell
 
-    3.582023000000      0.000000000000      0.000000000000  
-   -1.791011000000      3.102122000000      0.000000000000  
-    0.000000000000      0.000000000000      5.682182000000  
+    3.664958000000      0.000000000000      0.000000000000  
+   -1.832479000000      3.173947000000      0.000000000000  
+    0.000000000000      0.000000000000      5.789785000000  
 
 Supercell lattice vector
 
-    5.373036000000      9.306366000000      5.682182000000  
-   10.746069000000      0.000000000000     -5.682182000000  
-   -5.373033000000      9.306366000000     -5.682182000000  
+    5.497437000000      9.521841000000      5.789785000000  
+   10.994874000000      0.000000000000     -5.789785000000  
+   -5.497437000000      9.521841000000     -5.789785000000  
 
 Supercell is a transformation of the Primitive cell by
 
     3.000000000000      3.000000000000      1.000000000000  
     3.000000000000      0.000000000000     -1.000000000000  
-    0.000000000000      3.000000000000     -1.000000000000  
+   -0.000000000000      3.000000000000     -1.000000000000  
 
 The tranforming Matrix is truncated into
 
@@ -28,9 +28,9 @@ The tranforming Matrix is truncated into
 
 Used Primitive lattice vector
 
-    3.582023000000      0.000000000000      0.000000000000  
-   -1.791011000000      3.102122000000      0.000000000000  
-    0.000000000000      0.000000000000      5.682182000000  
+    3.664958000000      0.000000000000      0.000000000000  
+   -1.832479000000      3.173947000000      0.000000000000  
+    0.000000000000      0.000000000000      5.789785000000  
 
    2 Atom(s) in the Primitive cell
 
@@ -42,32 +42,32 @@ Used Primitive lattice vector
 Atom  0 Hg   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
 Atom  1 Hg  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53
 
-MAXimum interaction DIS = 11.306047, Dynamical Matrix will be averaged over 1 cell(s) built by 2 centered atom(s)
+MAXimum interaction DIS = 11.564815, Dynamical Matrix will be averaged over 1 cell(s) built by 2 centered atom(s)
 
- Hg PI=   0 SI=   9 at   0.583333   0.305556   0.527778 Index=   2   3  -1
- Hg PI=   1 SI=  40 at   0.416667   0.694444   0.472222 Index=   3   2  -1
+ Hg PI=   0 SI=  15 at   0.694444   0.527778   0.416667 Index=   3   3  -1
+ Hg PI=   1 SI=  34 at   0.305556   0.472222   0.583333 Index=   2   2  -1
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.330 Sec., Total time = 0.330 Sec.
+Restore the translational invariance : Section time 0.320 Sec., Total time = 0.320 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.330 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.320 Sec.
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 0.340 Sec.
+Setting workspace & pre-optimizing : Section time 0.020 Sec., Total time = 0.340 Sec.
 
   1  B2g Modes of silent_mode 
-  0  B2g   1.5166  (   50.59)
+  0  B2g   1.2044  (   40.17)
 
   1  E2g Modes of raman_active 
-  0  E2g   0.7246  (   24.17)
+  0  E2g   0.6771  (   22.59)
 
   1  A2u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
   0  A2u  -0.0000  (   -0.00)
 
   1  E1u Modes of ir_active : P=  0.866, 0.500, 0.000 ( 1.000,-0.000, 0.000)  with one tranlational mode 
-  0  E1u   0.0000  (    0.00)
+  0  E1u  -0.0000  (   -0.00)
 
 Handling symmetry : Section time 0.000 Sec., Total time = 0.340 Sec.
 
@@ -80,12 +80,12 @@ Frequencies in Gamma point without & with NA term)
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0   1.5166        1.5166          50.59    50.59    0.0000   0.0000
-   1   0.7246        0.7246          24.17    24.17    0.0000   0.0000
-   2   0.7246        0.7246          24.17    24.17    0.0000   0.0000
+   0   1.2044        1.2044          40.17    40.17    0.0000   0.0000
+   1   0.6771        0.6771          22.59    22.59    0.0000   0.0000
+   2   0.6771        0.6771          22.59    22.59    0.0000   0.0000
    3   0.0000       -0.0000           0.00    -0.00    0.0000   1.4142
-   4  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
-   5  -0.0000        0.0000          -0.00     0.00    0.0000   1.4142
+   4  -0.0000        0.0000          -0.00     0.00    0.0000   1.4142
+   5  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
 
           96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.340 Sec.
          192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.340 Sec.
@@ -100,6 +100,6 @@ Calculating PDOS from the 384 frequencies
 
 Primmitive Q/PI2 vectors in the Inverse space
 
-    0.279171853447      0.161179947279     -0.000000000000  
-    0.000000000000      0.322359984553      0.000000000000  
-    0.000000000000     -0.000000000000      0.175988731090  
+    0.272854422888      0.157532561193     -0.000000000000  
+    0.000000000000      0.315065122385      0.000000000000  
+    0.000000000000     -0.000000000000      0.172717985210  

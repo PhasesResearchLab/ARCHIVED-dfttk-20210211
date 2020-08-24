@@ -52,13 +52,13 @@ MAXimum interaction DIS = 13.723086, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.580 Sec., Total time = 0.580 Sec.
+Restore the translational invariance : Section time 0.570 Sec., Total time = 0.570 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.590 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.580 Sec.
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.620 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.610 Sec.
 
   1  B2g Modes of silent_mode 
   0  B2g   4.2359  (  141.30)
@@ -68,18 +68,18 @@ Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.620
 
   2  A2u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
   0  A2u   6.6223  (  220.90)
-  1  A2u   0.0000  (    0.00)
+  1  A2u  -0.0000  (   -0.00)
 
   2  E1u Modes of ir_active : P= -0.500, 0.866, 0.000 (-0.447, 0.894, 0.000)  with one tranlational mode 
   0  E1u   3.7165  (  123.97)
-  1  E1u   0.0000  (    0.00)
+  1  E1u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.620 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.610 Sec.
 
  1 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.620 Sec.
+Finding exact Q points : Section time 0.010 Sec., Total time = 0.620 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -92,8 +92,8 @@ Frequencies in Gamma point without & with NA term)
    4   3.7165        3.7165         123.97   123.97    0.0000   0.0000
    5   3.7165        3.7165         123.97   123.97    0.0000   0.0000
    6   0.0000        0.0000           0.00     0.00    0.0000   1.7321
-   7   0.0000        0.0000           0.00     0.00    0.0000   1.7321
-   8   0.0000       -0.0000           0.00    -0.00    0.0000   1.7321
+   7  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.7321
+   8  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.7321
 
          144 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.620 Sec.
          288 out of 576 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.620 Sec.

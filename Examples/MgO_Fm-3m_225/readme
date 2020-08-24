@@ -11,11 +11,11 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-23 23:29:59.489540",
+    "Postprocess time": "2020-08-24 18:57:38.979976",
     "bandgap": 4.532799999999999,
-    "command": "dfttk thfind -py -td -50 -plot -renew -get -ss 30 -eq 4",
+    "command": "dfttk thfind -get -py -plot -eq 4 -renew",
     "gamma phonons (cm^{-1})": {
-        "T1u 00000": [361.4, "ir_active"]
+        "T1u 00000": [361.3, "ir_active"]
     },
 
     "kpoins": {

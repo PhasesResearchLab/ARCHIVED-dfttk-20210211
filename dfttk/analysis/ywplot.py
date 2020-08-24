@@ -470,7 +470,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         #if yhigh > 1.e-2 : ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         #else : ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
       if reflin is not None:
-        ax.plot(x,reflin,'--',linewidth=2,color='k')
+        ax.plot(x,reflin,':',linewidth=1,color='k')
       ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
       if ytext is not None:
         ax.set_xlim([min(x)*1.05,max(x)*1.05])
@@ -1849,6 +1849,7 @@ def plotRaman(folder, fp, vdos):
       if abs(x0[i] - nx0[j]) < 30*w:
         ns0[j] = ns0[j]+'+'+s0[i]
         nx0[j]= (nx0[j]*nn0[j]+x0[i])/(nn0[j]+1)
+        ny0[j]= max(ny0[j], y0[i])
         nn0[j] += 1
         ff = True
         break

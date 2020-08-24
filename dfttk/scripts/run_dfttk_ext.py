@@ -238,6 +238,9 @@ def run_ext_thfind(subparsers):
     pthfind.add_argument("-ss", "--supercellsize", dest="supercellN", nargs="?", type=int, default=0,
                       help="only return phonon calculation with supercell size larger than. \n"
                            "Default: 0")
+    pthfind.add_argument("-fg", "--findbandgap", dest="findbandgap", action='store_true', default=False,
+                      help="report the entries with band gap. \n"
+                           "Default: False")
     pthfind.add_argument("-get", "--get", dest="get", action='store_true', default=False,
                       help="get the thermodyamic data for all found entries. \n"
                            "Default: False")

@@ -42,14 +42,14 @@ Used Primitive lattice vector
  0.7528560300 0.7528546900 0.2531018100 Cu    5
  0.7465116300 0.7465116300 0.7465116300 Cu    6
  0.9968988600 0.4971446400 0.4971446400 Cu    7
- 0.2462017400 0.2462017400 0.2462017400  W    8
- 0.2522346100 0.2522339500 0.7431695300  W    9
- 0.2522346100 0.7431695300 0.2522339500  W   10
- 0.5068304700 0.9977653900 0.9977660500  W   11
- 0.7431695300 0.2522346100 0.2522339500  W   12
- 0.9977657200 0.5068301400 0.9977657200  W   13
- 0.9977657200 0.9977657200 0.5068301400  W   14
- 0.0037982600 0.0037982600 0.0037982600  W   15
+ 0.2462017300 0.2462017300 0.2462017300  W    8
+ 0.2522346200 0.2522339600 0.7431695200  W    9
+ 0.2522346200 0.7431695200 0.2522339600  W   10
+ 0.5068304800 0.9977653800 0.9977660400  W   11
+ 0.7431695200 0.2522346200 0.2522339600  W   12
+ 0.9977657100 0.5068301500 0.9977657100  W   13
+ 0.9977657100 0.9977657100 0.5068301500  W   14
+ 0.0037982700 0.0037982700 0.0037982700  W   15
 
  Mapping of Supercell of Primitive cell
 
@@ -91,13 +91,13 @@ MAXimum interaction DIS = 15.769597, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.630 Sec., Total time = 0.630 Sec.
+Restore the translational invariance : Section time 0.640 Sec., Total time = 0.640 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.630 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.650 Sec.
 
  Used q-mesh 3x3x3
 
-Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.750 Sec.
+Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.770 Sec.
 
   6  A1g Modes of raman_active 
   0  A1g   6.1925  (  206.56)
@@ -131,7 +131,7 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.750
   2  A2u   4.5118  (  150.50)
   3  A2u   4.0295  (  134.41)
   4  A2u   3.7397  (  124.74)
-  5  A2u  -0.0000  (   -0.00)
+  5  A2u   0.0000  (    0.00)
 
   8   Eu Modes of ir_active : P= -0.500, 0.866, 0.000 ( 0.425, 0.694, 0.581)  with one tranlational mode 
   0   Eu   4.8779  (  162.71)
@@ -143,12 +143,12 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.750
   6   Eu   3.7349  (  124.58)
   7   Eu  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.010 Sec., Total time = 0.760 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.770 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 0.770 Sec.
+Finding exact Q points : Section time 0.020 Sec., Total time = 0.790 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -199,12 +199,12 @@ Frequencies in Gamma point without & with NA term)
   42   2.4552        2.4552          81.90    81.90    0.0000   0.0000
   43   1.7865        1.7865          59.59    59.59    0.0000   0.0000
   44   1.7865        1.7865          59.59    59.59    0.0000   0.0000
-  45   0.0000        0.0000           0.00     0.00    0.0000   4.0000
-  46  -0.0000       -0.0000          -0.00    -0.00    0.0000   4.0000
+  45   0.0000       -0.0000           0.00    -0.00    0.0000   4.0000
+  46   0.0000        0.0000           0.00     0.00    0.0000   4.0000
   47  -0.0000       -0.0000          -0.00    -0.00    0.0000   4.0000
 
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.770 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.780 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.790 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.790 Sec.
 
 Calculating PDOS from the 384 frequencies
 

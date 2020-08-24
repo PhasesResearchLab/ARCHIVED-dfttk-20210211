@@ -49,40 +49,40 @@ MAXimum interaction DIS = 13.571070, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 8.320 Sec., Total time = 8.320 Sec.
+Restore the translational invariance : Section time 8.750 Sec., Total time = 8.750 Sec.
 
-Solving frequencies in real space : Section time 0.040 Sec., Total time = 8.360 Sec.
+Solving frequencies in real space : Section time 0.040 Sec., Total time = 8.790 Sec.
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 8.390 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 8.820 Sec.
 
   2  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
-  0  T1u  10.8331  (  361.35)
+  0  T1u  10.8330  (  361.35)
   1  T1u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 8.390 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 8.820 Sec.
 
  64 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 8.390 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 8.820 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0  10.8331       10.8331         361.35   361.35    0.0000   0.2854
-   1  10.8331       10.8331         361.35   361.35    0.0000   0.2854
-   2  10.8331       10.8331         361.35   361.35    0.0000   0.2854
+   0  10.8330       10.8330         361.35   361.35    0.0000   0.2854
+   1  10.8330       10.8330         361.35   361.35    0.0000   0.2854
+   2  10.8330       10.8330         361.35   361.35    0.0000   0.2854
    3  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
    4  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
    5  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
 
-          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.390 Sec.
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.390 Sec.
-         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.390 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.390 Sec.
+          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.820 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.820 Sec.
+         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.820 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.010 Sec., Total time = 8.830 Sec.
 
 Calculating PDOS from the 384 frequencies
 
