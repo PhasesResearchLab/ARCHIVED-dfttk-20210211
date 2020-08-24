@@ -49,9 +49,9 @@ MAXimum interaction DIS = 8.681702, Dynamical Matrix will be averaged over 1 cel
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.210 Sec., Total time = 0.210 Sec.
+Restore the translational invariance : Section time 0.220 Sec., Total time = 0.220 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.220 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.220 Sec.
 
  Used q-mesh 5x5x5
 
@@ -74,7 +74,7 @@ Handling symmetry : Section time 0.000 Sec., Total time = 0.230 Sec.
  1 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.230 Sec.
+Finding exact Q points : Section time 0.010 Sec., Total time = 0.240 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -87,10 +87,10 @@ Frequencies in Gamma point without & with NA term)
    4  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
    5  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.4142
 
-          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.230 Sec.
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.230 Sec.
-         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.230 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.230 Sec.
+          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.240 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.240 Sec.
+         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.240 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.240 Sec.
 
 Calculating PDOS from the 384 frequencies
 

@@ -96,14 +96,15 @@ def record_cmd(readme):
     cmdline = copy.deepcopy(sys.argv)
     cmdline[0] = cmdline[0].split('/')[-1]
     readme['command']='{}'.format(' '.join(cmdline))
-    readme['start at']='{}'.format(datetime.now())
+    readme['Postprocess time']='{}'.format(datetime.now())
+    #readme['start at']='{}'.format(datetime.now())
     #fp.write('#These results are produced by the following command line on {}\n'.format(datetime.now()))
     #fp.write('{}\n'.format(' '.join(cmdline)))
 
 
 def record_cmd_print(fdir, readme):
     dir = fdir
-    readme['finished at'] = '{}'.format(datetime.now())
+    #readme['finished at'] = '{}'.format(datetime.now())
     if not os.path.isdir(dir):
         dir = '/'.join(fdir.split('/')[0:-1])
         if dir == "": dir = "./"

@@ -64,7 +64,7 @@ Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.240 
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.280 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.270 Sec.
 
   4   A1 Modes of ir_active : P=  0.000, 0.000,-1.000 ( 0.000, 0.000,-1.000)  with one tranlational mode 
   0   A1  22.7466  (  758.75)
@@ -82,12 +82,12 @@ Setting workspace & pre-optimizing : Section time 0.040 Sec., Total time = 0.280
   3    E   2.7801  (   92.73)
   4    E   0.0000  (    0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.280 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.270 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.280 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.270 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -109,8 +109,8 @@ Frequencies in Gamma point without & with NA term)
   13   0.0000       -0.0000           0.00    -0.00    0.0000   2.2361
   14  -0.0000        0.0000          -0.00     0.00    0.0000   2.2361
 
-         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
-         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.270 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.280 Sec.
          720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
          960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
 

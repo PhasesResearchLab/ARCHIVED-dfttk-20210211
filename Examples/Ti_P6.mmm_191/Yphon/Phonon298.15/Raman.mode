@@ -58,7 +58,7 @@ Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.590 
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.020 Sec., Total time = 0.610 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.620 Sec.
 
   1  B2g Modes of silent_mode 
   0  B2g   4.2359  (  141.30)
@@ -74,7 +74,7 @@ Setting workspace & pre-optimizing : Section time 0.020 Sec., Total time = 0.610
   0  E1u   3.7165  (  123.97)
   1  E1u   0.0000  (    0.00)
 
-Handling symmetry : Section time 0.010 Sec., Total time = 0.620 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.620 Sec.
 
  1 Exact Q points found
 

@@ -91,13 +91,13 @@ MAXimum interaction DIS = 11.706263, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.300 Sec., Total time = 0.300 Sec.
+Restore the translational invariance : Section time 0.290 Sec., Total time = 0.290 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.300 Sec.
+Solving frequencies in real space : Section time 0.020 Sec., Total time = 0.310 Sec.
 
  Used q-mesh 3x3x3
 
-Setting workspace & pre-optimizing : Section time 0.110 Sec., Total time = 0.410 Sec.
+Setting workspace & pre-optimizing : Section time 0.110 Sec., Total time = 0.420 Sec.
 
   8   Ag Modes of raman_active 
   0   Ag   6.2581  (  208.75)
@@ -163,12 +163,12 @@ Setting workspace & pre-optimizing : Section time 0.110 Sec., Total time = 0.410
   6  B2u   3.0949  (  103.23)
   7  B2u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.010 Sec., Total time = 0.420 Sec.
+Handling symmetry : Section time 0.010 Sec., Total time = 0.430 Sec.
 
  2 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 0.430 Sec.
+Finding exact Q points : Section time 0.010 Sec., Total time = 0.440 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -223,8 +223,8 @@ Frequencies in Gamma point without & with NA term)
   46  -0.0000       -0.0000          -0.00    -0.00    0.0000   4.0000
   47  -0.8448        0.0000         -28.18     0.00    0.0000   4.0000
 
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.430 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.430 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.440 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.440 Sec.
 
 Calculating PDOS from the 384 frequencies
 

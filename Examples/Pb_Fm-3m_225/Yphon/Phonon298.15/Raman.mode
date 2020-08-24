@@ -46,13 +46,13 @@ MAXimum interaction DIS = 14.694599, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 1.170 Sec., Total time = 1.170 Sec.
+Restore the translational invariance : Section time 1.160 Sec., Total time = 1.160 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.180 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.170 Sec.
 
  Used q-mesh 6x6x6
 
-Setting workspace & pre-optimizing : Section time 0.000 Sec., Total time = 1.180 Sec.
+Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 1.180 Sec.
 
   1  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
   0  T1u   0.0000  (    0.00)
@@ -75,9 +75,9 @@ Frequencies in Gamma point without & with NA term)
          108 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
          216 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
          324 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
-         432 out of 648 Frequencied calculated!  Section time 0.010 Sec., Total time = 1.190 Sec.
-         540 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.190 Sec.
-         648 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.190 Sec.
+         432 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
+         540 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
+         648 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.180 Sec.
 
 Calculating PDOS from the 648 frequencies
 

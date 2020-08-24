@@ -717,7 +717,7 @@ def CenDif(v, vol, F, N=7,kind='cubic'):
         return None
 
 
-def CenDifB(_v, vol, F, BMfunc, N=7,kind='cubic'):
+def CenDifB(vol, F, N=7,kind='cubic'):
     vn = min(vol)
     vx = max(vol)
     xx = np.linspace(vn,vx,1000)
@@ -752,7 +752,7 @@ def CenDifB(_v, vol, F, BMfunc, N=7,kind='cubic'):
     except:
         return -1.0, -1.0, 0.
 
-def BMDifB(_v, vol, F, BMfunc, N=7):
+def BMDifB(vol, F, BMfunc, N=7):
     vn = min(vol)
     vx = max(vol)
     xx = np.linspace(vn,vx,1000)
@@ -1206,7 +1206,7 @@ class thelecMDB():
     def calc_TE_V_fitF(self):
 
         self.energies_orig = copy.deepcopy(self.energies)
-        self.energies = BMfitF(self.volumes, self.volumes, self.energies_orig, BMvol4)
+        self.energies = BMfitF(self.volumes, self.volumes, self.energies_orig, self.BMfunc)
    
         self.blat = []
         for i in range(len(self.T)):
@@ -1215,8 +1215,7 @@ class thelecMDB():
             #FF = p2(self.volumes)
             p1 = np.poly1d(np.polyfit(self.volumes, FF, 1))
             FF = p1(self.volumes)
-            blat, self.volT[i], newF = CenDifB(self.volT[i], self.volumes, 
-                self.energies+FF, BMvol4, N=7,kind='cubic')
+            blat, self.volT[i], newF = CenDifB(self.volumes, self.energies+FF, N=7,kind='cubic')
             #print ("eeeeee", self.volT[i])
             self.blat.append(blat)
             if newF!=None: self.GibT[i] = newF
@@ -1281,15 +1280,13 @@ class thelecMDB():
                     self.volT[i]=self.volT[i-1]
             if self.eqmode==4 or self.eqmode==5:
                 #print ("iiii", self.T[i], self.volT[i], E0+Flat+Fel)
-                blat, self.volT[i], self.GibT[i], P = BMDifB(self.volT[i], self.volumes, 
-                    E0+FF, self.BMfunc, N=7)
+                blat, self.volT[i], self.GibT[i], P = BMDifB(self.volumes, E0+FF, self.BMfunc, N=7)
                 if blat < 0: return -1.0, 0.0
                 if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+FF+self.T[i]*(Slat+Sel), 
                     self.BMfunc) + P)/self.T[i]/blat
             else:
                 #print ("eeeeeee=", self.T[i])
-                blat, self.volT[i], newF = CenDifB(self.volT[i], self.volumes, 
-                    E0+FF, BMvol4, N=7,kind=kind)
+                blat, self.volT[i], newF = CenDifB(self.volumes, E0+FF, N=7,kind=kind)
                 if blat < 0: return -1.0, 0.0
                 if newF!=None: self.GibT[i] = newF
                 if self.T[i]!=0.0: 
@@ -1393,8 +1390,9 @@ class thelecMDB():
         q /= n
         self.key_comments['phonon quality'] = '{:8.6}'.format(q)
         self.key_comments['METADATA'] = {'tag':self.tag}
-        self.key_comments['volumes'] = list(self.volumes)
-        self.key_comments['energies'] = list(self.energies)
+        self.key_comments['E-V'] = {'Natoms':self.natoms, 'volumes':list(self.volumes), 'energies':list(self.energies)}
+        #self.key_comments['volumes'] = list(self.volumes)
+        #self.key_comments['energies'] = list(self.energies)
      
            
     def run_console(self):
