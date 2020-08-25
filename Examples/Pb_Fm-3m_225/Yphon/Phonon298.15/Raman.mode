@@ -55,7 +55,7 @@ Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.190 
 Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 1.200 Sec.
 
   1  T1u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000, 0.707, 0.707)  with one tranlational mode 
-  0  T1u  -0.0000  (   -0.00)
+  0  T1u   0.0000  (    0.00)
 
 Handling symmetry : Section time 0.000 Sec., Total time = 1.200 Sec.
 
@@ -68,9 +68,9 @@ Frequencies in Gamma point without & with NA term)
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0   0.0000        0.0000           0.00     0.00    0.0000   1.0000
-   1  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.0000
-   2  -0.0000       -0.0000          -0.00    -0.00    0.0000   1.0000
+   0   0.0000       -0.0000           0.00    -0.00    0.0000   1.0000
+   1   0.0000        0.0000           0.00     0.00    0.0000   1.0000
+   2  -0.0000        0.0000          -0.00     0.00    0.0000   1.0000
 
          108 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.200 Sec.
          216 out of 648 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.200 Sec.

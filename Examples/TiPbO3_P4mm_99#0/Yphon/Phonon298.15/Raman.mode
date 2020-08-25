@@ -35,8 +35,8 @@ Used Primitive lattice vector
    5 Atom(s) in the Primitive cell
 
  0.5000000000 0.5000000000 0.5169817100 Ti    0
- 0.0000000000 0.0000000000 0.9561927900 Pb    1
- 0.5000000000 0.5000000000 0.1543846700  O    2
+ -0.0000000000 0.0000000000 0.9561928200 Pb    1
+ 0.5000000000 0.5000000000 0.1543846400  O    2
  0.0000000000 0.5000000000 0.6291684000  O    3
  0.5000000000 0.0000000000 0.6291704000  O    4
 
@@ -58,19 +58,19 @@ MAXimum interaction DIS = 8.812669, Dynamical Matrix will be averaged over 1 cel
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.280 Sec., Total time = 0.280 Sec.
+Restore the translational invariance : Section time 0.240 Sec., Total time = 0.240 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.290 Sec.
+Solving frequencies in real space : Section time 0.010 Sec., Total time = 0.250 Sec.
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.320 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.280 Sec.
 
   4   A1 Modes of ir_active : P=  0.000, 0.000,-1.000 ( 0.000, 0.000,-1.000)  with one tranlational mode 
   0   A1  22.7466  (  758.75)
   1   A1  12.2190  (  407.58)
   2   A1   5.0411  (  168.15)
-  3   A1  -0.0000  (   -0.00)
+  3   A1   0.0000  (    0.00)
 
   1   B1 Modes of raman_active 
   0   B1   7.9592  (  265.49)
@@ -80,14 +80,14 @@ Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.320
   1    E   8.1913  (  273.23)
   2    E   7.5585  (  252.12)
   3    E   2.7801  (   92.73)
-  4    E  -0.0000  (   -0.00)
+  4    E   0.0000  (    0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.320 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.280 Sec.
 
  4 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 0.320 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.280 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -96,7 +96,7 @@ Frequencies in Gamma point without & with NA term)
    0  22.7472       22.7472         758.76   758.76    0.0000   0.4807
    1  15.2529       15.2529         508.78   508.78    0.0000   0.1992
    2  15.2234       15.2234         507.80   507.80    0.0000   0.2000
-   3  12.2182       12.2182         407.55   407.55    0.0000   0.7126
+   3  12.2182       12.2182         407.56   407.56    0.0000   0.7126
    4   8.1916        8.1916         273.24   273.24    0.0000   0.0924
    5   8.1478        8.1478         271.78   271.78    0.0000   0.0765
    6   7.9586        7.9586         265.47   265.47    0.0000   0.0057
@@ -105,14 +105,14 @@ Frequencies in Gamma point without & with NA term)
    9   5.0414        5.0414         168.16   168.16    0.0000   1.7213
   10   2.9678        2.9678          99.00    99.00    0.0000   1.6979
   11   2.7787        2.7787          92.69    92.69    0.0000   1.7026
-  12   0.0000       -0.0000           0.00    -0.00    0.0000   2.2361
-  13  -0.0000        0.0000          -0.00     0.00    0.0000   2.2361
+  12   0.0000        0.0000           0.00     0.00    0.0000   2.2361
+  13   0.0000       -0.0000           0.00    -0.00    0.0000   2.2361
   14  -0.0000        0.0000          -0.00     0.00    0.0000   2.2361
 
-         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.320 Sec.
-         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.320 Sec.
-         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.320 Sec.
-         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.320 Sec.
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
+         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
+         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.280 Sec.
 
 Calculating PDOS from the 960 frequencies
 

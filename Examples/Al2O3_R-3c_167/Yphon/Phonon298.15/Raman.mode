@@ -38,12 +38,12 @@ Used Primitive lattice vector
  0.8521559000 0.8521559000 0.8521559000 Al    1
  0.3521559000 0.3521559000 0.3521559000 Al    2
  0.1478441000 0.1478441000 0.1478441000 Al    3
- 0.9440582800 0.5559417200 0.2500000000  O    4
- 0.2500000000 0.9440582800 0.5559417200  O    5
- 0.5559417200 0.2500000000 0.9440582800  O    6
- 0.0559417200 0.4440582800 0.7500000000  O    7
- 0.7500000000 0.0559417200 0.4440582800  O    8
- 0.4440582800 0.7500000000 0.0559417200  O    9
+ 0.9440582600 0.5559417400 0.2500000000  O    4
+ 0.2500000000 0.9440582600 0.5559417400  O    5
+ 0.5559417400 0.2500000000 0.9440582600  O    6
+ 0.0559417400 0.4440582600 0.7500000000  O    7
+ 0.7500000000 0.0559417400 0.4440582600  O    8
+ 0.4440582600 0.7500000000 0.0559417400  O    9
 
  Mapping of Supercell of Primitive cell
 
@@ -73,25 +73,25 @@ MAXimum interaction DIS = 13.116300, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 1.050 Sec., Total time = 1.050 Sec.
+Restore the translational invariance : Section time 0.740 Sec., Total time = 0.740 Sec.
 
-Solving frequencies in real space : Section time 0.010 Sec., Total time = 1.060 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.740 Sec.
 
  Used q-mesh 4x4x4
 
-Setting workspace & pre-optimizing : Section time 0.090 Sec., Total time = 1.150 Sec.
+Setting workspace & pre-optimizing : Section time 0.090 Sec., Total time = 0.830 Sec.
 
   2  A1g Modes of raman_active 
   0  A1g  18.1170  (  604.32)
   1  A1g  11.6732  (  389.38)
 
   3  A2g Modes of silent_mode 
-  0  A2g  21.4963  (  717.04)
+  0  A2g  21.4964  (  717.04)
   1  A2g  15.2771  (  509.59)
   2  A2g   8.3773  (  279.44)
 
   5   Eg Modes of raman_active 
-  0   Eg  21.1302  (  704.83)
+  0   Eg  21.1303  (  704.83)
   1   Eg  16.1556  (  538.89)
   2   Eg  12.5249  (  417.79)
   3   Eg  11.8397  (  394.93)
@@ -104,7 +104,7 @@ Setting workspace & pre-optimizing : Section time 0.090 Sec., Total time = 1.150
   3  A2u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.577, 0.577, 0.577)  with one tranlational mode 
   0  A2u  16.1180  (  537.64)
   1  A2u  11.1318  (  371.32)
-  2  A2u   0.0000  (    0.00)
+  2  A2u  -0.0000  (   -0.00)
 
   5   Eu Modes of ir_active : P= -0.500, 0.866, 0.000 ( 0.000, 0.707,-0.707)  with one tranlational mode 
   0   Eu  17.8449  (  595.24)
@@ -113,20 +113,20 @@ Setting workspace & pre-optimizing : Section time 0.090 Sec., Total time = 1.150
   3   Eu  10.6732  (  356.02)
   4   Eu   0.0000  (    0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 1.150 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.830 Sec.
 
  8 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 1.160 Sec.
+Finding exact Q points : Section time 0.010 Sec., Total time = 0.840 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
       without         with         without    with     LOTO        IR    irrep
               (THz)                     (cm-1)
-   0  21.4963       21.4963         717.04   717.04    0.0000   0.0000
-   1  21.1302       21.1302         704.83   704.83    0.0000   0.0000
-   2  21.1302       21.1302         704.83   704.83    0.0000   0.0000
+   0  21.4964       21.4964         717.04   717.04    0.0000   0.0000
+   1  21.1303       21.1303         704.83   704.83    0.0000   0.0000
+   2  21.1303       21.1303         704.83   704.83    0.0000   0.0000
    3  19.8396       19.8396         661.78   661.78    0.0000   0.0000
    4  18.1170       18.1170         604.32   604.32    0.0000   0.0000
    5  17.8449       17.8449         595.24   595.24    0.0000   0.1312
@@ -141,9 +141,9 @@ Frequencies in Gamma point without & with NA term)
   14  12.5249       12.5249         417.79   417.79    0.0000   0.0000
   15  12.5249       12.5249         417.79   417.79    0.0000   0.0000
   16  12.3204       12.3204         410.96   410.96    0.0000   0.5095
-  17  12.3203       12.3203         410.96   410.96    0.0000   0.5095
+  17  12.3204       12.3204         410.96   410.96    0.0000   0.5095
   18  11.8397       11.8397         394.93   394.93    0.0000   0.0000
-  19  11.8396       11.8396         394.93   394.93    0.0000   0.0000
+  19  11.8397       11.8397         394.93   394.93    0.0000   0.0000
   20  11.6732       11.6732         389.38   389.38    0.0000   0.0000
   21  11.1318       11.1318         371.32   371.32    0.0000   0.7067
   22  10.6733       10.6733         356.02   356.02    0.0000   0.1329
@@ -151,14 +151,14 @@ Frequencies in Gamma point without & with NA term)
   24  10.6452       10.6452         355.09   355.09    0.0000   0.0000
   25  10.6452       10.6452         355.09   355.09    0.0000   0.0000
   26   8.3773        8.3773         279.44   279.44    0.0000   0.0000
-  27   0.0000        0.0000           0.00     0.00    0.0000   3.1623
+  27   0.0000       -0.0000           0.00    -0.00    0.0000   3.1623
   28   0.0000        0.0000           0.00     0.00    0.0000   3.1623
-  29   0.0000        0.0000           0.00     0.00    0.0000   3.1623
+  29  -0.0000       -0.0000          -0.00    -0.00    0.0000   3.1623
 
-         480 out of 1920 Frequencied calculated!  Section time 0.010 Sec., Total time = 1.170 Sec.
-         960 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.170 Sec.
-        1440 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.170 Sec.
-        1920 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 1.170 Sec.
+         480 out of 1920 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.850 Sec.
+         960 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.850 Sec.
+        1440 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.850 Sec.
+        1920 out of 1920 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.850 Sec.
 
 Calculating PDOS from the 1920 frequencies
 

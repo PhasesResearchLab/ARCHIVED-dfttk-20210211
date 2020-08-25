@@ -91,13 +91,13 @@ MAXimum interaction DIS = 11.706263, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 0.410 Sec., Total time = 0.410 Sec.
+Restore the translational invariance : Section time 0.290 Sec., Total time = 0.290 Sec.
 
-Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.410 Sec.
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.290 Sec.
 
  Used q-mesh 3x3x3
 
-Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.530 Sec.
+Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.410 Sec.
 
   8   Ag Modes of raman_active 
   0   Ag   6.2581  (  208.75)
@@ -133,7 +133,7 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.530
 
   2   Au Modes of silent_mode 
   0   Au   4.9024  (  163.53)
-  1   Au   4.7209  (  157.47)
+  1   Au   4.7210  (  157.47)
 
   8  B1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.450, 0.000, 0.893)  with one tranlational mode 
   0  B1u   5.3045  (  176.94)
@@ -143,7 +143,7 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.530
   4  B1u   4.0040  (  133.56)
   5  B1u   3.7305  (  124.43)
   6  B1u   3.0785  (  102.69)
-  7  B1u   0.0000  (    0.00)
+  7  B1u  -0.0000  (   -0.00)
 
   6  B3u Modes of ir_active : P=  1.000, 0.000, 0.000 ( 0.000,-1.000, 0.000)  with one tranlational mode 
   0  B3u   5.1270  (  171.02)
@@ -151,7 +151,7 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.530
   2  B3u   4.6495  (  155.09)
   3  B3u   4.4271  (  147.67)
   4  B3u   4.0596  (  135.41)
-  5  B3u  -0.0000  (   -0.00)
+  5  B3u   0.0000  (    0.00)
 
   8  B2u Modes of ir_active : P=  0.000, 1.000, 0.000 ( 0.450, 0.000,-0.893)  with one tranlational mode 
   0  B2u   5.3023  (  176.86)
@@ -161,14 +161,14 @@ Setting workspace & pre-optimizing : Section time 0.120 Sec., Total time = 0.530
   4  B2u   4.0320  (  134.49)
   5  B2u   3.7058  (  123.61)
   6  B2u   3.0949  (  103.23)
-  7  B2u   0.0000  (    0.00)
+  7  B2u  -0.0000  (   -0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 0.530 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 0.410 Sec.
 
  2 Exact Q points found
 
 
-Finding exact Q points : Section time 0.010 Sec., Total time = 0.540 Sec.
+Finding exact Q points : Section time 0.010 Sec., Total time = 0.420 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -219,12 +219,12 @@ Frequencies in Gamma point without & with NA term)
   42   1.2477        1.2477          41.62    41.62    0.0000   1.0155
   43   0.9606        0.9606          32.04    32.04    0.0000   0.0000
   44   0.0000       -0.8448           0.00   -28.18    0.0000   0.0000
-  45  -0.0000        0.0000          -0.00     0.00    0.0000   4.0000
-  46  -0.0000        0.0000          -0.00     0.00    0.0000   4.0000
+  45  -0.0000       -0.0000          -0.00    -0.00    0.0000   4.0000
+  46  -0.0000       -0.0000          -0.00    -0.00    0.0000   4.0000
   47  -0.8448        0.0000         -28.18     0.00    0.0000   4.0000
 
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.540 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.540 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.420 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.420 Sec.
 
 Calculating PDOS from the 384 frequencies
 

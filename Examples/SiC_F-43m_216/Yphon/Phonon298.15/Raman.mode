@@ -49,24 +49,24 @@ MAXimum interaction DIS = 12.768502, Dynamical Matrix will be averaged over 1 ce
 
 Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
 
-Restore the translational invariance : Section time 8.690 Sec., Total time = 8.690 Sec.
+Restore the translational invariance : Section time 8.470 Sec., Total time = 8.470 Sec.
 
-Solving frequencies in real space : Section time 0.040 Sec., Total time = 8.730 Sec.
+Solving frequencies in real space : Section time 0.050 Sec., Total time = 8.520 Sec.
 
  Used q-mesh 5x5x5
 
-Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 8.760 Sec.
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 8.550 Sec.
 
   2   T2 Modes of ir_active : P= -0.577,-0.577,-0.577 (-0.577,-0.577,-0.577)  with one tranlational mode 
   0   T2  22.6709  (  756.22)
   1   T2   0.0000  (    0.00)
 
-Handling symmetry : Section time 0.000 Sec., Total time = 8.760 Sec.
+Handling symmetry : Section time 0.000 Sec., Total time = 8.550 Sec.
 
  64 Exact Q points found
 
 
-Finding exact Q points : Section time 0.000 Sec., Total time = 8.760 Sec.
+Finding exact Q points : Section time 0.000 Sec., Total time = 8.550 Sec.
 
 Frequencies in Gamma point without & with NA term) 
 
@@ -79,10 +79,10 @@ Frequencies in Gamma point without & with NA term)
    4   0.0000        0.0000           0.00     0.00    0.0000   1.4142
    5   0.0000        0.0000           0.00     0.00    0.0000   1.4142
 
-          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.760 Sec.
-         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.760 Sec.
-         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.760 Sec.
-         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.760 Sec.
+          96 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.550 Sec.
+         192 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.550 Sec.
+         288 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.550 Sec.
+         384 out of 384 Frequencied calculated!  Section time 0.000 Sec., Total time = 8.550 Sec.
 
 Calculating PDOS from the 384 frequencies
 

@@ -474,12 +474,12 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
       ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
       if ytext is not None:
         ax.set_xlim([min(x)*1.05,max(x)*1.05])
-        x0 = np.array(ytext[0])
-        y0 = np.array(ytext[1])
-        s0 = ytext[2]
-        for i in range (len(s0)):
+        xx0 = np.array(ytext[0])
+        yy0 = np.array(ytext[1])
+        ss0 = ytext[2]
+        for i in range (len(ss0)):
           #print(x0[i], y0[i], s0[i])
-          ax.text(x0[i], y0[i], s0[i], color='r', rotation=90, horizontalalignment='left', verticalalignment='bottom')
+          ax.text(xx0[i], yy0[i], ss0[i], color='r', rotation=90, horizontalalignment='left', verticalalignment='bottom')
       """
       """
       if fitted!=None:
