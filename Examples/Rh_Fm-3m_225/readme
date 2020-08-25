@@ -1,0 +1,28 @@
+{
+    "E-V": {
+        "Natoms": 1,
+        "energies": [-7.20175536, -7.28488932, -7.32994733, -7.34406661, -7.33303353, -7.30158298, -7.25365987],
+        "volumes": [12.828510694676014, 13.303642238445644, 13.778759143802455, 14.25389788256956, 14.729022545023971, 15.204148594101639, 15.67929492897378]
+    },
+
+    "ENCUT": 520.0,
+    "METADATA": {
+        "tag": "50768155-1e01-402d-8f46-c89a0a2a4331"
+    },
+
+    "NEDOS": 5001,
+    "Postprocess time": "2020-08-24 19:04:48.871959",
+    "bandgap": 0.0,
+    "command": "dfttk thfind -get -py -plot -eq 4 -renew",
+    "kpoins": {
+        "generation_style": "Monkhorst",
+        "kpoints": [20, 20, 20]
+    },
+
+    "phonon quality": "     1.0",
+    "pseudo_potential": {
+        "functional": "pbe",
+        "labels": ["Rh_pv"],
+        "pot_type": "paw"
+    }
+}

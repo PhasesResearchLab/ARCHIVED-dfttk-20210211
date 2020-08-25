@@ -1,6 +1,0 @@
-# T(K)     volome         F(eV)   S(J/K)         H(J/K)      a(-6/K)     Cp(J/mol)         Cvion         Cpion     Sion     Sele     Smag           Hion     T-D(K)           Cv  Bt(GPa)      dCp   Gamma
-# Pressure =       0.0000  GPa
- 
-TAUTSP - Fatal error!
-  Input NTAU must be at least 4.
-  NTAU = ********
