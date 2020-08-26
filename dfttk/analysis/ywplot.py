@@ -328,7 +328,6 @@ def proStoichiometricG():
       
       f,ferror = fitStoichiometric(x[ifit0:],y[ifit0:])
       gout = 'G(T) =' + outexpressionG(f)
-      print("fitting uncertainty=", ferror)
       #print(gout)
       s = []
       h = []
@@ -368,6 +367,7 @@ def proStoichiometricG():
       SGTErec.update({"H-H298.15 (J/mol-atom)":hout})
       SGTErec.update({"S (J/mol-atom/K)":sout})
       SGTErec.update({"Cp (J/mol-atom/K)":cout})
+      SGTErec.update({"fitting uncertainty":round(ferror,1)})
       return(f,h,s,c,x[i0:])
 
     #except:
@@ -1519,6 +1519,7 @@ eVtoJ = 96486.9
 THRE0 = 1.e-5
 nqwave = 2.e6
 nqwave = 1.e6
+nqwave = 4.e6
 
 T0 = 298.15
 update = True
@@ -1544,7 +1545,7 @@ expt = None
 Uncertainty = {}
 nphases = 0
 debug = False
-fitCp = True
+fitCp = False
 paper = True
 phdft = "phonon"
 expt = None
@@ -1555,7 +1556,9 @@ phases = []
 papers = []
 PhaseName = {}
 
-def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None):
+def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True):
+  global fitCp
+  fitCp = _fitCp
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
   phasedir = ('/').join(phasedir[0:-1])
   if phasedir=="": phasedir="."
@@ -1623,7 +1626,10 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
   zthermo.update({"Cp (J/mol-atom/K)":list(thermo[:,6])})
   if T0 < thermo[-1,0] : 
-    proStoichiometricCp()
+    if fitCp:
+      proStoichiometricCp()
+    else:
+      proStoichiometricG()
     with open(folder + '/../record.json', 'w') as fp:
       myjsonout(SGTErec, fp, indent="", comma="")
     myjsonout(SGTErec, sys.stdout, indent="", comma="")
@@ -1657,7 +1663,9 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   return True
 
 
-def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None):
+def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True):
+  global fitCp
+  fitCp = _fitCp
   #print(expt)
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
   phasedir = ('/').join(phasedir[0:-1])
@@ -1714,7 +1722,10 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None):
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
   zthermo.update({"Cp (J/mol-atom/K)":list(thermo[:,6])})
-  proStoichiometricCp()
+  if fitCp:
+    proStoichiometricCp()
+  else:
+    proStoichiometricG()
   with open(folder + '/../record.json', 'w') as fp:
     myjsonout(SGTErec, fp, indent="", comma="")
   myjsonout(SGTErec, sys.stdout, indent="", comma="")
@@ -1895,8 +1906,16 @@ def Plot298(folder, V298, volumes):
   i1 = min(i1, len(volumes)-2)
   dV = float(volumes[i1+1]) - float(volumes[i1])
   ff1 = (float(volumes[i1+1]) - V298)/dV
+
   file1 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1]))
+  if not os.path.exists(file1):
+    print ("\nWARNING! I cannot find file :", file1, " so that I will do phonon298.15 for you!\n")
+    return
   file2 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1+1]))
+  if not os.path.exists(file2):
+    print ("\nWARNING! I cannot find file :", file2, " so that I will do phonon298.15 for you!\n")
+    return
+
   phdir298 = ydir+'/Phonon298.15'
   if not os.path.exists(phdir298):
       os.mkdir(phdir298)
@@ -1908,8 +1927,8 @@ def Plot298(folder, V298, volumes):
   cwd = os.getcwd()
   os.chdir( phdir298 )
 
-  #cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
-  cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
+  cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  #cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
@@ -2048,6 +2067,10 @@ if __name__ == '__main__':
         if (count > len(sys.argv)):
           break
         nqwave = float(sys.argv[count])
+      elif (sys.argv[count] == "-fitG"):
+        fitCp = False
+      elif (sys.argv[count] == "-fitCp"):
+        fitCp = True
       elif (sys.argv[count] == "-debug"):
         debug = True
       elif (os.path.exists(sys.argv[count])):
@@ -2077,7 +2100,7 @@ if __name__ == '__main__':
     
     if justplot==None: lines = sys.stdin.readlines()
     else: 
-        plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim)
+        plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim, _fitCp = fitCp)
         sys.exit()
     
     sys.stdout.write("G(T)=a+b*T+c*T*Ln(T)+d*T*T+e*T*T*T+f/T (J/mol-atom)\n")

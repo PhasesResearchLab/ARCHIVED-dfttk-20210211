@@ -11,9 +11,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-24 20:28:12.521489",
+    "Postprocess time": "2020-08-25 19:41:02.336766",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30 -smooth -dope -0.00001",
     "kpoins": {
         "generation_style": "Monkhorst",
         "kpoints": [20, 20, 20]

@@ -1032,21 +1032,38 @@ class thelecMDB():
 
     def check_vol(self):
         print ("\nChecking compatibility between qha/Yphon data and static calculation:\n")
+
         for i,v in enumerate (self.Vlat):
-            print (v, self.energies[list(self.volumes).index(v)])
+            try:
+                print (v, self.energies[list(self.volumes).index(v)])
+            except:
+                print("\nWarning! The static/qha calculations are not inconsistent! Let me see if I can resolve it\n")
         if len(self.Vlat)!=len(self.volumes):
             print("\nWarning! The static/qha calculations are not inconsistent! Let me see if I can resolve it\n")
+
         _volumes = list(self.volumes)
-        for i, vol in enumerate(_volumes):
+        _v = []
+        _e = []
+        _d = []
+        for i, vol in enumerate(list(self.volumes)):
             if vol not in self.Vlat:
-                del _volumes[i]
-                del self.energies[i]
-                del self.dos_objs[i]
                 print ("data in static calculation with volume=", vol, "is discarded")
-        if len(_volumes)<len(self.volumes) : self.volumes = np.array(_volumes)
+                continue
+            _v.append(vol)
+            _e.append(self.energies[i])
+            _d.append(self.dos_objs[i])
+        if len(_v)<len(self.volumes) : 
+             self.volumes = np.array(_v)
+             self.energies = np.array(_e)
+             self.dos_objs = _d
+
+        good = True
         if len(self.Vlat)==len(self.volumes) and len(self.Vlat)>=5:
-            print("\nOK, I found all needed  data\n")
-        else:
+            val, idx = min((val, idx) for (idx, val) in enumerate(self.energies))
+            if idx!=0 and idx!=len(self.energies)-1: print("\nOK, I found some data that I can try\n")
+            else: good = False
+ 
+        if not good:
             print("xxxxxx", self.Vlat, self.volumes)
             print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
             sys.exit()
@@ -1158,8 +1175,9 @@ class thelecMDB():
                 self.qha_items = self.vasp_db.db['qha_phonon'].find({'metadata.tag': self.tag})
                 self.T_vib = self.qha_items[0][self.qhamode]['temperatures'][::self.everyT]
             except:
-                self.toYphon()
+                print ("\nWARNING! I cannot find required data from qha_phonon, am asking help from Yphon!\n")
                 self.pyphon = True
+                self.toYphon()
 
 
     def get_qha(self):
@@ -1267,7 +1285,8 @@ class thelecMDB():
 
     def calc_TE_V_general(self,i,kind='cubic'):
         if self.T[i]==0.0: beta=0.0
-        if self.smooth:
+        #if self.smooth:
+        if self.elmode==1:
             E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], self.BMfunc)
         else:
@@ -1278,12 +1297,6 @@ class thelecMDB():
         if True:
             FF = Flat+Fel
             
-            if self.volT[i]==0:
-                if i==0:
-                    val, idx = min((val, idx) for (idx, val) in enumerate(self.energies))
-                    self.volT[i] = self.volumes[idx]
-                else:
-                    self.volT[i]=self.volT[i-1]
             if self.eqmode==4 or self.eqmode==5:
                 #print ("iiii", self.T[i], self.volT[i], E0+Flat+Fel)
                 blat, self.volT[i], self.GibT[i], P = BMDifB(self.volumes, E0+FF, self.BMfunc, N=7)
@@ -1322,17 +1335,55 @@ class thelecMDB():
             else:
                 fvib.write('#T, F_el_atom, S_el_atom, C_el_atom, M_el, seebeck_coefficients, Lorenz_number[WΩK−2], Q_el, Q_p, Q_e, C_mu, W_p, W_e, Y_p, Y_e Vol Gibbs_energy\n')
 
+            #round one
             if self.hasSCF:
                 if self.fitF: self.calc_TE_V_fitF()
+                else:
+                    self.blat = np.zeros((len(self.T)), dtype=float)
+                    self.beta = np.zeros((len(self.T)), dtype=float)
+                    for i in range(len(self.T)):
+                        if self.elmode==1: 
+                            self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
+                        else:
+                            self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='cubic')
+                        if self.blat[i] < 0: 
+                            print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
+                            break
+
+            """
+            #round two, check error
+            for i in range(2, len(self.blat)-2):
+                if ((self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i])) >0.0: continue
+                if ((self.beta[i]-self.beta[i-1])*(self.beta[i-1]-self.beta[i-2])) <0.0 and \
+                   ((self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i])) >0.0: continue
+                #only corect with single iregularity, might due to numerical instability
+                #irregularity found, smooth it out
+                print("WARNING: single point irregularity found at T=", self.T[i], "smoothening is enforced!")
+                N = min(3,i)
+                N = min(N,len(self.blat)-2-i)
+                _v = []
+                _blat = []
+                _beta = []
+                _T = []
+                for j in range(i-N,i):
+                    _v.append(self.volT[j])
+                    _blat.append(self.blat[j])
+                    _beta.append(self.beta[j])
+                    _T.append(self.T[j])
+                for j in range(i+1,i+N+1):
+                    _v.append(self.volT[j])
+                    _blat.append(self.blat[j])
+                    _beta.append(self.beta[j])
+                    _T.append(self.T[j])
+                #print("eeeeeeeeee", self.T[i], _T)
+                self.volT[i] = interp1d(_T, _v)(self.T[i])
+                self.blat[i] = interp1d(_T, _blat)(self.T[i])
+                self.beta[i] = interp1d(_T, _beta)(self.T[i])
+            """
 
             for i in range(len(self.T)):
                 if self.hasSCF:
-                    if self.fitF:
-                        blat, beta = self.blat[i], self.beta[i]
-                    elif self.elmode==1: 
-                        blat, beta = self.calc_TE_V_general(i, kind='UnivariateSpline')
-                    else:
-                        blat, beta = self.calc_TE_V_general(i, kind='cubic')
+                    blat, beta = self.blat[i], self.beta[i]
                     if blat < 0: 
                         print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
@@ -1379,6 +1430,7 @@ class thelecMDB():
                     prp_T[5], prp_T[6], prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13], 
                     self.volT[i], self.GibT[i]))
         #return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
+        #print("eeeee",np.array(self.volumes))
         return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
@@ -1387,14 +1439,17 @@ class thelecMDB():
         vx = max(self.volT)
         for ix,vol in enumerate(self.volumes):
            if vol>vn: break
-        n = 0
-        q = 0.0
-        for i in range(ix-1, len(self.volumes)):
-            n = n+1
-            q = self.quality[i]
-            if self.volumes[i] > vx: break
-        q /= n
-        self.key_comments['phonon quality'] = '{:8.6}'.format(q)
+        try:
+            n = 0
+            q = 0.0
+            for i in range(ix-1, len(self.volumes)):
+                n = n+1
+                q = self.quality[i]
+                if self.volumes[i] > vx: break
+            q /= n
+            self.key_comments['phonon quality'] = '{:8.6}'.format(q)
+        except:
+            self.key_comments['phonon quality'] = '{:8.6}'.format(-1.0)
         self.key_comments['METADATA'] = {'tag':self.tag}
         self.key_comments['E-V'] = {'Natoms':self.natoms, 'volumes':list(self.volumes), 'energies':list(self.energies)}
         #self.key_comments['volumes'] = list(self.volumes)
@@ -1437,6 +1492,7 @@ class thelecMDB():
         else : self.get_static_calculations()
         self.add_comput_inf()
         a,b,c = self.calc_thermodynamics()
+        #print ("eeeeeeee",a,b,c)
         return a,b,c,self.key_comments
 
 

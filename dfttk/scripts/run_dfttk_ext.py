@@ -63,8 +63,8 @@ def ext_thelec(args):
     expt = args.expt
     xlim = args.xlim
     if abs(dope)<5.e-9:
-        ndosmx = 100001
-        gaussian = 10000.
+        ndosmx = max(100001, int(ndosmx))
+        gaussian = max(10000., float(gaussian))
         
     #call API
     if metatag != None:
@@ -85,7 +85,7 @@ def ext_thelec(args):
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
-            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim): 
+            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp):
                 record_cmd_print(thermofile, readme)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
@@ -131,12 +131,13 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-xup", "--xup", dest="xup", nargs="?", type=float, default=100,
                       help="High band energy limit. \n"
                            "Default: 100")
-    pthelec.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=-1.e-5,
+    pthelec.add_argument("-dope", "--dope", dest="dope", nargs="?", type=float, default=0,
                       help="dope level (electrons). \n"
-                           "Default: -1.e-8 for numerical stability")
+                           "Default: 0, change it to -1e-5 can speed up the calculation while \n"
+                           "it may destropy the numerical stability")
     pthelec.add_argument("-ne", "--ndosmx", dest="ndosmx", nargs="?", type=int, default=10001,
-                      help="new DOS mesh. \n"
-                           "Default: 10001")
+                      help="new DOS mesh. It recommend increase it 100001 if numberical instability seen. \n"
+                           "Default: 10001 if dope >5.e-9 or 100001")
     pthelec.add_argument("-natom", "--natom", dest="natom", nargs="?", type=int, default=1,
                       help="number of atoms in the DOSCAR. \n"
                            "Default: 1")
@@ -184,6 +185,9 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
                       help="renew/plot the figure. \n"
                            "Default: False")
+    pthelec.add_argument("-fitCp", "--SGTEfitCp", dest="SGTEfitCp", action='store_true', default=False,
+                      help="report SGTE fitting through the order of Cp, S, and H. \n"
+                           "Default: False, report SGTE fitting using Gibbs energy.")
     pthelec.add_argument("-fitF", "-fitF", dest="fitF", action='store_true', default=False,
                       help="USE with CARE! apply for the case of poor data quality. Enforce linear\n"
                            "fitting to the vibrational and electronic free energy together enforce 4-parameter\n"

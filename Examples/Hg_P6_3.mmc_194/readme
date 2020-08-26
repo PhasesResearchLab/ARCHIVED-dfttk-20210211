@@ -11,9 +11,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-24 20:11:33.946462",
+    "Postprocess time": "2020-08-25 21:48:40.269228",
     "bandgap": 0.02410000000000001,
-    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30 -fitF",
+    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30 -fitF -dope -0.00001",
     "gamma phonons (cm^{-1})": {
         "B2g 00000": [50.6, "silent_mode"],
         "E2g 00000": [24.2, "raman_active"]

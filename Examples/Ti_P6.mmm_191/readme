@@ -11,14 +11,14 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-24 20:26:57.377002",
+    "Postprocess time": "2020-08-25 19:38:41.913253",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot -eq 4 -renew -get -ss 30 -smooth -dope -0.00001",
     "gamma phonons (cm^{-1})": {
         "A2u 00000": [220.9, "ir_active"],
         "B2g 00000": [141.3, "silent_mode"],
-        "E1u 00000": [124.0, "ir_active"],
-        "E2g 00000": [183.8, "raman_active"]
+        "E1u 00000": [123.8, "ir_active"],
+        "E2g 00000": [183.7, "raman_active"]
     },
 
     "kpoins": {
