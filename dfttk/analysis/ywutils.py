@@ -3,6 +3,7 @@ import numpy as np
 from scipy.optimize import linprog
 from numpy.linalg import solve
 from fractions import Fraction
+from dfttk.utils import sort_x_by_y
 import os
 
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,
@@ -89,3 +90,52 @@ def formula2composition(formula):
     clist[ix] += com[j]
 
   return elist,clist
+
+
+def vol_within(vol, volumes, thr=0.001):
+    for i,v in enumerate(volumes):
+        if (abs(vol-v) < thr*vol): return True
+    return False
+
+
+def get_rec_from_metatag(vasp_db,m):
+    static_calculations = vasp_db.collection.\
+        find({'$and':[ {'metadata.tag': m}, {'adopted': True} ]})
+    gapfound = False
+    energies = []
+    volumes = []
+    stresses = []
+    lattices = []
+    bandgaps = []
+    pressures = []
+    for calc in static_calculations:
+        vol = calc['output']['structure']['lattice']['volume']
+        if vol_within(vol, volumes): continue
+        natoms = len(calc['output']['structure']['sites'])
+        lat = calc['output']['structure']['lattice']['matrix']
+        sts = calc['output']['stress']
+        ene = calc['output']['energy']
+        gap = calc['output']['bandgap']
+        volumes.append(vol)
+        energies.append(ene)
+        stresses.append(sts)
+        lattices.append(lat)
+        bandgaps.append(gap)
+        pressures.append((sts[0][0]+sts[1][1]+sts[2][2])/3.)
+        if not gapfound: gapfound = float(gap) > 0.0
+    energies = sort_x_by_y(energies, volumes)
+    pressures = sort_x_by_y(pressures, volumes)
+    stresses = sort_x_by_y(stresses, volumes)
+    lattices = sort_x_by_y(lattices, volumes)
+    bandgaps = sort_x_by_y(bandgaps, volumes)
+    volumes = sort_x_by_y(volumes, volumes)
+    EV = {}
+    EV['metatag'] = m
+    EV['natoms'] = natoms
+    EV['volumes'] = volumes
+    EV['stresses'] = stresses
+    EV['energies'] = energies
+    EV['pressures'] = pressures
+    EV['bandgaps'] = bandgaps
+    EV['lattices'] = lattices
+    return EV

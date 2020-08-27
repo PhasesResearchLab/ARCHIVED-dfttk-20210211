@@ -423,7 +423,7 @@ def proStoichiometricCp():
       pass
 
 def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=None,xT=None,xlabel="T (K)", 
-    ylabel=None, ytext=None, xlim=None, elonly=None, expt=None, CoT=False):
+    ylabel=None, ytext=None, xlim=None, elonly=None, expt=None, CoT=False, label=None, single=False):
     global mindex
     mindex = 0
     cwd = os.getcwd()
@@ -432,6 +432,10 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
     fig,ax=plt.subplots()
     fig.set_size_inches(12,9)
     ax.yaxis.set_ticks_position('both')
+
+    _label = thermodynamicproperty
+    if label!=None:
+        _label = label
 
     if xlim!=None:
         try:
@@ -450,7 +454,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         xlabel = "atomic volume ($Angstrom^3$)"
         plt.ylabel("0 K total energies (eV/atom)")
         ax.set_xlim([min(x)*0.95,max(x)*1.05])
-        ax.plot(x, y, fillstyle='none', marker='o', markersize=12, color='k', linestyle='None', label="DFT")
+        ax.plot(x, y, fillstyle='none', marker='o', markersize=12, color='k', linestyle='None', label=_label)
         xnew = np.linspace(min(x)*0.95,max(x)*1.05, 300)  
         #from scipy.interpolate import UnivariateSpline
         from dfttk.pythelec import BMvol4, BMvol
@@ -459,13 +463,13 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         #f2 = interp1d(x, y)
         ynew = BMvol(xnew, f2)
         ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
-    elif thermodynamicproperty.lower()=="".lower():
+    elif thermodynamicproperty.lower()=="Effective charge carrier concentration ($e/cm^{3}$)".lower():
         ax.set_yscale('symlog')
         yy = np.array(y)[np.array(x)>0]
         xx = np.array(x)[np.array(x)>0]
-        ax.plot(xx,yy,'-',linewidth=2,color='b', label=thermodynamicproperty)
+        ax.plot(xx,yy,'-',linewidth=2,color='b', label=_label)
     elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
-        ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
+        ax.plot(x,y,'-',linewidth=2,color='b', label=_label)
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
       #print("eeeeeeee",thermodynamicproperty)
       if yzero != None:
@@ -481,7 +485,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         #else : ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
       if reflin is not None:
         ax.plot(x,reflin,':',linewidth=1,color='k')
-      ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
+      ax.plot(x,y,'-',linewidth=2,color='b', label=_label)
       if ytext is not None:
         ax.set_xlim([min(x)*1.05,max(x)*1.05])
         xx0 = np.array(ytext[0])
@@ -512,7 +516,7 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
           y1.append(x1)
           y2.append(x2)
         ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
-        ax.plot(x,y0,'-',linewidth=2,color='b', label="$C_p$")
+        ax.plot(x,y0,'-',linewidth=2,color='b', label=_label+",$C_p$")
         ax.plot(xT[::5],fitted[::5],'--',fillstyle='none', marker='o', markersize=12, linewidth=2,color='k', label="fitted")
         ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_v$")
         ax.plot(x,y2,':',linewidth=2,color='g', label="$C_{v,ion}$")
@@ -568,11 +572,18 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
             ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
         if elonly==None:
             if CoT:
-                ax.plot(xnew,ynew,'-',linewidth=2,color='b', label="$C_{p,lat+el}/T$")
+                if single:
+                    ax.plot(xnew,ynew,'-',linewidth=2,color='b', label=_label+",$C_{v,lat+el}/T$")
+                else:
+                    ax.plot(xnew,ynew,'-',linewidth=2,color='b', label=_label+",$C_{p,lat+el}/T$")
                 plot_expt(expt, 'heat capacity', ax, CoT=CoT, xlim=xlim)
             else:
-                ax.plot(x,y0,'-',linewidth=2,color='b', label="$C_{p,lat+el}$")
-                ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
+                if single:
+                    ax.plot(x,y0,'-',linewidth=2,color='b', label=_label+",$C_{v,lat+el}$")
+                    ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{v,lat}$")
+                else:
+                    ax.plot(x,y0,'-',linewidth=2,color='b', label=_label+",$C_{p,lat+el}$")
+                    ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
                 plot_expt(expt, 'heat capacity', ax)
         y2 = np.array(list(map(float,y0))) - np.array(list(map(float,y1)))
         if CoT:
@@ -580,12 +591,12 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
                 for i,v in enumerate(x):
                     if v>0.0: y2[i] /= v
                     else: y2[i] = float("nan")
-                ax.plot(x,y2,'-.',linewidth=2,color='r', label="$C_{el}/T$")
+                ax.plot(x,y2,'-.',linewidth=2,color='r', label=_label+",$C_{el}/T$")
                 plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
         else:
             tmp = y2.max()
             if tmp > 1.e-2:
-                ax.plot(x,y2,'-.',linewidth=2,color='r', label="$C_{el}$")
+                ax.plot(x,y2,'-.',linewidth=2,color='r', label=_label+",$C_{el}$")
                 plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
 
     if CoT and xlim!=None:
@@ -1579,8 +1590,17 @@ def getdoslim(e, dos, xlim):
     return xx, yy
 
 def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True,
-    poscar=None, vdos=None, doscar=None, natoms=1):
+    poscar=None, vdos=None, doscar=None, natoms=1, plotlabel=None):
   #print("eeeeeee", expt)
+  if plotlabel!=None:
+      if plotlabel.lower().startswith("find_or_"):
+          if "pseudo_potential" in readme.keys():
+              plotlabel = readme["pseudo_potential"]['functional']
+          else:
+              plotlabel = plotlabel.replace("find_or_", "")
+  else:
+      plotlabel = 'DFT'
+  
   if expt!=None:
       with open(expt, "r") as fp:
           expt = json.load (fp)
@@ -1665,36 +1685,36 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
     myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
   if volumes is not None:
-    thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
+    thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel)
   if T0 <= thermo[-1,0] : 
     thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
     thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
   thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
 
   if volumes is not None:
-    thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim)
+    thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim, label=plotlabel)
   ncols = [6,8]
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=1000,expt=expt, CoT=True)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel, single=vdos!=None)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel, single=vdos!=None)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True, label=plotlabel, single=vdos!=None)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=1000,expt=expt, CoT=True, label=plotlabel, single=vdos!=None)
   tmp = 0.0
   for i,v in enumerate(thermo[:,0]):
     if v >300: break
     tmp = max(tmp, thermo[i,6]-thermo[i,8])
   if tmp>1.e-2:
-    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
-  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim)
-  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70)
+    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True, label=plotlabel)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70, label=plotlabel)
   if volumes is not None:
-    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim)
-  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
-  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
-  thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
+    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim, label=plotlabel)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
-      list(thermo[:,18]/thermo[:,1]*1e24))
+      list(thermo[:,18]/thermo[:,1]*1e24), label=plotlabel)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
-      list(thermo[:,18]/thermo[:,1]*1e24), xlim=100)
+      list(thermo[:,18]/thermo[:,1]*1e24), xlim=100, label=plotlabel)
   if len(gamma_phonons)!=0: readme['gamma phonons (cm^{-1})']= gamma_phonons
   if doscar!=None:
       from dfttk.pythelec import pregetdos, getdos
@@ -1708,35 +1728,36 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
           xlim = [-0.1, Eg+0.1]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-0.2, Eg+0.2]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-0.5, Eg+0.5]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-1.0, Eg+1.0]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-2.0, Eg+2.0]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-5.0, Eg+5.0]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
           xlim = [-10., Eg+10.]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
-              xlabel="Band energy (eV)")
+              xlabel="Band energy (eV)", label=plotlabel)
   return True
 
 
-def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True):
+def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True, 
+    poscar=None, vdos=None, doscar=None, natoms=1, plotlabel=None):
   global fitCp
   fitCp = _fitCp
   #print(expt)
@@ -1803,26 +1824,26 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
     myjsonout(SGTErec, fp, indent="", comma="")
   myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
-  thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
-  thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
+  thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim, label=plotlabel)
   #print(thermo[:,4]-H298)
-  thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
-  thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
+  thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim, label=plotlabel)
 
-  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(1.e06*thermo[:,5]),yzero=0.0, xlim=xlim)
+  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(1.e06*thermo[:,5]),yzero=0.0, xlim=xlim, label=plotlabel)
   ncols = [6,8]
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True, label=plotlabel)
   tmp = 0.0
   for i,v in enumerate(thermo[:,0]):
     if v >300: break
     tmp = max(tmp, thermo[i,6]-thermo[i,8])
   if tmp>1.e-2:
-    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
-  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=xlim)
-  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=70)
-  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim)
+    thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True, label=plotlabel)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=70, label=plotlabel)
+  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim, label=plotlabel)
   T = copy.deepcopy(thermo[:,0])
   t22 = copy.deepcopy(thermo[:,22])
   if T[0]==0.0: 
@@ -1830,11 +1851,11 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
       t22[0]=1.e-8
 
   Lfactor = physical_constants['Boltzmann constant'][0]/physical_constants['atomic unit of charge'][0]**2/physical_constants['Avogadro constant'][0]
-  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,21]/t22/T),xlim=xlim)
-  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list((thermo[:,6]-thermo[:,8])/t22*Lfactor),xlim=xlim)
-  thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,19]), xlim=xlim)
+  thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,21]/t22/T),xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list((thermo[:,6]-thermo[:,8])/t22*Lfactor),xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,19]), xlim=xlim, label=plotlabel)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
-      list(thermo[:,22]/thermo[:,1]*1e24))
+      list(thermo[:,22]/thermo[:,1]*1e24), label=plotlabel)
 
 
 def addvdos(x,y,f,w,h):
@@ -2167,6 +2188,7 @@ def PlotVol(folder, vdos):
 
 
 if __name__ == '__main__':
+    plotlabel = None
     count = 1
     while (count < len(sys.argv)):
       if (input_within):
@@ -2228,6 +2250,11 @@ if __name__ == '__main__':
         if (count > len(sys.argv)):
           break
         EQ = float(sys.argv[count])
+      elif (sys.argv[count] == "-plot"):
+        count = count + 1
+        if (count > len(sys.argv)):
+          break
+        plotlabel = sys.argv[count]
       elif (sys.argv[count] == "-Tupmax"):
         count = count + 1
         if (count > len(sys.argv)):
@@ -2271,7 +2298,7 @@ if __name__ == '__main__':
     
     if justplot==None: lines = sys.stdin.readlines()
     else: 
-        plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim, _fitCp = fitCp)
+        plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim, _fitCp = fitCp, plotlabel=plotlabel)
         sys.exit()
     
     sys.stdout.write("G(T)=a+b*T+c*T*Ln(T)+d*T*T+e*T*T*T+f/T (J/mol-atom)\n")

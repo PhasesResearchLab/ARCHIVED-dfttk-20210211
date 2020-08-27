@@ -11,6 +11,7 @@ from monty.serialization import loadfn, dumpfn
 import dfttk.pythelec as pythelec
 from dfttk.pythelec import thelecMDB
 from dfttk.pythfind import thfindMDB
+from dfttk.pyEVfind import EVfindMDB
 import warnings
 import copy
 import os
@@ -58,7 +59,6 @@ def ext_thelec(args):
     metatag = args.metatag
     everyT = args.everyT
     noel = args.noel
-    plot = args.plot
     smooth = args.smooth
     expt = args.expt
     xlim = args.xlim
@@ -75,7 +75,7 @@ def ext_thelec(args):
         record_cmd(readme)
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file=db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
-            smooth=smooth, plot=plot, debug=args.debug, 
+            smooth=smooth, debug=args.debug, 
             phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF)
         volumes, energies, thermofile, comments = proc.run_console()
         if volumes is None: return
@@ -83,9 +83,10 @@ def ext_thelec(args):
         #record_cmd(thermofile, readme)
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
-        if plot: 
+        if args.plot!=None: 
             from dfttk.analysis.ywplot import plotAPI
-            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp):
+            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+                plotlabel=args.plot):
                 record_cmd_print(thermofile, readme)
     elif args.vdos is not None:
         readme = {}
@@ -97,10 +98,10 @@ def ext_thelec(args):
         #record_cmd(thermofile, readme)
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
-        if plot: 
+        if args.plot!=None: 
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, None, None, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp,
-                poscar=args.poscar,vdos=args.vdos, doscar=args.doscar, natoms=natoms):
+                poscar=args.poscar,vdos=args.vdos, doscar=args.doscar, natoms=natoms, plotlabel=args.plot):
                 record_cmd_print(thermofile, readme)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
@@ -191,9 +192,14 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-s", "-smooth", dest="smooth", action='store_true', default=False,
                       help="smooth the LTC. \n"
                            "Default: False")
+    """
     pthelec.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
                       help="plot the figure. \n"
                            "Default: False")
+    """
+    pthelec.add_argument("-plot", "-plot", dest="plot", nargs="?", type=str, default=None,
+                      help="plot the figures and mark the theoretial line with the given label. \n"
+                           "Default: None")
     pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
                       help="renew/plot the figure. \n"
                            "Default: False")
@@ -237,11 +243,12 @@ def run_ext_thelec(subparsers):
  
     #further extension for finding phonon calculation
     run_ext_thfind(subparsers)
+    run_ext_EVfind(subparsers)
 
 
 def run_ext_thfind(subparsers):
     #SUB-PROCESS: thfind
-    pthfind = subparsers.add_parser("thfind", help="find the metadata tag that has finished.")
+    pthfind = subparsers.add_parser("thfind", help="find the metadata tag that with finite T calculation finished.")
     pthfind.add_argument("-w", "--within", dest="within", nargs="?", type=str, default=None,
                       help="find calculations within element list\n"
                            "Default: None")
@@ -296,3 +303,48 @@ def ext_thfind(args):
             args.metatag = t['tag'] 
             args.phasename = t['phasename'] 
             ext_thelec(args)
+
+
+def run_ext_EVfind(subparsers):
+    #SUB-PROCESS: EVfind
+    pEVfind = subparsers.add_parser("EVfind", help="find the metadata tag that has 0 K static calculaton finished.")
+    pEVfind.add_argument("-w", "--within", dest="within", nargs="?", type=str, default=None,
+                      help="find calculations within element list\n"
+                           "Default: None")
+    pEVfind.add_argument("-all", "--containall", dest="containall", nargs="?", type=str, default=None,
+                      help="find calculations must contain all elements in the list\n"
+                           "Default: None")
+    pEVfind.add_argument("-xall", "--excludeall", dest="excludeall", nargs="?", type=str, default=None,
+                      help="exclude calculations that conain all elements in the list\n"
+                           "Default: None")
+    pEVfind.add_argument("-xany", "--excludeany", dest="excludeany", nargs="?", type=str, default=None,
+                      help="exclude calculations that conain any elements in the list\n"
+                           "Default: None")
+    pEVfind.add_argument("-any", "--containany", dest="containany", nargs="?", type=str, default=None,
+                      help="find calculations contain any elements in the list\n"
+                           "Default: None")
+    pEVfind.add_argument("-v", "--nV", dest="nV", nargs="?", type=int, default=6,
+                      help="Return phonon calculations finished for number of volumes larger or equals to. \n"
+                           "Default: 6")
+    pEVfind.add_argument("-fg", "--findbandgap", dest="findbandgap", action='store_true', default=False,
+                      help="report the entries with band gap. \n"
+                           "Default: False")
+    pEVfind.set_defaults(func=ext_EVfind)
+
+
+def ext_EVfind(args):
+    """
+    find the metadata tag that has finished.
+
+    Parameters
+        STR_FOLDER = args.STRUCTURE_FOLDER
+            folder/file containing structures
+        MATCH_PATTERN = args.MATCH_PATTERN
+            Match patterns for structure file, e.g. *POSCAR
+        RECURSIVE = args.RECURSIVE
+            recursive or not
+        WORKFLOW = args.WORKFLOW
+            workflow, current only get_wf_gibbs
+    """
+    proc=EVfindMDB(args)
+    tags = proc.run_console()

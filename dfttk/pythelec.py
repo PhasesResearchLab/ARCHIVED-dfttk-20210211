@@ -20,6 +20,7 @@ from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import dfttk.pyphon as ywpyphon
 from dfttk.utils import sort_x_by_y
 from dfttk.analysis.ywplot import myjsonout
+from dfttk.analysis.ywutils import get_rec_from_metatag
 
 
 k_B = physical_constants['Boltzmann constant in eV/K'][0]
@@ -929,7 +930,7 @@ class thelecMDB():
     """
 
     def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, db_file=None, 
-                noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
+                noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, 
                 phasename=None, pyphon=False, debug=False, renew=False, fitF=False, args=None):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
@@ -953,7 +954,6 @@ class thelecMDB():
         if eqmode==5: self.BMfunc = BMvol5
         self.elmode = elmode
         self.smooth = smooth
-        self.plot = plot
         self.phasename=phasename
         self.pyphon=pyphon
         self.debug=debug
@@ -1460,8 +1460,9 @@ class thelecMDB():
                     beta/3., (cplat+prp_T[2])*toJmol, (clat+prp_T[2])*toJmol, 
                     cplat*toJmol, blat*toGPa, debyeT, dlat, 
                     prp_T[0]/self.natoms, prp_T[1]*toJmol, prp_T[2]*toJmol, 
-                    prp_T[3], prp_T[4], L, prp_T[5], prp_T[6], 
-                    prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13]))
+                    prp_T[3], prp_T[4], L, prp_T[5]/self.natoms, prp_T[6]/self.natoms, 
+                    prp_T[7]/self.natoms, prp_T[8]*toJmol, prp_T[10]/self.natoms, 
+                    prp_T[11]/self.natoms, prp_T[12]/self.natoms, prp_T[13]/self.natoms))
                 else:
                     #(T[i], F_el_atom[i], S_el_atom[i], C_el_atom[i], M_el[i], seebeck_coefficients[i], L, 
                     #Q_el[i], Q_p[i], Q_e[i], C_mu[i], W_p[i], W_e[i], Y_p[i], Y_e[i])
@@ -1490,7 +1491,8 @@ class thelecMDB():
         except:
             self.key_comments['phonon quality'] = '{:8.6}'.format(-1.0)
         self.key_comments['METADATA'] = {'tag':self.tag}
-        self.key_comments['E-V'] = {'Natoms':self.natoms, 'volumes':list(self.volumes), 'energies':list(self.energies)}
+        #self.key_comments['E-V'] = {'Natoms':self.natoms, 'volumes':list(self.volumes), 'energies':list(self.energies)}
+        self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
         #self.key_comments['volumes'] = list(self.volumes)
         #self.key_comments['energies'] = list(self.energies)
      
@@ -1604,14 +1606,15 @@ class thelecMDB():
                 format(self.T[i], volume/self.natoms, f/vdos_natoms, s*toJmol, (f+self.T[i]*s)*toJmol, 
                 0.0, c*toJmol, c*toJmol, Clat[i]*toJmol, 0, debyeT, 0, 
                 prp_T[0]/self.natoms, prp_T[1]*toJmolel, prp_T[2]*toJmolel, 
-                prp_T[3], prp_T[4], L, prp_T[5], prp_T[6], 
-                prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13]))
+                prp_T[3], prp_T[4], L, prp_T[5]/self.natoms, prp_T[6]/self.natoms, 
+                prp_T[7]/self.natoms, prp_T[8]*toJmolel, prp_T[10]/self.natoms, 
+                prp_T[11]/self.natoms, prp_T[12]/self.natoms, prp_T[13]/self.natoms))
         return thermofile
      
            
     def run_single(self):
         if self.td < 0:
-            self.T = T_remesh(self.t0, self.t1, self.td, _nT=129)
+            self.T = T_remesh(self.t0, self.t1, self.td, _nT=513)
         else:
             nT = int((self.t1-self.t0)/self.td+1.5)
             self.T = np.linspace(self.t0, self.t1, nT, endpoint=True)

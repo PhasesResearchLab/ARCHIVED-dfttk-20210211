@@ -377,7 +377,13 @@ def run_dfttk():
     """
     from dfttk._version import get_versions
     print("DFTTK version: " + get_versions()["version"])
-    print("Copyright \u00a9 Phases Research Lab (https://www.phaseslab.com/)\n")
+    try:
+        print("Copyright \u00a9 Phases Research Lab (https://www.phaseslab.com/)\n")
+    except:
+        print("\nSometimes, special character can make trouble, try the following solve your problem", file=sys.stderr)
+        print("setenv LC_ALL en_US.utf8 #in csh batch mode", file=sys.stderr)
+        print("export LC_ALL='en_US.utf8' #in sh batch mode", file=sys.stderr)
+        sys.exit()
 
     parser = argparse.ArgumentParser(description='Run DFTTK jobs.')
     
