@@ -432,8 +432,15 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
     fig,ax=plt.subplots()
     fig.set_size_inches(12,9)
     ax.yaxis.set_ticks_position('both')
-    if xlim!=None: ax.set_xlim([0,xlim])
+
+    if xlim!=None:
+        try:
+            ax.set_xlim([0,xlim])
+        except:
+            ax.set_xlim(xlim)
+        #print("eeeeeee", xlim, thermodynamicproperty)
     else: ax.set_xlim([0,np.array(list(map(float,x))).max()])
+
     fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
     if thermodynamicproperty.split('(')[0].strip()=="Debye temperature":
         if float(x[0])==0.0: y[0]=float("nan")
@@ -452,12 +459,15 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         #f2 = interp1d(x, y)
         ynew = BMvol(xnew, f2)
         ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
-    elif thermodynamicproperty.lower()=="Effective charge carrier concentration ($e/cm^{3}$)".lower():
+    elif thermodynamicproperty.lower()=="".lower():
         ax.set_yscale('symlog')
         yy = np.array(y)[np.array(x)>0]
         xx = np.array(x)[np.array(x)>0]
         ax.plot(xx,yy,'-',linewidth=2,color='b', label=thermodynamicproperty)
+    elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
+        ax.plot(x,y,'-',linewidth=2,color='b', label=thermodynamicproperty)
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
+      #print("eeeeeeee",thermodynamicproperty)
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
         y1 = np.nanmax(np.array(list(map(float,y))))
@@ -522,17 +532,11 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
                 yy = yy[xx!=0.0]
                 xx = xx[xx!=0.0]
                 yy = yy/xx
-                #xnew = np.linspace(0, math.sqrt(xlim), 100)
-                xnew = np.linspace(min(x), math.sqrt(xlim), 10)
-                xnew = xnew*xnew
-                xx = xx*xx
-                from scipy.interpolate import UnivariateSpline
-                f2 = UnivariateSpline(xx, yy, s=0)
-                ynew = f2(xnew)
                 ax.set_xlim([0.0,xlim])
-                ax.set_ylim([0.0,max(ynew)*1.2])
-                xnew = xx
-                ynew = yy
+                #ax.set_ylim([0.0,max(ynew)*1.2])
+                xx = xx*xx
+                xnew = xx[xx<xlim*1.5]
+                ynew = yy[xx<xlim*1.5]
                 fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(xlim)+"_oT2.png"
             else:
                 for i,v in enumerate(x):
@@ -594,6 +598,11 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         if ylabel!=None: plt.ylabel(ylabel)
         else: plt.ylabel(thermodynamicproperty)
     ax.legend(loc=0, prop={'size': 24})
+    if thermodynamicproperty.lower()=="Effective charge carrier concentration ($e/cm^{3}$)".lower():
+        if xlim!=None:
+            fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(int(xlim))+".png"
+    elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
+        fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(str(-xlim[0]))+"eV.png"
     figures.update({thermodynamicproperty:folder.split('/')[-1]+'/'+fname})
     #print("eeeeee", fname)
     fig.savefig(fname,bbox_inches='tight')
@@ -624,7 +633,11 @@ def plot_expt (expt, prp, ax, CoT=False, xlim=None):
                         if Unit=='mJ/K' : yval /= 1000.
                         if CoT:
                             if xlim!=None:
-                                ax.plot(xval*xval,yval/xval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+                                xx = xval*xval
+                                yy = yval/xval
+                                yy = yy[xx<xlim]
+                                xx = xx[xx<xlim]
+                                ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
                             else:
                                 ax.plot(xval,yval/xval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
                         else:
@@ -1556,14 +1569,28 @@ phases = []
 papers = []
 PhaseName = {}
 
-def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True):
+def getdoslim(e, dos, xlim):
+    xx, yy = [], []
+    for i,energy in enumerate(e):
+        if energy >xlim[0] and energy <xlim[1]:
+            xx.append(energy)
+            yy.append(dos[i])
+    #print("eeeeeee", xx, yy)
+    return xx, yy
+
+def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True,
+    poscar=None, vdos=None, doscar=None, natoms=1):
+  #print("eeeeeee", expt)
+  if expt!=None:
+      with open(expt, "r") as fp:
+          expt = json.load (fp)
   global fitCp
   fitCp = _fitCp
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
   phasedir = ('/').join(phasedir[0:-1])
   if phasedir=="": phasedir="."
   folder = phasedir+"/figures/"
-  print("All figures have been outputed into: ", folder, "  with T uplimt:", xlim, "\n\nEnjoy!\n")
+  print("All figures will be outputed into: ", folder, "  with T uplimt:", xlim, "\n\nEnjoy!\n")
   if not os.path.exists(folder):
     os.mkdir(folder)
   if volumes is not None: thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies)
@@ -1614,6 +1641,9 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
       f2=interp1d(thermo[:,0], thermo[:,1])
       V0 = f2(0)
       Plot298(folder, V0, volumes)
+  elif vdos!=None:
+      #check if superfij.out file exist there. if yes, do phonon properties
+      PlotVol(folder, vdos)
 
   if T0 <= thermo[-1,0] : 
     threcord.update({"H298.15 (J/mol-atom)":H298})
@@ -1634,17 +1664,20 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
       myjsonout(SGTErec, fp, indent="", comma="")
     myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
-  thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
+  if volumes is not None:
+    thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim)
   if T0 <= thermo[-1,0] : 
     thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim)
     thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), xlim=xlim)
   thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
 
-  thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim)
+  if volumes is not None:
+    thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim)
   ncols = [6,8]
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=1000,expt=expt, CoT=True)
   tmp = 0.0
   for i,v in enumerate(thermo[:,0]):
     if v >300: break
@@ -1653,13 +1686,53 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
     thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70)
-  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim)
+  if volumes is not None:
+    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim)
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
       list(thermo[:,18]/thermo[:,1]*1e24))
+  thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
+      list(thermo[:,18]/thermo[:,1]*1e24), xlim=100)
   if len(gamma_phonons)!=0: readme['gamma phonons (cm^{-1})']= gamma_phonons
+  if doscar!=None:
+      from dfttk.pythelec import pregetdos, getdos
+      with open (doscar, "r") as fp:
+          edn, eup, vde, dos_energies, vaspEdos = pregetdos(fp) # Line 186
+          NELECTRONS, E0, dF, e, dos, Eg =\
+              getdos(-15, 15, 0.0, 10001, 1000., edn, eup, vde, dos_energies, vaspEdos)
+          if Eg <0.0: Eg=0.
+          #print("eeeeeeee",xlim, Eg)
+          #print("eeeeeeee", min(xx), max(xx), min(yy), max(yy))
+          xlim = [-0.1, Eg+0.1]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-0.2, Eg+0.2]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-0.5, Eg+0.5]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-1.0, Eg+1.0]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-2.0, Eg+2.0]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-5.0, Eg+5.0]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
+          xlim = [-10., Eg+10.]
+          xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
+          thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
+              xlabel="Band energy (eV)")
   return True
 
 
@@ -1871,6 +1944,10 @@ def plotRaman(folder, fp, vdos):
     nn0.append(1)
 
   if len(s0)>0:
+    for i,s in enumerate(ns0):
+      ss = [f for f in s.split('+') if f!=""]
+      if len(ss)>7:
+        ns0[i] = '+'.join(ss[0:7])+'+...'
     thermoplot("./","Gamma point phonons",list(x),list(yy), 
       reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[nx0,ny0,ns0], ylabel="Phonon DOS ($THz^{-1}$)")
     fn = "Gamma_point_phonons.png"
@@ -1882,7 +1959,6 @@ def Plot298(folder, V298, volumes):
   plotdatabase = dfttkconfig.get_abspath(PATH_TO_STORE_CONFIG)+'/analysis/database/'
   #print (plotdatabase, folder)
   ydir = folder+'/../Yphon/'
-  #print ("I am here", os.getcwd())
   
   for root, dirs, files in os.walk(ydir):
     structure = Structure.from_file(ydir+dirs[len(dirs)//2]+'/POSCAR')
@@ -1985,6 +2061,7 @@ def Plot298(folder, V298, volumes):
     dfile0 = dfile.split('/')[-1]
     copyfile(dfile,dfile0)
     cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
     cmd = "gnuplot vdis.plt; convert -flatten -rotate 90 -density 120x120 vdis.eps vdis.png"
@@ -1992,6 +2069,100 @@ def Plot298(folder, V298, volumes):
                       universal_newlines=True)
     os.rename("vdis.eps", cwd+'/'+folder+'/vdis298.15.eps')
     os.rename("vdis.png", cwd+'/'+folder+'/vdis298.15.png')
+  os.chdir( cwd )
+
+
+def PlotVol(folder, vdos):
+  import dfttk.scripts.config_dfttk as dfttkconfig
+  PATH_TO_STORE_CONFIG = dfttkconfig.default_path()
+  plotdatabase = dfttkconfig.get_abspath(PATH_TO_STORE_CONFIG)+'/analysis/database/'
+  #print (plotdatabase, folder)
+  vdosdir = [substr for substr in vdos.split('/') if substr!=""]
+  if vdos.startswith('/'):
+    vdosdir = '/'+('/').join(vdosdir[0:-1])
+  else:
+    vdosdir = ('/').join(vdosdir[0:-1])
+  if not os.path.exists(vdosdir+'/superfij.out') : return
+
+  for ff in ['POSCAR', 'CONTCAR', 'Symmetry.pos']:
+    if os.path.exists(vdosdir+'/'+ff) :
+      structure = Structure.from_file(vdosdir+'/'+ff)
+      break
+  if structure==None: return
+
+  try:
+    natom = len(structure.sites)
+    sa = SpacegroupAnalyzer(structure)
+    ngroup = sa.get_space_group_number()
+  except:
+    return
+      
+  #print(natom,ngroup)
+
+  cwd = os.getcwd()
+  os.chdir( vdosdir )
+  cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+  cmd = "gnuplot vdos.plt; convert -flatten -rotate 90 -density 120x120 vdos.eps vdos.png"
+  #print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+  os.rename("vdos.eps", cwd+'/'+folder+'/vdos.eps')
+  os.rename("vdos.png", cwd+'/'+folder+'/vdos.png')
+
+  cmd = "pos2s Symmetry.pos -THR 0.0001"
+  print(cmd)
+  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+  """
+  #temp for debug
+  """
+  #temp for debug
+
+  if os.path.exists("vdos.out") :
+    os.rename("vdos.out", 'vdos.sav')
+    cmd = "Yphon -tranI 2 -eps -nqwave 100 -Gfile symmetry.mode <superfij.out >Raman.mode"
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+    os.rename("vdos.sav", 'vdos.out')
+    vdos = np.loadtxt("vdos.out", comments="#", dtype=np.float)
+    if os.path.exists("Raman.mode") :
+      with open ("Raman.mode", "r") as fp:
+        plotRaman(cwd+'/'+folder, fp, vdos)      
+
+  dfile = ""
+  if ngroup>=1 and ngroup<=2:
+    dfile = plotdatabase+"/dfile.tri"
+  elif ngroup>=3 and ngroup<=15:
+    dfile = plotdatabase+"/dfile.mon"
+  elif ngroup>=16 and ngroup<=74:
+    dfile = plotdatabase+"/dfile.oth"
+  elif ngroup>=75 and ngroup<=142:
+    dfile = plotdatabase+"/dfile.tet"
+  elif ngroup>=143 and ngroup<=167:
+    dfile = plotdatabase+"/dfile.rho"
+  elif ngroup>=168 and ngroup<=194:
+    dfile = plotdatabase+"/dfile.hcp"
+  elif ngroup>=195 and ngroup<=220:
+    dfile = plotdatabase+"/dfile.scc"
+  elif ngroup>=221 and ngroup<=224:
+    dfile = plotdatabase+"/dfile.bcc"
+  elif ngroup>=225 and ngroup<=230:
+    dfile = plotdatabase+"/dfile.fcc"
+    
+  if dfile != "":
+    dfile0 = dfile.split('/')[-1]
+    copyfile(dfile,dfile0)
+    cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out"
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      universal_newlines=True)
+    cmd = "gnuplot vdis.plt; convert -flatten -rotate 90 -density 120x120 vdis.eps vdis.png"
+    output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                      universal_newlines=True)
+    os.rename("vdis.eps", cwd+'/'+folder+'/vdis.eps')
+    os.rename("vdis.png", cwd+'/'+folder+'/vdis.png')
   os.chdir( cwd )
 
 

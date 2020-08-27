@@ -616,6 +616,10 @@ def thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
         the calculated properties in the unit of per atom
     doscar : str
         Filename for VASP DOSCAR
+    poscar : str
+        Filename for VASP POSCAR
+    vdos   : str
+        Filename for Yphon phonon DOS
 
     Output to (printed to outf)
     ---------------------------
@@ -690,12 +694,39 @@ def BMfitF(V, x, y, BMfunc):
   f, pcov = curve_fit(BMfunc, x, y)
   return BMvol(V,f)
 
-def BMsmooth(_V, _E0, _Flat, _Fel, _Slat, _Sel, BMfunc):
+def BMsmooth(_V, _E0, _Flat, _Fel, _Slat, _Sel, BMfunc, elmode):
     E0 = BMfitF(_V, _V, _E0, BMfunc)
-    Flat = UnivariateSpline(_V, _Flat)(_V)
-    Fel = UnivariateSpline(_V, _Fel)(_V)
-    Slat = UnivariateSpline(_V, _Slat)(_V)
-    Sel = UnivariateSpline(_V, _Sel)(_V)
+    if elmode==1:
+        Flat = UnivariateSpline(_V, _Flat)(_V)
+        Slat = UnivariateSpline(_V, _Slat)(_V)
+        Fel = UnivariateSpline(_V, _Fel)(_V)
+        Sel = UnivariateSpline(_V, _Sel)(_V)
+    elif elmode==2:
+        Flat = _Flat
+        Slat = _Slat
+        Fel = UnivariateSpline(_V, _Fel)(_V)
+        Sel = UnivariateSpline(_V, _Sel)(_V)
+    elif elmode==3:
+        Flat = _Flat
+        Slat = _Slat
+        p1 = np.poly1d(np.polyfit(_V, _Fel, 1))
+        Fel = p1(_V)
+        p1 = np.poly1d(np.polyfit(_V, _Sel, 1))
+        Sel = p1(_V)
+    elif elmode==4:
+        p1 = np.poly1d(np.polyfit(_V, _Flat, 1))
+        Flat = p1(_V)
+        p1 = np.poly1d(np.polyfit(_V, _Slat, 1))
+        Slat = p1(_V)
+        p1 = np.poly1d(np.polyfit(_V, _Fel, 1))
+        Fel = p1(_V)
+        p1 = np.poly1d(np.polyfit(_V, _Sel, 1))
+        Sel = p1(_V)
+    else:
+        Flat = _Flat
+        Slat = _Slat
+        Fel = _Fel
+        Sel = _Sel
     return E0, Flat, Fel, Slat, Sel
 
 def CenDif(v, vol, F, N=7,kind='cubic'):
@@ -882,6 +913,12 @@ class thelecMDB():
         Mode for the quasiharmonic calculations, according to it the T dependence volume to be extracted
     eqamode : int
         Mode to get LTC and the equilibrium volume
+    doscar : str
+        Filename for VASP DOSCAR
+    poscar : str
+        Filename for VASP POSCAR
+    vdos   : str
+        Filename for Yphon phonon DOS
 
     Output to (printed to outf)
     ---------------------------
@@ -891,12 +928,12 @@ class thelecMDB():
     and the equilibrium volume extracted from MongoDB in the last column
     """
 
-    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, db_file, 
+    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, db_file=None, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, plot=False,
-                phasename=None, pyphon=False, debug=False, renew=False, fitF=False):
+                phasename=None, pyphon=False, debug=False, renew=False, fitF=False, args=None):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
-        self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        if db_file!=None: self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
         self.t0 = t0
         self.t1 = t1
         self.td = td
@@ -922,6 +959,10 @@ class thelecMDB():
         self.debug=debug
         self.renew=renew
         self.fitF=fitF
+        if args!=None:
+            self.doscar=args.doscar
+            self.poscar=args.poscar
+            self.vdos=args.vdos
         #print ("iiiii=",len(self._Yphon))
 
 
@@ -1007,8 +1048,8 @@ class thelecMDB():
             if len(self.Flat)==0:
                 print ("Calling yphon to get f_vib, s_vib, cv_vib at ", phdir)
             with open("vdos.out", "r") as fp:
-                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality \
-                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV', natom=self.natoms)
+                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, natoms \
+                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
                 self.quality.append(quality)
                 #print ("eeeeeee", cv_vib*96484, self.natoms)
 
@@ -1286,9 +1327,9 @@ class thelecMDB():
     def calc_TE_V_general(self,i,kind='cubic'):
         if self.T[i]==0.0: beta=0.0
         #if self.smooth:
-        if self.elmode==1:
+        if self.elmode>=1:
             E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
-                self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], self.BMfunc)
+                self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], self.BMfunc, self.elmode)
         else:
             E0, Flat, Fel, Slat, Sel = self.energies, self.Flat[:,i], \
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:]
@@ -1342,7 +1383,7 @@ class thelecMDB():
                     self.blat = np.zeros((len(self.T)), dtype=float)
                     self.beta = np.zeros((len(self.T)), dtype=float)
                     for i in range(len(self.T)):
-                        if self.elmode==1: 
+                        if self.elmode>=1: 
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
                         else:
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='cubic')
@@ -1375,7 +1416,6 @@ class thelecMDB():
                     _blat.append(self.blat[j])
                     _beta.append(self.beta[j])
                     _T.append(self.T[j])
-                #print("eeeeeeeeee", self.T[i], _T)
                 self.volT[i] = interp1d(_T, _v)(self.T[i])
                 self.blat[i] = interp1d(_T, _blat)(self.T[i])
                 self.beta[i] = interp1d(_T, _beta)(self.T[i])
@@ -1430,7 +1470,6 @@ class thelecMDB():
                     prp_T[5], prp_T[6], prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13], 
                     self.volT[i], self.GibT[i]))
         #return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
-        #print("eeeee",np.array(self.volumes))
         return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
@@ -1492,8 +1531,92 @@ class thelecMDB():
         else : self.get_static_calculations()
         self.add_comput_inf()
         a,b,c = self.calc_thermodynamics()
-        #print ("eeeeeeee",a,b,c)
         return a,b,c,self.key_comments
+
+    
+    def calc_single(self):
+        Faraday_constant = physical_constants["Faraday constant"][0]
+        electron_volt = physical_constants["electron volt"][0]
+        angstrom = 1e-30
+        volume = 0
+        if self.poscar!=None:
+            structure = Structure.from_file(self.poscar)
+            volume = structure.volume
+            self.natoms = len(structure.sites)
+            self.formula_pretty = structure.composition.reduced_formula
+            sa = SpacegroupAnalyzer(structure)
+            self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+            if self.phasename==None:
+                self.phasename = self.formula_pretty+'_'+self.phase
+        else:
+            volume = 0
+            self.natoms = 1
+
+        if self.phasename is None:
+            self.phasename = 'unknown'
+
+        self.theall = np.zeros([14, len(self.T)])
+        if self.doscar!=None:
+            with open(self.doscar, "r") as fp:
+                prp_vol = runthelec(self.t0, self.t1, self.td, self.xdn, self.xup, self.dope, self.ndosmx,
+                    self.gaussian, self.natfactor, dos=fp, _T=self.T, fout=sys.stdout, vol=volume)
+                self.theall[:,:] = np.array( prp_vol ) # convert Tuple into array for the convenience of quasistatic interpolation
+                #print ("eeeeeeee", self.theall[:,0])
+
+        if self.vdos is not None:
+            with open(self.vdos, "r") as fp:
+                Flat, U_ph, Slat, Clat, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, vdos_natoms \
+                    = ywpyphon.vibrational_contributions(self.T, dos_input=fp, energyunit='eV')
+        else:
+            vdos_natoms = 1
+            Flat = np.zeros((len(self.T)), type=float)
+            Slat = np.zeros((len(self.T)), type=float)
+            Clat = np.zeros((len(self.T)), type=float)
+
+        try:
+            self.key_comments
+        except:
+            self.key_comments = {}
+
+        self.key_comments['phonon quality'] = '{:8.6}'.format(quality)
+        print("\nnatoms in vdos.out=", vdos_natoms, "natoms in POSCAR=", self.natoms, "volume=", volume, "\n")
+
+        toJmol = Faraday_constant/vdos_natoms
+        elfac = self.natoms/vdos_natoms
+        toJmolel = toJmol/elfac
+        thermofile = self.phasename+'/'+self.outf
+        if not os.path.exists(self.phasename):
+            os.mkdir(self.phasename)
+
+        with open(thermofile, 'w') as fvib:
+            fvib.write('#T(K), volume, F(eV), S(J/K), H(J/K), a(-6/K), Cp(J/mol), Cv, Cpion, Bt(GPa), T_ph-D(K), T-D(K), F_el_atom, S_el_atom, C_el_atom, M_el, Seebeck_coefficients(μV/K), Lorenz_number(WΩK^{−2}), Q_el, Q_p, Q_e, C_mu, W_p, W_e, Y_p, Y_e\n')
+
+            for i in range(len(self.T)):
+                prp_T = self.theall[:,i]
+                # 0 K limit for the Lorenz number
+                L = 2.443004551768e-08 #(1.380649e-23/1.60217662e-19*3.14159265359)**2/3
+                if prp_T[5] > 1.e-16: L = prp_T[2]/prp_T[5]*k_B #avoiding divided by zero
+                f = Flat[i]+prp_T[0]/elfac
+                s = Slat[i]+prp_T[1]/elfac
+                c = Clat[i]+prp_T[2]/elfac
+                debyeT = get_debye_T_from_phonon_Cv(self.T[i], Clat[i], 400., vdos_natoms)
+                fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
+                format(self.T[i], volume/self.natoms, f/vdos_natoms, s*toJmol, (f+self.T[i]*s)*toJmol, 
+                0.0, c*toJmol, c*toJmol, Clat[i]*toJmol, 0, debyeT, 0, 
+                prp_T[0]/self.natoms, prp_T[1]*toJmolel, prp_T[2]*toJmolel, 
+                prp_T[3], prp_T[4], L, prp_T[5], prp_T[6], 
+                prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13]))
+        return thermofile
+     
+           
+    def run_single(self):
+        if self.td < 0:
+            self.T = T_remesh(self.t0, self.t1, self.td, _nT=129)
+        else:
+            nT = int((self.t1-self.t0)/self.td+1.5)
+            self.T = np.linspace(self.t0, self.t1, nT, endpoint=True)
+        thermofile = self.calc_single()
+        return thermofile,self.key_comments,self.natoms
 
 
 if __name__ == '__main__':

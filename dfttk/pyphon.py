@@ -42,7 +42,7 @@ def isint(value):
 
 
 # read phonon density of state from file f
-def getdos(f,natom): # Line 186
+def getdos(f): # Line 186
     """
 
     Parameters
@@ -93,10 +93,11 @@ def getdos(f,natom): # Line 186
     fnew.extend(freq[Nlow:])
     pnew.extend(pdos[Nlow:])
     good = trapz(pnew,fnew)
+    natom = int(quality+0.5)//3
     quality = good/quality
-    if natom is not None: pnew = 3*natom/good*np.array(pnew)
+    pnew = 3*natom/good*np.array(pnew)
 
-    return np.array(list(map(float,fnew))), np.array(list(map(float,pnew))), quality
+    return np.array(list(map(float,fnew))), np.array(list(map(float,pnew))), quality, natom
 
 
 def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
@@ -211,8 +212,8 @@ def caclf(_freq, _pdos, T, dmu=0.0, energyunit='J'):
         return u-T*s, u, s, cv, cv_n, sound_ph, u_nn/nn/h, n, nn, debye
 
 
-def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J', natom=None):
-    freq, pdos, quality = getdos(dos_input, natom)
+def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J'):
+    freq, pdos, quality, natom = getdos(dos_input)
     #print ("eeeeeeee", natom)
     nT = T.size
     F_ph = np.zeros(nT)
@@ -230,7 +231,7 @@ def vibrational_contributions(T, dos_input=sys.stdin, _dmu=0.0, energyunit='J', 
         F_ph[i], U_ph[i], S_ph[i], C_ph_mu[i], C_ph_n[i], sound_ph[i], sound_nn[i], N_ph[i], NN_ph[i], debyeT[i] = caclf(freq, pdos, T[i], dmu=_dmu,energyunit=energyunit)
     #print ("eeeeee",C_ph_mu*96484)
 
-    return F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, sound_ph, sound_nn, N_ph, NN_ph, debyeT, quality
+    return F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, sound_ph, sound_nn, N_ph, NN_ph, debyeT, quality, natom
 
 if __name__ == '__main__':
     # initialize temperatures
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     unit = unit/natom
     # for all temperatures
     T = np.arange(t0,t1+td,td) # temperature
-    F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality\
+    F_ph, U_ph, S_ph, C_ph_mu, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, natom\
         = vibrational_contributions(T, dos_input=sys.stdin, _dmu=dmu, energyunit='J')
 
     sys.stderr.write ("\nThe phonon quality= {:08.6f}\n\n".format(quality))

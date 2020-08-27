@@ -73,7 +73,7 @@ def ext_thelec(args):
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
         readme = {}
         record_cmd(readme)
-        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file, 
+        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file=db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, plot=plot, debug=args.debug, 
             phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF)
@@ -86,6 +86,21 @@ def ext_thelec(args):
         if plot: 
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp):
+                record_cmd_print(thermofile, readme)
+    elif args.vdos is not None:
+        readme = {}
+        record_cmd(readme)
+        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, renew=True, args=args)
+        thermofile, comments, natoms = proc.run_single()
+        if thermofile is None: return
+        readme.update(comments)
+        #record_cmd(thermofile, readme)
+
+        print("\nFull thermodynamic properties have outputed into:", thermofile) 
+        if plot: 
+            from dfttk.analysis.ywplot import plotAPI
+            if plotAPI(readme, thermofile, None, None, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp,
+                poscar=args.poscar,vdos=args.vdos, doscar=args.doscar, natoms=natoms):
                 record_cmd_print(thermofile, readme)
     else:
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
@@ -147,9 +162,6 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-gauss", "--gauss", dest="gaussian", nargs="?", type=float, default=1000.,
                       help="densing number near the Fermi energy. \n"
                            "Default: 1000")
-    pthelec.add_argument("-i", "--doscar", dest="doscar", nargs="?", type=str, default="DOSCAR",
-                      help="DOSCAR filename. \n"
-                           "Default: DOSCAR")
     pthelec.add_argument("-o", "-outf", dest="outf", nargs="?", type=str, default="fvib_ele",
                       help="output filename for calculated thermoelectric properties. \n"
                            "Default: fvib_ele")
@@ -203,6 +215,15 @@ def shared_aguments(pthelec):
                            "Default: None")
     pthelec.add_argument("-xlim", "-xlim", dest="xlim", nargs="?", type=float, default=None,
                       help="Up temperature limit for plot. \n"
+                           "Default: None")
+    pthelec.add_argument("-dos", "--doscar", dest="doscar", nargs="?", type=str, default=None,
+                      help="file path to DOSCAR file. Run thelec in single volume shot only. \n"
+                           "Default: None")
+    pthelec.add_argument("-pos", "--poscar", dest="poscar", nargs="?", type=str, default=None,
+                      help="file path to POSCAR file. Run thelec in single volume shot only. \n"
+                           "Default: None")
+    pthelec.add_argument("-vdos", "--vdos", dest="vdos", nargs="?", type=str, default=None,
+                      help="file path to phonon DOS file produced by Yphon. Run thelec in single volume shot only. \n"
                            "Default: None")
 
 
