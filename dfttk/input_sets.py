@@ -6,6 +6,7 @@ from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.sets import DictSet, get_vasprun_outcar, get_structure_from_prev_run, _load_yaml_config
 
 
+'''
 # We set potentials back to the VASP recommended, since we primarily don't work on oxides.
 POTCAR_UPDATES = {
         'Be': 'Be',  # 2 electrons, default was Be_sv (4 electrons)
@@ -20,6 +21,28 @@ POTCAR_UPDATES = {
         'Ti': 'Ti_sv',  # 12 electrons, default Ti_pv (10 electrons)
         'V': 'V_sv',  # 13 electrons, default V_pv (11 electrons)
     }
+'''
+
+#Reset the POTCAR, suggested by Yi Wang, Aug. 24, 2020 
+POTCAR_UPDATES = {
+        'Mo': 'Mo_sv',  # 14 electrons, default was Mo_pv (12 electrons)
+        'Nb': 'Nb_sv',  # 13 electrons, default was Nb_pv (11 electrons)
+        'Ti': 'Ti_sv',  # 12 electrons, default Ti_pv (10 electrons)
+        'V': 'V_sv',  # 13 electrons, default V_pv (11 electrons)
+}
+
+def magnetic_check(structure):
+    '''
+    If the structure contain any magnetic elements, return True, otherwise return False
+    magnetic elements:
+        V(23)-Ni(28), Ru(44)-Pd(46), Ce(58)-Lu(71), Pa(91)-118
+    Suggested by Yi Wang, Aug. 24, 2020
+    '''
+    magnetic_elements = list(range(23, 29))
+    magnetic_elements.extend(list(range(44, 47)))
+    magnetic_elements.extend(list(range(58, 72)))
+    magnetic_elements.extend(list(range(91, 119)))
+    return any(ele.Z in magnetic_elements for ele in structure.species)
 
 class RelaxSet(DictSet):
     """
@@ -50,6 +73,7 @@ class RelaxSet(DictSet):
         'ENCUT': 520,
     })
     # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, volume_relax=False, isif=None, **kwargs):
@@ -97,6 +121,7 @@ class PreStaticSet(DictSet):
         "NEDOS": 5001,
     })
     # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, **kwargs):
@@ -146,6 +171,7 @@ class ForceConstantsSet(DictSet):
         "ICHARG": 2,
     })
     # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, **kwargs):
@@ -182,6 +208,7 @@ class StaticSet(DictSet):
         "NEDOS": 5001,
     })
     # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, isif=2, **kwargs):
@@ -264,6 +291,7 @@ class ForcesSet(DictSet):
         "NEDOS": 5001,
     })
     # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
     CONFIG['POTCAR'].update(POTCAR_UPDATES)
 
     def __init__(self, structure, **kwargs):
@@ -277,5 +305,59 @@ class ForcesSet(DictSet):
         self.kwargs = kwargs
         super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, sort_structure=False, **kwargs)
 
+
+class BornChargeSet(DictSet):
+    """Set tuned for metal relaxations (correct smearing).
+    Add `isif` parameter to the set to easily allow for overriding ISIF setting.
+    Kpoints have a 6000 reciprocal density default.
+    Provide by Yi Wang, Aug. 24, 2020
+    """
+    CONFIG = _load_yaml_config("MPRelaxSet")
+    CONFIG['KPOINTS'].update({
+        'grid_density': 8000,
+    })
+    CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
+
+    CONFIG['INCAR'].update({
+        "LEPSILON": True,  #For Born Effective Charge
+        "LRPA": False,
+        'EDIFF_PER_ATOM': 1e-6,
+        'ENCUT': 520,  # MP compatibility
+        'ISMEAR': 0,
+        "NSW": 0,
+        "IBRION": -1,
+        'LREAL': False,
+        'ALGO': 'NORMAL',
+        # other settings from MPStaticSet
+        "LCHARG": False,
+        "LWAVE": False,
+        "ICHARG": 2,
+    })
+
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
+
+    def __init__(self, structure, isif=2, **kwargs):
+        # pop the old kwargs, backwards compatibility from the complex StaticSet
+        self.isif = isif
+        uis = kwargs.get('user_incar_settings', {})
+        uis['ISIF'] = isif
+        old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol', 'lrpa']
+        for k in old_kwargs:
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
+        self.kwargs = kwargs
+
+        if magnetic_check(structure):
+            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 2})
+        else:
+            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 1})
+
+        if kwargs.get('user_incar_settings', None):
+            kwargs.pop('user_incar_settings')
+
+        super(BornChargeSet, self).__init__(structure, BornChargeSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 

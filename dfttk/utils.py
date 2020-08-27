@@ -894,3 +894,4 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
         "symmetry_checks_passed": len(failures) == 0,
     }
     return symm_data
+

@@ -9,9 +9,10 @@ import numpy as np
 import copy
 import six
 import shlex
+from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen import Structure
 from pymatgen.io.vasp.inputs import Incar
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from custodian.custodian import Custodian
 from custodian.vasp.handlers import VaspErrorHandler, AliasingErrorHandler, \
     MeshSymmetryErrorHandler, UnconvergedErrorHandler, PotimErrorHandler, \
@@ -1053,6 +1054,7 @@ class GetPhononDosFromDb(FiretaskBase):
 @explicit_serialize
 class CheckSymmetryToDb(FiretaskBase):
     '''
+    Store the CheckSymmetry result to MongoDB, the stored collection is named as 'relaxations'
     '''
     required_params = ["db_file", "tag"]
     optional_params = ['override_symmetry_tolerances', 'metadata']
@@ -1082,4 +1084,34 @@ class CheckSymmetryToDb(FiretaskBase):
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['relaxations'].insert_one(symm_check_data)
         return FWAction(update_spec={'symmetry_checks_passed': symm_check_data['symmetry_checks_passed']})
-   
+ 
+
+@explicit_serialize
+class BornChargeToDb(FiretaskBase):
+    '''
+    Store the born charge into the database, the stored collection is named as 'borncharge'
+    '''
+    required_params = ["db_file", "tag"]
+    optional_params = ['structure', 'store_input']
+    def run_task(self, fw_spec):
+        incar = Incar.from_file(filename='INCAR').as_dict()
+        lepsilon = incar.get('LEPSILON', False)
+        lrpa = incar.get('LRPA', False)
+        outcar = Outcar('OUTCAR')
+        if lepsilon and (not lrpa):
+            born_charge_matrix = outcar.born.tolist()
+            dielectric_tensor = outcar.dielectric_tensor
+        else:
+            raise ValueError('The incar is not correct for born charge calculation.')
+
+        structure = self.get('structure', Structure.from_file('POSCAR'))
+
+        born_result = {'metadata': {'tag': self.get('tag')},
+                       'born_charge': born_charge_matrix,
+                       'dielectric_tensor': dielectric_tensor,
+                       'volume': structure.volume,
+                       'inputs': {'incar': incar}}
+
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        vasp_db.db['borncharge'].insert_one(born_result)

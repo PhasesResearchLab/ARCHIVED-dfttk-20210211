@@ -192,7 +192,7 @@ def get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mes
                                     phonon_pdos=phonon_pdos, save_data=save_data, save_fig=save_fig)
     return (ph_band_obj, ph_dos_obj)
 
-def phonon_stable(structure, supercell_matrix, force_constants, qpoint_mesh=(50, 50, 50), stable_tor=0.003):
+def phonon_stable(structure, supercell_matrix, force_constants, qpoint_mesh=(50, 50, 50), stable_tor=0.01):
     '''
     Judge the stability of structure from phonon
 
