@@ -1297,12 +1297,12 @@ class thelecMDB():
             self.blat.append(blat)
             if newF!=None: self.GibT[i] = newF
             if self.volT[i] < 0: break
-        nT = len(self.blat)
-        if self.blat[-1] < 0: nT-=1
 
-        if nT < 2:
-           self.blat[0] = -1
-           return
+        nT = len(self.blat)
+        f2 = splrep(self.T[0:nT], self.volT[0:nT])
+        self.beta = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+        if self.blat[-1] < 0: nT-=1
+        if nT < 2: self.blat[0] = -1
 
 
     def calc_TE_V_general(self,i,kind='cubic'):
@@ -1376,9 +1376,9 @@ class thelecMDB():
                             nT = i
                             print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                             break
-                if self.eqmode==4 or self.eqmode==5 or self.fitF and nT>1:
-                    f2 = splrep(self.T[0:nT], self.volT[0:nT])
-                    self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+                    if self.eqmode==4 or self.eqmode==5:
+                        f2 = splrep(self.T[0:nT], self.volT[0:nT])
+                        self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
 
             if self.T[0] == 0: self.beta[0] = 0
             for i in range(len(self.T)):

@@ -1,6 +1,0 @@
-This folder contains the compounds/phases used to test the DFTTK package.
-To be done works inculde the Bore effective charge calculations for the phonon properties
-under each folder:
-dir "figures" - plots in png format for most of the thermodynamic properities
-file "readme" - This file. contain key information in json format
-

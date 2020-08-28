@@ -64,7 +64,7 @@ class RelaxSet(DictSet):
     })
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].update({
-        'EDIFF_PER_ATOM': 1e-5,
+        'EDIFF_PER_ATOM': 1e-8,
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,

@@ -1856,6 +1856,8 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,19]), xlim=xlim, label=plotlabel)
   thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
       list(thermo[:,22]/thermo[:,1]*1e24), label=plotlabel)
+  thermoplot(folder,"Effective charge carrier concentration ($e/cm^{3}$)",list(thermo[:,0]),
+      list(thermo[:,22]/thermo[:,1]*1e24), xlim=100, label=plotlabel)
 
 
 def addvdos(x,y,f,w,h):
