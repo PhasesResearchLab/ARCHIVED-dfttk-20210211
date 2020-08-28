@@ -1137,16 +1137,28 @@ class thelecMDB():
                 self.formula_pretty = structure.composition.reduced_formula
                 self.natoms = len(structure.sites)
                 sa = SpacegroupAnalyzer(structure)
-                self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+
+                pot = calc['input']['pseudo_potential']['functional'].upper()
+                try:
+                    if calc['input']['incar']['LSORBIT']: potsoc = pot +"SOC"
+                except:
+                    potsoc = pot
+                self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())+potsoc
+
                 key_comments ={}
                 key_comments['pseudo_potential'] = calc['input']['pseudo_potential']
                 key_comments['ENCUT'] = calc['input']['incar']['ENCUT']
                 key_comments['NEDOS'] = calc['input']['incar']['NEDOS']
+                try:
+                    key_comments['LSORBIT'] = calc['input']['incar']['LSORBIT']
+                except:
+                    key_comments['LSORBIT'] = False
+                    
                 pot = calc['orig_inputs']['kpoints']
                 kpoints = {}
                 kpoints['generation_style'] = pot['generation_style']
                 kpoints['kpoints'] = pot['kpoints'][0]
-                key_comments['kpoins'] = kpoints
+                key_comments['kpoints'] = kpoints
                 key_comments['bandgap'] = calc['output']['bandgap']
                 self.key_comments = key_comments
 
@@ -1270,7 +1282,7 @@ class thelecMDB():
     
     def calc_TE_V_fitF(self):
 
-        self.energies_orig = copy.deepcopy(self.energies)
+        #self.energies_orig = copy.deepcopy(self.energies)
         self.energies = BMfitF(self.volumes, self.volumes, self.energies_orig, self.BMfunc)
    
         self.blat = []
@@ -1288,46 +1300,14 @@ class thelecMDB():
         nT = len(self.blat)
         if self.blat[-1] < 0: nT-=1
 
-        """
-        self.beta = np.zeros((min(len(self.T), nT+1)), dtype=float)
-        tck = splrep(self.T, self.volT)
-        for i in range(0, nT):
-            self.beta[i] = splev(self.T[i], tck, der=1)/self.volT[i]
-        if self.T[0] == 0: self.beta[0] = 0
-        self.blat[nT-4] = -1
-        """
-
-        #print("eeeee", nT, self.volT[-1])
-        self.beta = np.zeros((min(len(self.T), nT+1)), dtype=float)
         if nT < 2:
            self.blat[0] = -1
            return
 
-        #f2 = UnivariateSpline(self.T[0:nT], self.volT[0:nT])
-        for i in range(0, nT):
-            N = min (3, i)
-            N = min (N, nT-i-1)
-            if N==0:
-                if i==0:
-                    self.beta[i] = (self.volT[1] - self.volT[0])/(self.T[1] - self.T[0])/self.volT[i]
-                else:
-                    self.beta[i] = (self.volT[nT-1] - self.volT[nT-2])/(self.T[nT-1] - self.T[nT-2])/self.volT[i]
-                continue
-            result = 0.0
-            for j in range(0, N):
-                result += (self.volT[i+N] - self.volT[i])/(self.T[i+N] - self.T[i]) + \
-                          (self.volT[i-N] - self.volT[i])/(self.T[i-N] - self.T[i])
-            #print ("eeeeee", N, dT, self.volT[i])
-            self.beta[i] = 0.5*result/N/self.volT[i]
-        if self.T[0] == 0: self.beta[0] = 0
-        
-        #self.blat[nT-4] = -1
-
 
     def calc_TE_V_general(self,i,kind='cubic'):
-        if self.T[i]==0.0: beta=0.0
-        #if self.smooth:
-        if self.elmode>=1:
+        #if self.elmode>=1:
+        if self.smooth:
             E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
                 self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], self.BMfunc, self.elmode)
         else:
@@ -1344,6 +1324,7 @@ class thelecMDB():
                 if blat < 0: return -1.0, 0.0
                 if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+FF+self.T[i]*(Slat+Sel), 
                     self.BMfunc) + P)/self.T[i]/blat
+                else: beta = 0.0
             else:
                 #print ("eeeeeee=", self.T[i])
                 blat, self.volT[i], newF = CenDifB(self.volumes, E0+FF, N=7,kind=kind)
@@ -1354,6 +1335,7 @@ class thelecMDB():
                         beta = CenDif(self.volT[i], self.volumes, Slat+Sel, N=7,kind=kind)/blat
                     except:
                         return -1.0, 0.0
+                else: beta = 0.0
             return blat, beta
         #except:
         #return -1.0, 0.0
@@ -1378,49 +1360,27 @@ class thelecMDB():
 
             #round one
             if self.hasSCF:
-                if self.fitF: self.calc_TE_V_fitF()
+                if self.fitF: 
+                    self.calc_TE_V_fitF()
+                    nT = len(self.blat)
                 else:
                     self.blat = np.zeros((len(self.T)), dtype=float)
                     self.beta = np.zeros((len(self.T)), dtype=float)
+                    nT = len(self.T)
                     for i in range(len(self.T)):
                         if self.elmode>=1: 
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
                         else:
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='cubic')
                         if self.blat[i] < 0: 
+                            nT = i
                             print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                             break
+                if self.eqmode==4 or self.eqmode==5 or self.fitF and nT>1:
+                    f2 = splrep(self.T[0:nT], self.volT[0:nT])
+                    self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
 
-            """
-            #round two, check error
-            for i in range(2, len(self.blat)-2):
-                if ((self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i])) >0.0: continue
-                if ((self.beta[i]-self.beta[i-1])*(self.beta[i-1]-self.beta[i-2])) <0.0 and \
-                   ((self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i])) >0.0: continue
-                #only corect with single iregularity, might due to numerical instability
-                #irregularity found, smooth it out
-                print("WARNING: single point irregularity found at T=", self.T[i], "smoothening is enforced!")
-                N = min(3,i)
-                N = min(N,len(self.blat)-2-i)
-                _v = []
-                _blat = []
-                _beta = []
-                _T = []
-                for j in range(i-N,i):
-                    _v.append(self.volT[j])
-                    _blat.append(self.blat[j])
-                    _beta.append(self.beta[j])
-                    _T.append(self.T[j])
-                for j in range(i+1,i+N+1):
-                    _v.append(self.volT[j])
-                    _blat.append(self.blat[j])
-                    _beta.append(self.beta[j])
-                    _T.append(self.T[j])
-                self.volT[i] = interp1d(_T, _v)(self.T[i])
-                self.blat[i] = interp1d(_T, _blat)(self.T[i])
-                self.beta[i] = interp1d(_T, _beta)(self.T[i])
-            """
-
+            if self.T[0] == 0: self.beta[0] = 0
             for i in range(len(self.T)):
                 if self.hasSCF:
                     blat, beta = self.blat[i], self.beta[i]

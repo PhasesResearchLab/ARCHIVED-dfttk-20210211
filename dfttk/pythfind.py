@@ -143,8 +143,18 @@ class thfindMDB ():
                 find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
             nS = 0
             gapfound = False
+            potsoc = ""
             for calc in static_calculations:
                 vol = calc['output']['structure']['lattice']['volume']
+                if potsoc=="":
+                    pot = calc['input']['pseudo_potential']['functional'].upper()
+                    try:
+                        if calc['input']['incar']['LSORBIT']: potsoc = pot +"SOC"
+                    except:
+                        potsoc = pot
+                    pname = phases[i].split('#')
+                    if len(pname)>1: phases[i] = pname[0]+potsoc+'#'+pname[1]
+                    else: phases[i] = pname[0]+potsoc
                 nS += 1
                 bandgap = calc['output']['bandgap']
                 if not gapfound: gapfound = float(bandgap) > 0.0

@@ -97,6 +97,7 @@ def get_user_settings(STR_FILENAME, STR_PATH="./", NEW_SETTING="SETTINGS"):
                 try:
                     user_settings.update(loadfn(SETTING_FULL_FILENAME))
                 except Exception as e:
+                    print(SETTING_FULL_FILENAME)
                     raise TypeError("The file contant or file type is not supported. ref. " +\
                         "http://guide.materialsvirtuallab.org/monty/monty.serialization.html#monty.serialization.loadfn")
     return user_settings

@@ -16,11 +16,11 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-27 15:56:26.981569",
+    "Postprocess time": "2020-08-28 00:01:25.911563",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -el 2",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
-        "Ag 00000": [208.8, "raman_active"],
+        "Ag 00000": [208.7, "raman_active"],
         "Ag 00001": [194.1, "raman_active"],
         "Ag 00002": [185.4, "raman_active"],
         "Ag 00003": [164.2, "raman_active"],
@@ -67,7 +67,7 @@
         "B3u 00004": [135.4, "ir_active"]
     },
 
-    "kpoins": {
+    "kpoints": {
         "generation_style": "Monkhorst",
         "kpoints": [8, 6, 4]
     },

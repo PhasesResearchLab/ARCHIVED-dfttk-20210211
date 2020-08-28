@@ -16,7 +16,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-27 16:55:55.395571",
+    "Postprocess time": "2020-08-28 00:58:08.236255",
     "bandgap": 1.7213000000000003,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
@@ -26,7 +26,7 @@
         "T2u 00000": [262.9, "silent_mode"]
     },
 
-    "kpoins": {
+    "kpoints": {
         "generation_style": "Gamma",
         "kpoints": [9, 9, 9]
     },

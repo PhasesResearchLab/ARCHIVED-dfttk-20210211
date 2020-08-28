@@ -16,9 +16,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-27 16:31:19.339990",
+    "Postprocess time": "2020-08-28 00:36:08.980026",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -el 2",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
         "A2u 00000": [220.9, "ir_active"],
         "B2g 00000": [141.3, "silent_mode"],
@@ -26,7 +26,7 @@
         "E2g 00000": [183.8, "raman_active"]
     },
 
-    "kpoins": {
+    "kpoints": {
         "generation_style": "Gamma",
         "kpoints": [11, 11, 19]
     },

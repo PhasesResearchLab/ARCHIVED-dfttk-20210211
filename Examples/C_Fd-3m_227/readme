@@ -16,14 +16,14 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-27 16:13:11.869565",
+    "Postprocess time": "2020-08-28 00:18:08.502571",
     "bandgap": 4.1386,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -el 2",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
         "T2g 00000": [1265.3, "raman_active"]
     },
 
-    "kpoins": {
+    "kpoints": {
         "generation_style": "Gamma",
         "kpoints": [15, 15, 15]
     },
