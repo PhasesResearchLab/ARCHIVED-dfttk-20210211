@@ -382,10 +382,10 @@ class QHAAnalysis(FiretaskBase):
         with open('qha_summary.json', 'w') as fp:
             json.dump(qha_result, fp, indent=4)
 
-        if self['phonon']:
-            vasp_db.db['qha_phonon'].insert_one(qha_result)
-        else:
-            vasp_db.db['qha'].insert_one(qha_result)
+        #if self['phonon']:
+        #    vasp_db.db['qha_phonon'].insert_one(qha_result)
+        #else:
+        vasp_db.db['qha'].insert_one(qha_result)
 
 
 @explicit_serialize

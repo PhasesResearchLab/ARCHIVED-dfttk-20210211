@@ -134,10 +134,10 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     deformations = _get_deformations(deformation_fraction, num_deformations)
     vol_spacing = max((deformations[-1] - deformations[0]) / (num_deformations - 1), volume_spacing_min)
 
-    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
+    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                     'override_default_vasp_params': override_default_vasp_params}
     robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'level': level, 'override_symmetry_tolerances': override_symmetry_tolerances}
-    vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
-                   'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+    vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
     t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
     eos_kwargs = {'deformations': deformations, 'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
 

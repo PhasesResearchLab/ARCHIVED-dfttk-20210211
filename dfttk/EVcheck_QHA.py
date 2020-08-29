@@ -248,9 +248,9 @@ class EVcheck_QHA(FiretaskBase):
             tag = str(uuid4())
             metadata['tag'] = tag
 
-        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
-        vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
-                       'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                         'override_default_vasp_params': override_default_vasp_params,}
+        vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
         t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
         eos_kwargs = {'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
 
@@ -329,8 +329,8 @@ class EVcheck_QHA(FiretaskBase):
                         calcs.append(static_fw)
 
                         if phonon:
-                            visphonon = ForceConstantsSet(struct)
-                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=visphonon,
+                            #visphonon = ForceConstantsSet(struct)
+                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=None,
                                                  name='structure_{:.3f}-phonon'.format(vol_add), prev_calc_loc=True,
                                                  parents=static_fw, **t_kwargs, **common_kwargs)
                             fws.append(phonon_fw)

@@ -141,7 +141,8 @@ class RobustOptimizeFW(Firework):
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
         t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
 
-        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
+        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                         'override_default_vasp_params': override_default_vasp_params}
         static_kwargs = {}
         relax_kwargs = {}
         t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, isif4=isif4, level=level, energy_with_isif=energy_with_isif,
@@ -329,7 +330,7 @@ class PhononFW(Firework):
         Other kwargs that are passed to Firework.__init__.
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
-                 name="phonon", vasp_input_set=None,
+                 name="phonon", vasp_input_set=None, override_default_vasp_params=None,
                  vasp_cmd="vasp", metadata=None, tag=None,
                  prev_calc_loc=True, db_file=None, parents=None,
                  **kwargs):
@@ -342,7 +343,8 @@ class PhononFW(Firework):
             warnings.warn('No ``tag`` was passed explicitly or in ``metadata`` to PhononFW. In order to find this Firework later, you should assign one. This was assigned: {}'.format(tag))
             metadata['tag'] = tag
 
-        vasp_input_set = vasp_input_set or ForceConstantsSet(structure)
+        override_default_vasp_params = override_default_vasp_params or {}
+        vasp_input_set = vasp_input_set or ForceConstantsSet(structure, **override_default_vasp_params)
 
         supercell_structure = deepcopy(structure)
         supercell_structure.make_supercell(supercell_matrix)
