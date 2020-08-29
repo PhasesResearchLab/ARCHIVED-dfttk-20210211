@@ -9,9 +9,10 @@ import numpy as np
 import copy
 import six
 import shlex
+from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen import Structure
 from pymatgen.io.vasp.inputs import Incar
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from custodian.custodian import Custodian
 from custodian.vasp.handlers import VaspErrorHandler, AliasingErrorHandler, \
     MeshSymmetryErrorHandler, UnconvergedErrorHandler, PotimErrorHandler, \
@@ -325,21 +326,12 @@ class QHAAnalysis(FiretaskBase):
             phonon_calculations = list(vasp_db.db['phonon'].find({'$and':[ {'metadata.tag': tag}, {'adopted': True} ]}))
             vol_vol = [calc['volume'] for calc in phonon_calculations]  # these are just used for sorting and will be thrown away
             vol_f_vib = [calc['F_vib'] for calc in phonon_calculations]
-            vol_s_vib = [calc['S_vib'] for calc in phonon_calculations]
-            vol_cv_vib = [calc['CV_vib'] for calc in phonon_calculations]
-            import sys
             # sort them order of the unit cell volumes
             vol_f_vib = sort_x_by_y(vol_f_vib, vol_vol)
-            vol_s_vib = sort_x_by_y(vol_s_vib, vol_vol)
-            vol_cv_vib = sort_x_by_y(vol_cv_vib, vol_vol)
             f_vib = np.vstack(vol_f_vib)
-            s_vib = np.vstack(vol_s_vib)
-            cv_vib = np.vstack(vol_cv_vib)
             qha = Quasiharmonic(energies, volumes, structure, dos_objects=dos_objs, F_vib=f_vib,
-                                S_vib=s_vib, C_vib=cv_vib,
                                 t_min=self['t_min'], t_max=self['t_max'], t_step=self['t_step'],
                                 poisson=poisson, bp2gru=bp2gru)
-            print("pass S_vib=s_vib", file=sys.stderr)
             qha_result['phonon'] = qha.get_summary_dict()
             qha_result['phonon']['temperatures'] = qha_result['phonon']['temperatures'].tolist()
 
@@ -390,10 +382,10 @@ class QHAAnalysis(FiretaskBase):
         with open('qha_summary.json', 'w') as fp:
             json.dump(qha_result, fp, indent=4)
 
-        if self['phonon']:
-            vasp_db.db['qha_phonon'].insert_one(qha_result)
-        else:
-            vasp_db.db['qha'].insert_one(qha_result)
+        #if self['phonon']:
+        #    vasp_db.db['qha_phonon'].insert_one(qha_result)
+        #else:
+        vasp_db.db['qha'].insert_one(qha_result)
 
 
 @explicit_serialize
@@ -968,7 +960,13 @@ class CheckRelaxScheme(FiretaskBase):
 
             vasp_db.db['relax_scheme'].insert_one(relax_scheme_data)
 
-            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
+            #Only if ISIF=4 passed, then run phonon
+            if 4 in relax_scheme:
+                relax_phonon = True
+            else:
+                relax_phonon = False
+
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure, 'relax_phonon': relax_phonon})
         else:
             raise ValueError('Please run RobustOptimizeFW firstly.')
 
@@ -1056,6 +1054,7 @@ class GetPhononDosFromDb(FiretaskBase):
 @explicit_serialize
 class CheckSymmetryToDb(FiretaskBase):
     '''
+    Store the CheckSymmetry result to MongoDB, the stored collection is named as 'relaxations'
     '''
     required_params = ["db_file", "tag"]
     optional_params = ['override_symmetry_tolerances', 'metadata']
@@ -1085,4 +1084,34 @@ class CheckSymmetryToDb(FiretaskBase):
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['relaxations'].insert_one(symm_check_data)
         return FWAction(update_spec={'symmetry_checks_passed': symm_check_data['symmetry_checks_passed']})
-   
+ 
+
+@explicit_serialize
+class BornChargeToDb(FiretaskBase):
+    '''
+    Store the born charge into the database, the stored collection is named as 'borncharge'
+    '''
+    required_params = ["db_file", "tag"]
+    optional_params = ['structure', 'store_input']
+    def run_task(self, fw_spec):
+        incar = Incar.from_file(filename='INCAR').as_dict()
+        lepsilon = incar.get('LEPSILON', False)
+        lrpa = incar.get('LRPA', False)
+        outcar = Outcar('OUTCAR')
+        if lepsilon and (not lrpa):
+            born_charge_matrix = outcar.born.tolist()
+            dielectric_tensor = outcar.dielectric_tensor
+        else:
+            raise ValueError('The incar is not correct for born charge calculation.')
+
+        structure = self.get('structure', Structure.from_file('POSCAR'))
+
+        born_result = {'metadata': {'tag': self.get('tag')},
+                       'born_charge': born_charge_matrix,
+                       'dielectric_tensor': dielectric_tensor,
+                       'volume': structure.volume,
+                       'inputs': {'incar': incar}}
+
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        vasp_db.db['borncharge'].insert_one(born_result)

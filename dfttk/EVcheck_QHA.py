@@ -217,26 +217,30 @@ class EVcheck_QHA(FiretaskBase):
         max_run = 10
         db_file = env_chk(self.get('db_file', DB_FILE), fw_spec)
         vasp_cmd = env_chk(self.get('vasp_cmd', VASP_CMD), fw_spec)
-        deformations = self.get('deformations') or []
-        run_num = self.get('run_num') or 0
-        eos_tolerance = self.get('eos_tolerance') or 0.005
-        threshold = self.get('threshold') or 14
-        del_limited = self.get('del_limited') or 0.3
-        vol_spacing = self.get('vol_spacing') or 0.03
-        t_min = self.get('t_min') or 5 
-        t_max = self.get('t_max') or 2000
-        t_step = self.get('t_step') or 5
-        phonon = self.get('phonon') or False
-        phonon_supercell_matrix = self.get('phonon_supercell_matrix') or None
-        verbose = self.get('verbose') or False
-        modify_incar_params = self.get('modify_incar_params') or {}
-        modify_kpoints_params = self.get('modify_kpoints_params') or {}
-        site_properties = self.get('site_properties') or None
+        deformations = self.get('deformations', [])
+        run_num = self.get('run_num', 0)
+        eos_tolerance = self.get('eos_tolerance', 0.005)
+        threshold = self.get('threshold', 14)
+        del_limited = self.get('del_limited', 0.3)
+        vol_spacing = self.get('vol_spacing', 0.03)
+        t_min = self.get('t_min', 5) 
+        t_max = self.get('t_max', 2000)
+        t_step = self.get('t_step', 5)
+        phonon = self.get('phonon', False)
+        phonon_supercell_matrix = self.get('phonon_supercell_matrix', None)
+        verbose = self.get('verbose', False)
+        modify_incar_params = self.get('modify_incar_params', {})
+        modify_kpoints_params = self.get('modify_kpoints_params', {})
+        site_properties = self.get('site_properties', None)
         override_default_vasp_params = self.get('override_default_vasp_params', {})
         override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
 
         relax_structure = self.get('structure') or fw_spec.get('structure', None)
         relax_scheme = self.get('relax_scheme') or fw_spec.get('relax_scheme', [2])
+        relax_phonon = fw_spec.get('relax_phonon', False)
+
+        #Only set phonon=True and ISIF=4 passed, then run phonon
+        phonon = phonon and relax_phonon
 
         metadata = self.get('metadata', {})
         tag = self.get('tag', metadata.get('tag', None))
@@ -244,9 +248,9 @@ class EVcheck_QHA(FiretaskBase):
             tag = str(uuid4())
             metadata['tag'] = tag
 
-        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag}
-        vasp_kwargs = {'override_default_vasp_params': override_default_vasp_params, 
-                       'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+        common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                         'override_default_vasp_params': override_default_vasp_params,}
+        vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
         t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
         eos_kwargs = {'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
 
@@ -325,8 +329,8 @@ class EVcheck_QHA(FiretaskBase):
                         calcs.append(static_fw)
 
                         if phonon:
-                            visphonon = ForceConstantsSet(struct)
-                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=visphonon,
+                            #visphonon = ForceConstantsSet(struct)
+                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=None,
                                                  name='structure_{:.3f}-phonon'.format(vol_add), prev_calc_loc=True,
                                                  parents=static_fw, **t_kwargs, **common_kwargs)
                             fws.append(phonon_fw)

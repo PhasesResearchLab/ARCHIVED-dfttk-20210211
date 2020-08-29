@@ -1,0 +1,7 @@
+{
+    "Cp (J/mol-atom/K)": "Cp(T) = +21.0474",
+    "G-H298.15 (J/mol-atom)": "G(T) = -6268.93 +120.676*T -21.0474*T*log(T)",
+    "H-H298.15 (J/mol-atom)": "H(T) = -6268.93 +21.0474*T",
+    "S (J/mol-atom/K)": "S(T) = -99.6282 +21.0474*log(T)",
+    "fitting uncertainty": 0.7
+}
