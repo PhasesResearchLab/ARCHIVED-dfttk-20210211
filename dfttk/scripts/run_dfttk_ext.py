@@ -17,6 +17,7 @@ import copy
 import os
 import sys
 import shutil
+from datetime import datetime
 from dfttk.analysis.ywplot import myjsonout
 
 def ext_thelec(args):
@@ -83,7 +84,9 @@ def ext_thelec(args):
         #record_cmd(thermofile, readme)
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
+        #print(args.plot, "eeeeeeeee", volumes)
         if args.plot!=None: 
+            #print("eeeeeeeee", volumes)
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
                 plotlabel=args.plot):
@@ -107,7 +110,6 @@ def ext_thelec(args):
         pythelec.thelecAPI(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, doscar)
 
 
-from datetime import datetime
 def record_cmd(readme):
     cmdline = copy.deepcopy(sys.argv)
     cmdline[0] = cmdline[0].split('/')[-1]
@@ -126,6 +128,10 @@ def record_cmd_print(fdir, readme):
         if dir == "": dir = "./"
         with open (dir+"/readme", "w") as fp:
             myjsonout(readme, fp, indent="", comma="")
+        with open ("runs.log", "a") as fp:
+            fp.write('phonon quality={}, LTC zigzag={}'.format(readme['phonon quality'], readme['LTC quality']))
+            if os.path.exists(dir+'/fitF'): fp.write(', for fitF is  on: {}\n'.format(dir))
+            else: fp.write(', for fitF is off: {}\n'.format(dir))
 
 
 def shared_aguments(pthelec):
@@ -298,7 +304,11 @@ def ext_thfind(args):
     tags = proc.run_console()
     #print("xxxxx=",tags,_Yphon)
     if args.get:
+        with open("runs.log", "a") as fp:
+            fp.write ('\nPostprocessing run at {}\n\n'.format(datetime.now()))
+        #print ("eeeeeeee 0", tags)
         for t in tags:
+            #print ("eeeeeeee 1")
             print("\nDownloading data by metadata tag:", t['tag'], "\n")
             args.metatag = t['tag'] 
             args.phasename = t['phasename'] 
@@ -323,11 +333,17 @@ def run_ext_EVfind(subparsers):
     pEVfind.add_argument("-any", "--containany", dest="containany", nargs="?", type=str, default=None,
                       help="find calculations contain any elements in the list\n"
                            "Default: None")
-    pEVfind.add_argument("-v", "--nV", dest="nV", nargs="?", type=int, default=6,
+    pEVfind.add_argument("-v", "--nV", dest="nV", nargs="?", type=int, default=5,
                       help="Return phonon calculations finished for number of volumes larger or equals to. \n"
-                           "Default: 6")
+                           "Default: 5")
     pEVfind.add_argument("-fg", "--findbandgap", dest="findbandgap", action='store_true', default=False,
                       help="report the entries with band gap. \n"
+                           "Default: False")
+    pEVfind.add_argument("-p", "--print", dest="print", action='store_true', default=False,
+                      help="report the entries with band gap. \n"
+                           "Default: False")
+    pEVfind.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
+                      help="plot the EV. \n"
                            "Default: False")
     pEVfind.set_defaults(func=ext_EVfind)
 

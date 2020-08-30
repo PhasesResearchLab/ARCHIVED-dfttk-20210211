@@ -12,14 +12,15 @@
 
     "ENCUT": 520.0,
     "LSORBIT": false,
+    "LTC quality": 0,
     "METADATA": {
         "tag": "2e7c4ba9-bae1-41f5-b791-66b56cb73661"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-28 19:08:09.990608",
+    "Postprocess time": "2020-08-30 15:55:44.925271",
     "bandgap": 0.02410000000000001,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
         "B2g 00000": [50.6, "silent_mode"],
         "E2g 00000": [24.2, "raman_active"]

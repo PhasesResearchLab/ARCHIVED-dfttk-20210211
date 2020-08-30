@@ -11,17 +11,19 @@
     },
 
     "ENCUT": 520.0,
+    "Gruneisen parameter": 1.179,
     "LSORBIT": false,
+    "LTC quality": 0,
     "METADATA": {
         "tag": "0f93b9f2-521e-481b-b982-3cef92c4f9f9"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-28 18:40:45.178123",
+    "Postprocess time": "2020-08-30 15:52:06.907882",
     "bandgap": 5.003699999999999,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
-        "T1u 00000": [159.9, "ir_active"]
+        "T1u 00000": [158.2, "ir_active"]
     },
 
     "kpoints": {

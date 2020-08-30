@@ -11,13 +11,15 @@
     },
 
     "ENCUT": 520.0,
+    "Gruneisen parameter": 2.056,
     "LSORBIT": false,
+    "LTC quality": 0,
     "METADATA": {
         "tag": "e9a06a09-17c6-4a4f-9ee5-c97ebb8a8349"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-28 18:03:43.088531",
+    "Postprocess time": "2020-08-30 14:18:01.326212",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {

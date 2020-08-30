@@ -470,6 +470,10 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         ax.plot(xx,yy,'-',linewidth=2,color='b', label=_label)
     elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
         ax.plot(x,y,'-',linewidth=2,color='b', label=_label)
+    elif thermodynamicproperty.lower()=="LTC analysis (1/K)".lower():
+        ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,4))
+        ax.plot(x,y,'-',linewidth=2,color='b', label="optimzed")
+        ax.plot(x,reflin,'--',linewidth=2,color='k', label="thermo")
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
       #print("eeeeeeee",thermodynamicproperty)
       if yzero != None:
@@ -1654,6 +1658,32 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
 
   if volumes is not None: 
     if T0 <= thermo[-1,0] :
+      T = thermo[:,0]
+      V = thermo[:,1]
+      A = thermo[:,5]
+      B = thermo[:,9]
+      C = thermo[:,7]
+      G = 3*A[T>T0]*B[T>T0]*physical_constants['Avogadro constant'][0]*1e-21*V[T>T0]/C[T>T0]
+      v = V[T>T0]
+      g = V298*G/v
+      g = sum(g)/len(g)
+      readme['Gruneisen parameter']= round(g,3)
+      Gmax = 1.2*max(G)
+      g = 3*A[T>0]*B[T>0]*physical_constants['Avogadro constant'][0]*1e-21*V[T>0]/C[T>0]
+      t = T[T>0]
+      Gmin = min(g)
+      #print("eeeeeeee", Gmin,Gmax)
+      if Gmax>0: Gmin = max(Gmin,-Gmax)
+      if Gmin>0: Gmin = 0
+      #print("eeeeeeee", Gmin,Gmax)
+      ix = 0
+      for i in range (len(g)-2,0,-1):
+          if g[i]>Gmax or g[i] <Gmin:
+              ix = i+1
+              break
+      g = g[ix:]
+      t = t[ix:]
+      thermoplot(folder,"Gruneisen coefficient",list(t),list(g), yzero=Gmin, expt=expt, xlim=xlim, label=plotlabel, single=vdos!=None)
       Plot298(folder, V298, volumes)
     else:
       print ("\nWarning! T0=", T0, "is higher than the T up limit:", thermo[-1,0], \
@@ -1693,6 +1723,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
 
   if volumes is not None:
     thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim, label=plotlabel)
+    thermoplot(folder,"LTC analysis (1/K)",list(thermo[:,0]),list(thermo[:,5]),reflin=list(thermo[:,22]), yzero=0.0, xlim=xlim, label=plotlabel)
   ncols = [6,8]
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel, single=vdos!=None)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel, single=vdos!=None)
@@ -1889,7 +1920,7 @@ def plotRaman(folder, fp, vdos):
       continue
     M.append(ff[1])
     I.append(ff[0])
-    F.append(ff[2])
+    F.append(float(ff[2])/0.0299792458)
     A.append(active)
     kk = '{} {:05}'.format(ff[1],int(ff[0]))
     #THz = round(float(ff[2]),3)
@@ -1898,8 +1929,8 @@ def plotRaman(folder, fp, vdos):
     cm = round(float(ff[2])/0.0299792458,1)
     if cm!=0: gamma_phonons[kk] = [cm, active]
   #print(I,M,F,A)  
-  x = vdos[:,0]*1.e-12
-  y = vdos[:,1]*1.e+12
+  x = vdos[:,0]*1.e-12/0.0299792458
+  y = vdos[:,1]*1.e+12*0.0299792458
   yy = np.zeros((len(y)), dtype=float)
   yph = np.zeros((len(F)), dtype=float)
   #print(x)
@@ -1972,7 +2003,8 @@ def plotRaman(folder, fp, vdos):
       if len(ss)>7:
         ns0[i] = '+'.join(ss[0:7])+'+...'
     thermoplot("./","Gamma point phonons",list(x),list(yy), 
-      reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[nx0,ny0,ns0], ylabel="Phonon DOS ($THz^{-1}$)")
+      reflin=list(y), xlabel="Phonon frequency($cm^{-1}$)", ytext=[nx0,ny0,ns0], ylabel="Phonon DOS ($states.cm$)")
+      #reflin=list(y), xlabel="Phonon frequency(THz)", ytext=[nx0,ny0,ns0], ylabel="Phonon DOS ($THz^{-1}$)")
     fn = "Gamma_point_phonons.png"
     os.rename(fn, folder+'/'+fn)
 

@@ -79,6 +79,10 @@ class RelaxSet(DictSet):
     def __init__(self, structure, volume_relax=False, isif=None, **kwargs):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
+        if magnetic_check(structure):
+            RelaxSet.CONFIG['INCAR'].update({'ISPIN': 2})
+        else:
+            RelaxSet.CONFIG['INCAR'].update({'ISPIN': 1})
         self.volume_relax = volume_relax
         self.isif = isif
         uis = kwargs.get('user_incar_settings', {})
@@ -151,7 +155,7 @@ class ForceConstantsSet(DictSet):
     CONFIG = _load_yaml_config("MPRelaxSet")
     # we never are comparing relaxations, only using them for optimizing structures.
     CONFIG['KPOINTS'].update({
-        'grid_density': 2000,
+        'grid_density': 4000,
     })
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].pop('ENCUT')  # use the ENCUT set by PREC
@@ -176,6 +180,10 @@ class ForceConstantsSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
+        if magnetic_check(structure):
+            ForceConstantsSet.CONFIG['INCAR'].update({'ISPIN': 2})
+        else:
+            ForceConstantsSet.CONFIG['INCAR'].update({'ISPIN': 1})
         super(ForceConstantsSet, self).__init__(
             structure, ForceConstantsSet.CONFIG, sort_structure=False, **kwargs)
 
@@ -213,6 +221,10 @@ class StaticSet(DictSet):
 
     def __init__(self, structure, isif=2, **kwargs):
         # pop the old kwargs, backwards compatibility from the complex StaticSet
+        if magnetic_check(structure):
+            StaticSet.CONFIG['INCAR'].update({'ISPIN': 2})
+        else:
+            StaticSet.CONFIG['INCAR'].update({'ISPIN': 1})
         self.isif = isif
         uis = kwargs.get('user_incar_settings', {})
         uis['ISIF'] = isif

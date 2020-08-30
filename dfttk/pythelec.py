@@ -982,10 +982,18 @@ class thelecMDB():
         if not os.path.exists(phdir):
             os.mkdir(phdir)
         for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
+            #print("eeeeeeeeeeee", self.Vlat)
+            #print("eeeeeeeeeeee", i['volume'])
+            if i['volume'] not in self.volumes: continue
             if vol_within(float(i['volume']), self.Vlat): continue
+            try:
+                structure = Structure.from_dict(i['unitcell'])
+            except:
+                print("\nit seems phonon for", i['volume'],"is not finished yet  and so it is discared\n")
+                continue
+
             self.Vlat.append(float(i['volume']))
 
-            structure = Structure.from_dict(i['unitcell'])
             poscar = structure.to(fmt="poscar")
             unitcell_l = str(poscar).split('\n')
             natom = len(structure.sites)
@@ -1139,8 +1147,18 @@ class thelecMDB():
                 sa = SpacegroupAnalyzer(structure)
 
                 pot = calc['input']['pseudo_potential']['functional'].upper()
+                if pot=="":
+                    pot = calc['orig_inputs']['potcar']['functional'].upper()
+                    if pot=='Perdew-Zunger81'.upper(): pot="LDA"
+
                 try:
-                    if calc['input']['incar']['LSORBIT']: potsoc = pot +"SOC"
+                    pot += "+"+calc['input']['GGA']
+                except:
+                    pass
+
+                if calc['input']['is_hubbard']: pot+= '+U'
+                try:
+                    if calc['input']['incar']['LSORBIT']: potsoc = pot +"+SOC"
                 except:
                     potsoc = pot
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())+potsoc
@@ -1299,10 +1317,15 @@ class thelecMDB():
             if self.volT[i] < 0: break
 
         nT = len(self.blat)
+        self.beta = np.zeros((nT), dtype=float)
+        if self.blat[nT-1] < 0: nT -= 1
+        if nT < 2: 
+            self.blat[0] = -1
+            return
+
         f2 = splrep(self.T[0:nT], self.volT[0:nT])
-        self.beta = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
-        if self.blat[-1] < 0: nT-=1
-        if nT < 2: self.blat[0] = -1
+        self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+        if self.T[0] == 0: self.beta[0] = 0
 
 
     def calc_TE_V_general(self,i,kind='cubic'):
@@ -1362,7 +1385,7 @@ class thelecMDB():
             if self.hasSCF:
                 if self.fitF: 
                     self.calc_TE_V_fitF()
-                    nT = len(self.blat)
+                    _beta = copy.deepcopy(self.beta)
                 else:
                     self.blat = np.zeros((len(self.T)), dtype=float)
                     self.beta = np.zeros((len(self.T)), dtype=float)
@@ -1376,11 +1399,34 @@ class thelecMDB():
                             nT = i
                             print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                             break
+                    _beta = copy.deepcopy(self.beta)
+                    #print("eeeeeee", _beta)
+
                     if self.eqmode==4 or self.eqmode==5:
+                        #if nT < len(self.T):
+                        #    if self.blat[nT] < 0: nT -= 1
                         f2 = splrep(self.T[0:nT], self.volT[0:nT])
                         self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+                        if self.T[0] == 0: self.beta[0] = 0
 
-            if self.T[0] == 0: self.beta[0] = 0
+                #optimized LTC
+                _beused = copy.deepcopy(_beta)
+                for ii in range (8):
+                    for i in range(1, len(self.T)-1):
+                        if self.blat[i] < 0 or self.blat[i+1] < 0: break
+                        if (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i]) < 0.0: 
+                            if (self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i]) > 0.0:
+                                _beused[i]=self.beta[i]
+                self.beta = _beused
+
+                LTCzigzag = 0
+                for i in range(1, len(self.T)-1):
+                    if self.blat[i] < 0 or self.blat[i+1] < 0: break
+                    if self.beta[i] < 1.e-6: continue #check irregularity of along LTC curve
+                    if (self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i]) < 0.0: LTCzigzag += 1
+                self.key_comments['LTC quality'] = LTCzigzag
+
+
             for i in range(len(self.T)):
                 if self.hasSCF:
                     blat, beta = self.blat[i], self.beta[i]
@@ -1414,14 +1460,14 @@ class thelecMDB():
 
                 if self.hasSCF:
                     debyeT = get_debye_T_from_phonon_Cv(self.T[i], clat, dlat, self.natoms)
-                    fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
+                    fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
                     format(self.T[i], self.volT[i]/self.natoms, self.GibT[i]/self.natoms, (slat+prp_T[1])*toJmol,
                     (self.GibT[i]+self.T[i]*(slat+prp_T[1]))*toJmol, 
                     beta/3., (cplat+prp_T[2])*toJmol, (clat+prp_T[2])*toJmol, 
                     cplat*toJmol, blat*toGPa, debyeT, dlat, 
                     prp_T[0]/self.natoms, prp_T[1]*toJmol, prp_T[2]*toJmol, 
                     prp_T[3], prp_T[4], L, prp_T[5]/self.natoms, prp_T[6]/self.natoms, 
-                    prp_T[7]/self.natoms, prp_T[8]*toJmol, prp_T[10]/self.natoms, 
+                    prp_T[7]/self.natoms, prp_T[8]*toJmol, _beta[i]/3.0, prp_T[10]/self.natoms, 
                     prp_T[11]/self.natoms, prp_T[12]/self.natoms, prp_T[13]/self.natoms))
                 else:
                     #(T[i], F_el_atom[i], S_el_atom[i], C_el_atom[i], M_el[i], seebeck_coefficients[i], L, 

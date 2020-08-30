@@ -57,6 +57,7 @@ class thfindMDB ():
         self.excludeall = []
         self.excludeany = []
         self.nV = args.nV
+        self.metatag = args.metatag
         self.get = args.get
         self.supercellN = args.supercellN
         self.t0 = args.t0
@@ -68,7 +69,9 @@ class thfindMDB ():
         if args.containany is not None: self.containany, tmp = formula2composition(args.containany)
         if args.excludeall is not None: self.excludeall, tmp = formula2composition(args.excludeall)
 
-    def skipby(self, phase):
+    def skipby(self, phase, metatag):
+        if self.metatag!=None:
+            if self.metatag!=metatag: return True
         els,tmp = formula2composition(phase.split('_')[0])
         if len (self.within) != 0:
             for e in els:
@@ -138,7 +141,7 @@ class thfindMDB ():
 
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
         for i,m in enumerate(hit):
-            if self.skipby(phases[i]): continue
+            if self.skipby(phases[i], m['tag']): continue
             static_calculations = (self.vasp_db).collection.\
                 find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
             nS = 0
@@ -148,8 +151,18 @@ class thfindMDB ():
                 vol = calc['output']['structure']['lattice']['volume']
                 if potsoc=="":
                     pot = calc['input']['pseudo_potential']['functional'].upper()
+                    if pot=="":
+                        pot = calc['orig_inputs']['potcar']['functional'].upper()
+                        if pot=='Perdew-Zunger81'.upper(): pot="LDA"
+
                     try:
-                        if calc['input']['incar']['LSORBIT']: potsoc = pot +"SOC"
+                        pot += "+"+calc['input']['GGA']
+                    except:
+                        pass
+
+                    if calc['input']['is_hubbard']: pot+= '+U'
+                    try:
+                        if calc['input']['incar']['LSORBIT']: potsoc = pot +"+SOC"
                     except:
                         potsoc = pot
                     pname = phases[i].split('#')
@@ -165,7 +178,8 @@ class thfindMDB ():
                 if count[i] < self.nV: continue
                 if self.supercellsize[i] < self.supercellN: continue
                 sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
-                if count[i]>=6: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
+                #if count[i]>=5: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
+                if count[i]>=self.nV: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
 
 
     def debye_find(self):
@@ -198,6 +212,6 @@ class thfindMDB ():
                 phases.append(phasename)
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
         for i,m in enumerate(hit):
-            if self.skipby(phases[i]): continue
+            if self.skipby(phases[i], m['tag']): continue
             print (m, ":", phases[i])
             self.tags.append({'tag':m['tag'],'phasename':phases[i]})

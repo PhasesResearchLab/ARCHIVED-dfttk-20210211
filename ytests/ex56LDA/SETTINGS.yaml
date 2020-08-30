@@ -1,0 +1,5 @@
+override_default_vasp_params : {'user_potcar_functional': 'LDA'}
+phonon : True
+t_min : 1
+t_max : 2001
+phonon_supercell_matrix : [[3, 3, 1], [3, 0, -1], [0, 3, -1]]

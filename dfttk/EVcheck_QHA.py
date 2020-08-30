@@ -240,7 +240,7 @@ class EVcheck_QHA(FiretaskBase):
         relax_phonon = fw_spec.get('relax_phonon', False)
 
         #Only set phonon=True and ISIF=4 passed, then run phonon
-        phonon = phonon and relax_phonon
+        #phonon = phonon and relax_phonon
 
         metadata = self.get('metadata', {})
         tag = self.get('tag', metadata.get('tag', None))

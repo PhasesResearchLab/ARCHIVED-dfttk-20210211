@@ -11,13 +11,15 @@
     },
 
     "ENCUT": 520.0,
+    "Gruneisen parameter": 1.702,
     "LSORBIT": false,
+    "LTC quality": 0,
     "METADATA": {
         "tag": "d1dfb74e-a37f-46c4-98a5-6e7d04c42cad"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-28 19:02:18.292807",
+    "Postprocess time": "2020-08-30 14:59:53.340900",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
     "kpoints": {
