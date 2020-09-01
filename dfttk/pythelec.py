@@ -794,6 +794,18 @@ def BMDifB(vol, F, BMfunc, N=7):
         return -1.0, -1.0, 0.,0.
 
     v = brentq(BMfitP, xx[idx-1], xx[idx+1], args=(vol, F, BMfunc), maxiter=10000)
+
+    """
+    from scipy.optimize import minimize
+    args, pcov = curve_fit(BMfunc, vol, F)
+    print("eeeeeee",BMfunc(v,*args))
+    print("eeeeeee",F)
+    print("eeeeeee",BMfunc(vol,*args))
+    print (args)
+    res = minimize(BMfunc, v, *args, method='L-BFGS-B')
+    print(v, res.x, v-res.x)
+    """
+
     ff = BMfitF(v, vol, F, BMfunc)
     bb, pp = BMfitB(v, vol, F, BMfunc)
     return bb, v, ff, pp
@@ -1164,7 +1176,9 @@ class thelecMDB():
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())+potsoc
 
                 key_comments ={}
-                key_comments['pseudo_potential'] = calc['input']['pseudo_potential']
+                tmp = calc['input']['pseudo_potential']
+                tmp['functional'] = potsoc
+                key_comments['pseudo_potential'] = tmp
                 key_comments['ENCUT'] = calc['input']['incar']['ENCUT']
                 key_comments['NEDOS'] = calc['input']['incar']['NEDOS']
                 try:
@@ -1364,6 +1378,15 @@ class thelecMDB():
         #return -1.0, 0.0
 
     
+    def dot(self,i,b):
+        dx0 = self.T[i] - self.T[i-1]
+        dx1 = self.T[i+1] - self.T[i]
+        dy0 = b[i] - b[i-1]
+        dy1 = b[i+1] - b[i]
+        s0 = math.sqrt(dx0*dx0+dy0*dy0)
+        s1 = math.sqrt(dx1*dx1+dy1*dy1)
+        return (dx0*dx1+dy0*dy1)/s0/s1
+
     def calc_thermodynamics(self):
         Faraday_constant = physical_constants["Faraday constant"][0]
         electron_volt = physical_constants["electron volt"][0]
@@ -1405,18 +1428,37 @@ class thelecMDB():
                     if self.eqmode==4 or self.eqmode==5:
                         #if nT < len(self.T):
                         #    if self.blat[nT] < 0: nT -= 1
+                        #f2 = splrep(self.T[0:nT], self.volT[0:nT], s=3, k=5)
                         f2 = splrep(self.T[0:nT], self.volT[0:nT])
-                        self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+                        if 1==0:
+                            self.beta[0:nT] = BSpline(self.T[0:nT], f2, der=1)/self.volT[0:nT]
+                        else:
+                            self.beta[0:nT] = splev(self.T[0:nT], f2, der=1)/self.volT[0:nT]
                         if self.T[0] == 0: self.beta[0] = 0
 
                 #optimized LTC
                 _beused = copy.deepcopy(_beta)
-                for ii in range (8):
+                _b2 = copy.deepcopy(self.beta)
+                _bsplev = copy.deepcopy(self.beta)
+                for ii in range (32):
                     for i in range(1, len(self.T)-1):
                         if self.blat[i] < 0 or self.blat[i+1] < 0: break
+                        t1 = self.dot(i, _beused)
+                        t2 = self.dot(i, _b2)
+                        #t1 = (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i])
+                        #t2 = (_b2[i]-_b2[i-1])*(_b2[i+1]-_b2[i])
+                        if abs(t1) >=abs(t2):
+                            tused = _beused[i]
+                        else:
+                            tused = _b2[i]
+                        _beused[i]=tused
+                        _b2[i]=tused
+                        """
                         if (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i]) < 0.0: 
-                            if (self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i]) > 0.0:
-                                _beused[i]=self.beta[i]
+                            if (_b2[i]-_b2[i-1])*(_b2[i+1]-_b2[i]) > 0.0: _beused[i]=_b2[i]
+                        if (_b2[i]-_b2[i-1])*(_b2[i+1]-_b2[i]) < 0.0: 
+                            if (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i]) > 0.0: _b2[i]=_beused[i]
+                        """
                 self.beta = _beused
 
                 LTCzigzag = 0
@@ -1467,7 +1509,7 @@ class thelecMDB():
                     cplat*toJmol, blat*toGPa, debyeT, dlat, 
                     prp_T[0]/self.natoms, prp_T[1]*toJmol, prp_T[2]*toJmol, 
                     prp_T[3], prp_T[4], L, prp_T[5]/self.natoms, prp_T[6]/self.natoms, 
-                    prp_T[7]/self.natoms, prp_T[8]*toJmol, _beta[i]/3.0, prp_T[10]/self.natoms, 
+                    prp_T[7]/self.natoms, prp_T[8]*toJmol, _bsplev[i]/3.0, prp_T[10]/self.natoms, 
                     prp_T[11]/self.natoms, prp_T[12]/self.natoms, prp_T[13]/self.natoms))
                 else:
                     #(T[i], F_el_atom[i], S_el_atom[i], C_el_atom[i], M_el[i], seebeck_coefficients[i], L, 

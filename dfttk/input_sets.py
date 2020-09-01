@@ -31,7 +31,7 @@ POTCAR_UPDATES = {
         'V': 'V_sv',  # 13 electrons, default V_pv (11 electrons)
 }
 
-def magnetic_check(structure):
+def magnetic_check(structure, SetCfg=None):
     '''
     If the structure contain any magnetic elements, return True, otherwise return False
     magnetic elements:
@@ -42,7 +42,13 @@ def magnetic_check(structure):
     magnetic_elements.extend(list(range(44, 47)))
     magnetic_elements.extend(list(range(58, 72)))
     magnetic_elements.extend(list(range(91, 119)))
-    return any(ele.Z in magnetic_elements for ele in structure.species)
+    ismag = any(ele.Z in magnetic_elements for ele in structure.species)
+    if SetCfg!=None:
+        if ismag:
+            SetCfg['INCAR'].update({'ISPIN': 2})
+        else:
+            SetCfg['INCAR'].update({'ISPIN': 1})
+
 
 class RelaxSet(DictSet):
     """
@@ -61,6 +67,7 @@ class RelaxSet(DictSet):
     CONFIG['KPOINTS'].pop('reciprocal_density') # to be explicit
     CONFIG['INCAR'].update({
         'EDIFF_PER_ATOM': 1e-8,
+        'EDIFFG': -1e-3,
         'ISMEAR': 1,
         'SIGMA': 0.2,
         'LREAL': False,
@@ -79,10 +86,6 @@ class RelaxSet(DictSet):
     def __init__(self, structure, volume_relax=False, isif=None, **kwargs):
         """If volume relax is True, will do volume only, ISIF 7"""
         self.kwargs = kwargs
-        if magnetic_check(structure):
-            RelaxSet.CONFIG['INCAR'].update({'ISPIN': 2})
-        else:
-            RelaxSet.CONFIG['INCAR'].update({'ISPIN': 1})
         self.volume_relax = volume_relax
         self.isif = isif
         uis = kwargs.get('user_incar_settings', {})
@@ -94,6 +97,7 @@ class RelaxSet(DictSet):
             uis['ISIF'] = self.isif
         if kwargs.get('user_incar_settings', None):
             kwargs.pop('user_incar_settings')
+        magnetic_check(structure, self.CONFIG)
         super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 
@@ -137,6 +141,7 @@ class PreStaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
+        magnetic_check(structure, self.CONFIG)
         super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
@@ -171,6 +176,7 @@ class ForceConstantsSet(DictSet):
         'NSW': 1,  # backwards compatibility setting
         'PREC': 'Accurate',
         'ALGO': 'NORMAL',
+        'LREAL': 'Auto',
         'SYMPREC': 1e-4,  # some supercells seem to have issues with primcel VASP algorithm
         "ICHARG": 2,
     })
@@ -180,10 +186,7 @@ class ForceConstantsSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
-        if magnetic_check(structure):
-            ForceConstantsSet.CONFIG['INCAR'].update({'ISPIN': 2})
-        else:
-            ForceConstantsSet.CONFIG['INCAR'].update({'ISPIN': 1})
+        magnetic_check(structure, self.CONFIG)
         super(ForceConstantsSet, self).__init__(
             structure, ForceConstantsSet.CONFIG, sort_structure=False, **kwargs)
 
@@ -221,10 +224,6 @@ class StaticSet(DictSet):
 
     def __init__(self, structure, isif=2, **kwargs):
         # pop the old kwargs, backwards compatibility from the complex StaticSet
-        if magnetic_check(structure):
-            StaticSet.CONFIG['INCAR'].update({'ISPIN': 2})
-        else:
-            StaticSet.CONFIG['INCAR'].update({'ISPIN': 1})
         self.isif = isif
         uis = kwargs.get('user_incar_settings', {})
         uis['ISIF'] = isif
@@ -235,6 +234,7 @@ class StaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
+        magnetic_check(structure, self.CONFIG)
         super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 
@@ -315,6 +315,7 @@ class ForcesSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
+        magnetic_check(structure, self.CONFIG)
         super(ForcesSet, self).__init__(structure, ForcesSet.CONFIG, sort_structure=False, **kwargs)
 
 
@@ -335,7 +336,7 @@ class BornChargeSet(DictSet):
         "LRPA": False,
         'EDIFF_PER_ATOM': 1e-6,
         'ENCUT': 520,  # MP compatibility
-        'ISMEAR': 0,
+        'ISMEAR': -5,
         "NSW": 0,
         "IBRION": -1,
         'LREAL': False,
@@ -362,14 +363,10 @@ class BornChargeSet(DictSet):
                 pass
         self.kwargs = kwargs
 
-        if magnetic_check(structure):
-            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 2})
-        else:
-            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 1})
-
         if kwargs.get('user_incar_settings', None):
             kwargs.pop('user_incar_settings')
 
+        magnetic_check(structure, self.CONFIG)
         super(BornChargeSet, self).__init__(structure, BornChargeSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
 
 

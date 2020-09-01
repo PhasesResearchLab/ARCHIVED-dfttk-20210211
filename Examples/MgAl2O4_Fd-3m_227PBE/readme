@@ -13,15 +13,15 @@
     "ENCUT": 520.0,
     "Gruneisen parameter": 1.256,
     "LSORBIT": false,
-    "LTC quality": 0,
+    "LTC quality": 2,
     "METADATA": {
         "tag": "6b2d6676-8b52-454b-a656-ebd7dead68bc"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:09:41.401902",
+    "Postprocess time": "2020-08-31 17:42:50.695788",
     "bandgap": 5.2109,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -all MgAlO -renew -get -noel -eq 4",
     "gamma phonons (cm^{-1})": {
         "A1g 00000": [737.3, "raman_active"],
         "A2u 00000": [723.8, "silent_mode"],
@@ -30,10 +30,10 @@
         "Eu 00000": [584.7, "silent_mode"],
         "Eu 00001": [364.9, "silent_mode"],
         "T1g 00000": [342.4, "silent_mode"],
-        "T1u 00000": [630.6, "ir_active"],
-        "T1u 00001": [544.9, "ir_active"],
-        "T1u 00002": [445.7, "ir_active"],
-        "T1u 00003": [296.9, "ir_active"],
+        "T1u 00000": ["630.6(TO)+808.3(LO)", "ir_active"],
+        "T1u 00001": ["544.9(TO)+584.6(LO)", "ir_active"],
+        "T1u 00002": ["445.7(TO)+537.1(LO)", "ir_active"],
+        "T1u 00003": ["296.9(TO)+299.0(LO)", "ir_active"],
         "T2g 00000": [638.1, "raman_active"],
         "T2g 00001": [533.6, "raman_active"],
         "T2g 00002": [299.9, "raman_active"],

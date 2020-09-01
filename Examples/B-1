@@ -13,4 +13,5 @@ cd /storage/work/y/yuw3/dfttk/Examples
 #export LC_ALL='en_US.utf8'
 setenv LC_ALL en_US.utf8
 dfttk thfind -py -td -50 -plot "find_or_DFT" -eq 4 -renew -get -ss 30
+#dfttk thfind -py -td -50 -plot "find_or_DFT" -eq 4 -smooth -el 1 -renew -get -ss 30
 dfttk thfind -py -td -50 -plot "find_or_DFT" -fitF -renew -get -ss 30

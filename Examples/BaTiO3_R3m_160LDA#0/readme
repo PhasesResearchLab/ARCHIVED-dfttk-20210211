@@ -11,7 +11,7 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 0.907,
+    "Gruneisen parameter": 0.931,
     "LSORBIT": false,
     "LTC quality": 0,
     "METADATA": {
@@ -19,17 +19,17 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:29:49.449903",
+    "Postprocess time": "2020-08-31 15:34:53.539291",
     "bandgap": 1.8443000000000005,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
-        "A1 00000": [523.0, "ir_active"],
-        "A1 00001": [237.8, "ir_active"],
-        "A1 00002": [175.9, "ir_active"],
+        "A1 00000": [523.1, "ir_active"],
+        "A1 00001": [238.1, "ir_active"],
+        "A1 00002": [175.8, "ir_active"],
         "A2 00000": [299.9, "silent_mode"],
         "E 00000": [490.9, "ir_active"],
         "E 00001": [316.2, "ir_active"],
-        "E 00002": [186.2, "ir_active"],
+        "E 00002": [186.4, "ir_active"],
         "E 00003": [171.4, "ir_active"]
     },
 

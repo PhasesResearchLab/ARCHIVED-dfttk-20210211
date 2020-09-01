@@ -472,8 +472,8 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         ax.plot(x,y,'-',linewidth=2,color='b', label=_label)
     elif thermodynamicproperty.lower()=="LTC analysis (1/K)".lower():
         ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,4))
-        ax.plot(x,y,'-',linewidth=2,color='b', label="optimzed")
-        ax.plot(x,reflin,'--',linewidth=2,color='k', label="thermo")
+        ax.plot(x,y,'-',linewidth=2,color='b', label="dfttk")
+        ax.plot(x,reflin,'--',linewidth=2,color='k', label="splev")
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
       #print("eeeeeeee",thermodynamicproperty)
       if yzero != None:
@@ -1409,6 +1409,7 @@ def Phonon298(dir0, pvdos=False):
   os.chdir( phdir298 )
 
   cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
@@ -1420,6 +1421,7 @@ def Phonon298(dir0, pvdos=False):
 
   if pvdos:
     cmd = "Yphon -tranI 2 -eps -pvdos -nqwave "+ str(nqwave/4)+ " <superfij.out"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
     print(cmd)
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
@@ -1475,6 +1477,7 @@ def Phonon298(dir0, pvdos=False):
       cmd = "Yphon -Gfile symmetry.mode -tranI 2 -eps -pdis "+dfile0+ " <superfij.out >symmetry.out"
     else:
       cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out >symmetry.out"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
 
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
@@ -1903,8 +1906,15 @@ def plotRaman(folder, fp, vdos):
     if line.startswith("Setting workspace & pre-optimizing : Section time "):
       lines = lines[i+2:]
       break
+  for i,line in enumerate(lines):
+    ff = [f for f in line.strip().split(" ") if f!=""]
+    if len(ff) < 3: continue
+    if ff[2]=="Modes":
+      lines = lines[i:]
+      break
   
   I = []
+  F_lo = []
   M = []
   F = []
   A = []
@@ -1912,12 +1922,20 @@ def plotRaman(folder, fp, vdos):
   global gamma_phonons
   gamma_phonons = {}
   for i,line in enumerate(lines):
-    if line.startswith("Handling symmetry : Section time "): break
+    #if line.startswith("Handling symmetry : Section time "): break
+    #if line.startswith("Handling symmetry : Section time "): break
     ff = [f for f in line.strip().split(" ") if f!=""]
     if len(ff) < 3: continue
     if ff[2]=="Modes":
       active = ff[4]
       continue
+
+    if line.startswith(" No irrep        THz"): continue
+    try:
+      int(ff[0])
+    except:
+      break
+
     M.append(ff[1])
     I.append(ff[0])
     F.append(float(ff[2])/0.0299792458)
@@ -1927,12 +1945,18 @@ def plotRaman(folder, fp, vdos):
     #THz = str(round(float(ff[2]),3))+" THz",
     #cm = str(round(float(ff[2])/0.0299792458,1))+" cm-1"
     cm = round(float(ff[2])/0.0299792458,1)
+    try:
+      F_lo.append(float(ff[3])/0.0299792458)
+      if cm!=0 and active=="ir_active":
+        cm = str(round(float(ff[2])/0.0299792458,1))+"(TO)+"+str(round(float(ff[3])/0.0299792458,1))+"(LO)"
+    except:
+      pass
     if cm!=0: gamma_phonons[kk] = [cm, active]
   #print(I,M,F,A)  
   x = vdos[:,0]*1.e-12/0.0299792458
   y = vdos[:,1]*1.e+12*0.0299792458
   yy = np.zeros((len(y)), dtype=float)
-  yph = np.zeros((len(F)), dtype=float)
+  #print("eeeeeeee Raman 0",gamma_phonons)
   #print(x)
   #print(y)
   w = max(x)*0.001
@@ -1946,27 +1970,54 @@ def plotRaman(folder, fp, vdos):
     if M[i].lower().startswith("e"): hh = h*2
     elif M[i].lower().startswith("t"): hh = h*3
     else: hh = h
-    yph[i] = hh
     if float(f)<1.e-3: continue
     #print("eeeeee", f,w,hh)
-    addvdos(x,yy,float(f),w,hh)
-    x0.append(float(f)-18*w)
-    y0.append(hh)
-    s0.append(M[i])
+    #print("eeeeeeee Raman 1")
+    if len(F_lo)!=0:
+      #print("eeeeeeee Raman 2")
+      if A[i]=="ir_active":
+        if M[i].lower().startswith("e"): hh = h
+        elif M[i].lower().startswith("t"): hh = h*2
+        else: hh = h/2
+        addvdos(x,yy,float(f),w,hh)
+        x0.append(float(f)-18*w)
+        y0.append(hh)
+        s0.append(M[i]+"(TO)")
+        if hh==h/2: h = hh
+        addvdos(x,yy,float(F_lo[i]),w,h)
+        x0.append(float(F_lo[i])-18*w)
+        y0.append(h)
+        s0.append(M[i]+"(LO)")
+      else:
+        addvdos(x,yy,float(f),w,hh)
+        x0.append(float(f)-18*w)
+        y0.append(hh)
+        s0.append(M[i])
+    else:
+      addvdos(x,yy,float(f),w,hh)
+      x0.append(float(f)-18*w)
+      y0.append(hh)
+      s0.append(M[i])
   ix = sorted(range(len(x0)), key=lambda k: x0[k])
-  #print(ix)
+  #print("eeeeeeeee",ix)
   _M = []
   _x0 = []
   _y0 = []
   _s0 = []
   for i in range(len(ix)):
-    _M.append(M[ix[i]])
+    _M.append(s0[ix[i]])
     _x0.append(x0[ix[i]])
     _y0.append(y0[ix[i]])
     ss = s0[ix[i]]
-    if len(ss)>1:
+    if len(ss)==1:
+      ss = '$'+ss+'$'
+    elif len(ss)>0:
       if ss[1].isdigit() or ss[1].isalpha():
-        ss = '$'+ss[0]+'_{'+ss[1:len(ss)]+'}$'
+        aa = ss[1:len(ss)].split('(')
+        if len(aa)>1:
+          ss = '$'+ss[0]+'_{'+aa[0]+'}^{('+aa[1]+'}$'
+        else:
+          ss = '$'+ss[0]+'_{'+aa[0]+'}$'
       else: ss = '$'+ss+'$'
     _s0.append(ss)
   M = _M
@@ -2040,11 +2091,11 @@ def Plot298(folder, V298, volumes):
 
   file1 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1]))
   if not os.path.exists(file1):
-    print ("\nWARNING! I cannot find file :", file1, " so that I will do phonon298.15 for you!\n")
+    print ("\nWARNING! I cannot find file :", file1, " so that I will not do phonon298.15 for you!\n")
     return
   file2 = ydir+'/V{:010.6f}/superfij.out'.format(float(natom*volumes[i1+1]))
   if not os.path.exists(file2):
-    print ("\nWARNING! I cannot find file :", file2, " so that I will do phonon298.15 for you!\n")
+    print ("\nWARNING! I cannot find file :", file2, " so that I will not do phonon298.15 for you!\n")
     return
 
   phdir298 = ydir+'/Phonon298.15'
@@ -2059,6 +2110,7 @@ def Plot298(folder, V298, volumes):
   os.chdir( phdir298 )
 
   cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   #cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -2083,6 +2135,7 @@ def Plot298(folder, V298, volumes):
 
   if os.path.exists("vdos.out") :
     cmd = "Yphon -tranI 2 -eps -nqwave 100 -Gfile symmetry.mode <superfij.out >Raman.mode"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
     os.rename("vdos.out", 'vdos.sav')
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
@@ -2157,6 +2210,7 @@ def PlotVol(folder, vdos):
   cwd = os.getcwd()
   os.chdir( vdosdir )
   cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
+  if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
@@ -2179,6 +2233,7 @@ def PlotVol(folder, vdos):
   if os.path.exists("vdos.out") :
     os.rename("vdos.out", 'vdos.sav')
     cmd = "Yphon -tranI 2 -eps -nqwave 100 -Gfile symmetry.mode <superfij.out >Raman.mode"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
     os.rename("vdos.sav", 'vdos.out')
@@ -2211,6 +2266,7 @@ def PlotVol(folder, vdos):
     dfile0 = dfile.split('/')[-1]
     copyfile(dfile,dfile0)
     cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out"
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
     cmd = "gnuplot vdis.plt; convert -flatten -rotate 90 -density 120x120 vdis.eps vdis.png"

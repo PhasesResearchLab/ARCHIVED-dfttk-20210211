@@ -19,7 +19,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:46:07.590324",
+    "Postprocess time": "2020-08-31 23:08:22.871000",
     "bandgap": 4.0649,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
@@ -65,7 +65,7 @@
 
     "phonon quality": "0.998208",
     "pseudo_potential": {
-        "functional": "pbe",
+        "functional": "PBE",
         "labels": ["Hf_pv", "O"],
         "pot_type": "paw"
     }

@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 14:15:22.460464",
+    "Postprocess time": "2020-09-01 09:10:21.460168",
     "bandgap": 1.9318999999999997,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -noel",
     "gamma phonons (cm^{-1})": {
         "A1 00000": [758.9, "ir_active"],
         "A1 00001": [407.7, "ir_active"],
@@ -40,7 +40,7 @@
 
     "phonon quality": "0.994601",
     "pseudo_potential": {
-        "functional": "pbe",
+        "functional": "PBE",
         "labels": ["Ti_sv", "Pb_d", "O"],
         "pot_type": "paw"
     }

@@ -13,17 +13,17 @@
     "ENCUT": 520.0,
     "Gruneisen parameter": 1.63,
     "LSORBIT": false,
-    "LTC quality": 2,
+    "LTC quality": 1,
     "METADATA": {
         "tag": "fd948f9f-a0ae-49c6-a1f6-ff8f3734dc7a"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:16:29.121899",
+    "Postprocess time": "2020-08-31 17:12:15.503003",
     "bandgap": 5.0106,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -metatag fd948f9f-a0ae-49c6-a1f6-ff8f3734dc7a -py -td -50 -plot find_or_DFT -renew -get -noel -eq 4 -smooth -el 1",
     "gamma phonons (cm^{-1})": {
-        "T1u 00000": [375.4, "ir_active"]
+        "T1u 00000": ["375.4(TO)+697.2(LO)", "ir_active"]
     },
 
     "kpoints": {

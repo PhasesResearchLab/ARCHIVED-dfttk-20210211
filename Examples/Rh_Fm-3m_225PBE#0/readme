@@ -19,7 +19,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:58:14.798909",
+    "Postprocess time": "2020-08-31 23:32:38.831546",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
     "kpoints": {
@@ -29,7 +29,7 @@
 
     "phonon quality": "     1.0",
     "pseudo_potential": {
-        "functional": "pbe",
+        "functional": "PBE",
         "labels": ["Rh_pv"],
         "pot_type": "paw"
     }

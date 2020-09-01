@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-30 15:19:52.143779",
+    "Postprocess time": "2020-08-31 15:28:21.267738",
     "bandgap": 3.9697999999999998,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30",
     "gamma phonons (cm^{-1})": {
         "Ag 00000": [669.3, "raman_active"],
         "Ag 00001": [573.9, "raman_active"],
@@ -41,7 +41,7 @@
         "Au 00006": [185.1, "ir_active"],
         "Au 00007": [135.2, "ir_active"],
         "Bg 00000": [782.3, "raman_active"],
-        "Bg 00001": [634.2, "raman_active"],
+        "Bg 00001": [634.1, "raman_active"],
         "Bg 00002": [555.2, "raman_active"],
         "Bg 00003": [518.3, "raman_active"],
         "Bg 00004": [411.1, "raman_active"],
@@ -49,13 +49,13 @@
         "Bg 00006": [245.6, "raman_active"],
         "Bg 00007": [169.0, "raman_active"],
         "Bg 00008": [133.5, "raman_active"],
-        "Bu 00000": [747.3, "ir_active"],
+        "Bu 00000": [747.2, "ir_active"],
         "Bu 00001": [517.1, "ir_active"],
-        "Bu 00002": [401.4, "ir_active"],
+        "Bu 00002": [401.3, "ir_active"],
         "Bu 00003": [343.4, "ir_active"],
         "Bu 00004": [322.9, "ir_active"],
         "Bu 00005": [254.2, "ir_active"],
-        "Bu 00006": [237.0, "ir_active"]
+        "Bu 00006": [236.9, "ir_active"]
     },
 
     "kpoints": {
