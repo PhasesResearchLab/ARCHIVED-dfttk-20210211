@@ -442,7 +442,6 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
             ax.set_xlim([0,xlim])
         except:
             ax.set_xlim(xlim)
-        #print("eeeeeee", xlim, thermodynamicproperty)
     else: ax.set_xlim([0,np.array(list(map(float,x))).max()])
 
     fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
@@ -475,7 +474,6 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         ax.plot(x,y,'-',linewidth=2,color='b', label="dfttk")
         ax.plot(x,reflin,'--',linewidth=2,color='k', label="splev")
     elif thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
-      #print("eeeeeeee",thermodynamicproperty)
       if yzero != None:
         y0 = np.nanmin(np.array(list(map(float,y))))
         y1 = np.nanmax(np.array(list(map(float,y))))
@@ -603,6 +601,11 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
                 ax.plot(x,y2,'-.',linewidth=2,color='r', label=_label+",$C_{el}$")
                 plot_expt(expt, 'electronic heat capacity', ax, CoT=CoT)
 
+    if thermodynamicproperty=="LTC (1/K)":
+        plot_expt(expt, 'linear thermal expansion', ax)
+    elif thermodynamicproperty=="Bulk modulus (GPa)":
+        plot_expt(expt, 'bulk modulus', ax)
+
     if CoT and xlim!=None:
         plt.xlabel("$T^2 (K^2)$")
     else:
@@ -619,7 +622,6 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
     elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
         fname = thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(str(-xlim[0]))+"eV.png"
     figures.update({thermodynamicproperty:folder.split('/')[-1]+'/'+fname})
-    #print("eeeeee", fname)
     fig.savefig(fname,bbox_inches='tight')
     plt.close(fig)
     os.chdir( cwd )
@@ -627,37 +629,38 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
 def plot_expt (expt, prp, ax, CoT=False, xlim=None):
     global mindex
     if expt!=None:
-        for val1 in expt:
-            for k2 in val1:
-                if k2=='property':
-                    if val1[k2]==prp:
-                        try:
-                            xval = np.array(val1['T'])
-                            yval = np.array(val1['val'])
-                        except:
-                            try:
-                                lines = np.array(val1['data'])
-                                xval = lines[0:-2:2]
-                                yval = lines[1:-1:2]
-                            except:
-                                continue
-                        Author = val1['Author']
-                        Unit = val1['Unit']
-                        natom = val1['natom']
-                        yval /= natom
-                        if Unit=='mJ/K' : yval /= 1000.
-                        if CoT:
-                            if xlim!=None:
-                                xx = xval*xval
-                                yy = yval/xval
-                                yy = yy[xx<xlim]
-                                xx = xx[xx<xlim]
-                                ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
-                            else:
-                                ax.plot(xval,yval/xval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
-                        else:
-                            ax.plot(xval,yval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
-                        mindex += 1
+        for rec in expt:
+            if prp!=rec['property']: continue
+            try:
+                xval = np.array(rec['T'])
+                yval = np.array(rec['val'])
+            except:
+                try:
+                    lines = np.array(rec['data'])
+                    xval = lines[0:-2:2]
+                    yval = lines[1:-1:2]
+                except:
+                    continue
+            Author = rec['Author']
+            Unit = rec['Unit']
+            natom = rec['natom']
+            yval /= natom
+
+            if Unit=='mJ/K' : yval /= 1000.
+            elif Unit=='cal/K' : yval *= 4.184
+
+            if CoT:
+                if xlim!=None:
+                    xx = xval*xval
+                    yy = yval/xval
+                    yy = yy[xx<xlim]
+                    xx = xx[xx<xlim]
+                    ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+                else:
+                    ax.plot(xval,yval/xval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+            else:
+                ax.plot(xval,yval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+            mindex += 1
 
 def myjsonout(data,fp,indent="",comma=""):
 	#print (data)
@@ -1593,11 +1596,10 @@ def getdoslim(e, dos, xlim):
         if energy >xlim[0] and energy <xlim[1]:
             xx.append(energy)
             yy.append(dos[i])
-    #print("eeeeeee", xx, yy)
     return xx, yy
 
 def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitCp=True,
-    poscar=None, vdos=None, doscar=None, natoms=1, plotlabel=None):
+    formula=None, poscar=None, vdos=None, doscar=None, natoms=1, plotlabel=None):
   #print("eeeeeee", expt)
   if plotlabel!=None:
       if plotlabel.lower().startswith("find_or_"):
@@ -1609,8 +1611,9 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
       plotlabel = 'DFT'
   
   if expt!=None:
-      with open(expt, "r") as fp:
-          expt = json.load (fp)
+      expt =get_expt(expt, formula)
+      #print("eeeeeeee", expt)
+
   global fitCp
   fitCp = _fitCp
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
@@ -1725,7 +1728,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   thermoplot(folder,"Entropy (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,3]),yzero=0.0, xlim=xlim)
 
   if volumes is not None:
-    thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, xlim=xlim, label=plotlabel)
+    thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, expt=expt, xlim=xlim, label=plotlabel)
     thermoplot(folder,"LTC analysis (1/K)",list(thermo[:,0]),list(thermo[:,5]),reflin=list(thermo[:,22]), yzero=0.0, xlim=xlim, label=plotlabel)
   ncols = [6,8]
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel, single=vdos!=None)
@@ -1741,7 +1744,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim, label=plotlabel)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70, label=plotlabel)
   if volumes is not None:
-    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),yzero=0.0,xlim=xlim, label=plotlabel)
+    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),expt=expt, yzero=0.0,xlim=xlim, label=plotlabel)
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim, label=plotlabel)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim, label=plotlabel)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim, label=plotlabel)
@@ -1757,8 +1760,6 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
           NELECTRONS, E0, dF, e, dos, Eg =\
               getdos(-15, 15, 0.0, 10001, 1000., edn, eup, vde, dos_energies, vaspEdos)
           if Eg <0.0: Eg=0.
-          #print("eeeeeeee",xlim, Eg)
-          #print("eeeeeeee", min(xx), max(xx), min(yy), max(yy))
           xlim = [-0.1, Eg+0.1]
           xx, yy = getdoslim(dos_energies, vaspEdos, xlim)
           thermoplot(folder,"Electron DOS (States/Atom/eV)",list(xx),list(np.array(yy)/natoms), xlim=xlim,
@@ -1956,11 +1957,7 @@ def plotRaman(folder, fp, vdos):
   x = vdos[:,0]*1.e-12/0.0299792458
   y = vdos[:,1]*1.e+12*0.0299792458
   yy = np.zeros((len(y)), dtype=float)
-  #print("eeeeeeee Raman 0",gamma_phonons)
-  #print(x)
-  #print(y)
   w = max(x)*0.001
-  #h = trapz(y,x)/max(x)
   h = 0.1*max(y)
   x0 = []
   y0 = []
@@ -1971,10 +1968,7 @@ def plotRaman(folder, fp, vdos):
     elif M[i].lower().startswith("t"): hh = h*3
     else: hh = h
     if float(f)<1.e-3: continue
-    #print("eeeeee", f,w,hh)
-    #print("eeeeeeee Raman 1")
     if len(F_lo)!=0:
-      #print("eeeeeeee Raman 2")
       if A[i]=="ir_active":
         if M[i].lower().startswith("e"): hh = h
         elif M[i].lower().startswith("t"): hh = h*2
@@ -1999,7 +1993,6 @@ def plotRaman(folder, fp, vdos):
       y0.append(hh)
       s0.append(M[i])
   ix = sorted(range(len(x0)), key=lambda k: x0[k])
-  #print("eeeeeeeee",ix)
   _M = []
   _x0 = []
   _y0 = []
@@ -2109,6 +2102,8 @@ def Plot298(folder, V298, volumes):
   cwd = os.getcwd()
   os.chdir( phdir298 )
 
+  """
+  #temp for debug
   cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
   if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   #cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
@@ -2128,8 +2123,6 @@ def Plot298(folder, V298, volumes):
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
-  """
-  #temp for debug
   """
   #temp for debug
 
@@ -2277,7 +2270,49 @@ def PlotVol(folder, vdos):
   os.chdir( cwd )
 
 
+"""make the reduced formula
+els - a list of elements
+natype - a list of number of elements
+return:
+"""
+def reduced_formula(formula):
+  _els, _nat = formula2composition(formula)
+  els = sorted(set(_els))
+  nat = np.zeros(len(els),dtype=int)
+  for i,el in enumerate(_els):
+    ix = els.index(el)
+    nat[ix] += _nat[i]
+
+  Nd = min(nat)
+  for i in range(Nd,0,-1):
+    out = True
+    for j in range(len(nat)):
+      if ((nat[j]//i)*i!=nat[j]):
+        out = False
+        break
+    if out:
+      break
+  form = ""
+  for j,el in enumerate(els):
+    ix = nat[j]//i
+    form = form+el
+    if ix!=1:
+      form = form+str(ix)
+  return form
+
+def get_expt(expt, formula):
+    with open(expt, encoding='utf-8') as element_json_file:
+        _expt = json.load(element_json_file)
+    f0 = reduced_formula(formula)
+    data = []
+    for ee in _expt:
+        if reduced_formula(ee['Compound'])!=f0: continue
+        data.append(ee)
+    return data
+
 if __name__ == '__main__':
+    formula = None
+    expt = None
     plotlabel = None
     count = 1
     while (count < len(sys.argv)):
@@ -2294,12 +2329,16 @@ if __name__ == '__main__':
         pvdos = True
       if (sys.argv[count] == "-within"):
         input_within = True
+      elif (sys.argv[count] == "-formula"):
+        count = count + 1
+        if (count > len(sys.argv)):
+          break
+        formula = sys.argv[count]
       elif (sys.argv[count] == "-expt"):
         count = count + 1
         if (count > len(sys.argv)):
           break
-        with open(sys.argv[count], encoding='utf-8') as element_json_file:
-          expt = json.load(element_json_file)
+        expt = sys.argv[count]
       elif (sys.argv[count] == "-phdft"):
         count = count + 1
         if (count > len(sys.argv)):
@@ -2385,7 +2424,8 @@ if __name__ == '__main__':
     """
     """
     
-    
+    if expt!=None: expt=get_expt(expt, formula)
+
     if justplot==None: lines = sys.stdin.readlines()
     else: 
         plotCMD(justplot, volumes=None, energies=None, expt=expt, xlim=xlim, _fitCp = fitCp, plotlabel=plotlabel)

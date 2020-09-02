@@ -1583,6 +1583,10 @@ class thelecMDB():
         a,b,c = self.calc_thermodynamics()
         return a,b,c,self.key_comments
 
+
+    def get_formula(self):
+        return self.formula_pretty
+
     
     def calc_single(self):
         Faraday_constant = physical_constants["Faraday constant"][0]

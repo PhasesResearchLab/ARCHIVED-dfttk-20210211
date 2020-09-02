@@ -11,7 +11,7 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 2.125,
+    "Gruneisen parameter": 2.063,
     "LSORBIT": false,
     "LTC quality": 0,
     "METADATA": {
@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-31 14:33:25.872972",
+    "Postprocess time": "2020-09-01 21:40:04.592556",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -metatag 7d633bbe-c8be-4c6f-9941-234879d272f6 -expt ExptData/ExptData.json -fitF",
     "kpoints": {
         "generation_style": "Monkhorst",
         "kpoints": [20, 20, 20]
@@ -29,7 +29,7 @@
 
     "phonon quality": "     1.0",
     "pseudo_potential": {
-        "functional": "pbe",
+        "functional": "PBE",
         "labels": ["Cu"],
         "pot_type": "paw"
     }

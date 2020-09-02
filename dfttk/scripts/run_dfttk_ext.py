@@ -89,6 +89,7 @@ def ext_thelec(args):
             #print("eeeeeeeee", volumes)
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+                formula = proc.get_formula(),
                 plotlabel=args.plot):
                 record_cmd_print(thermofile, readme)
     elif args.vdos is not None:
@@ -104,6 +105,7 @@ def ext_thelec(args):
         if args.plot!=None: 
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, None, None, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp,
+                formula = proc.get_formula(),
                 poscar=args.poscar,vdos=args.vdos, doscar=args.doscar, natoms=natoms, plotlabel=args.plot):
                 record_cmd_print(thermofile, readme)
     else:
