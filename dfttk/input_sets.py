@@ -91,10 +91,11 @@ class RelaxSet(DictSet):
         if self.isif is not None:
             uis.update({'ISIF': self.isif})
 
-        if magnetic_check(structure):
-            uis.update({'ISPIN': 2})
-        else:
-            uis.update({'ISPIN': 1})
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
         RelaxSet.CONFIG['INCAR'].update(uis)
         super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
 
@@ -140,10 +141,11 @@ class PreStaticSet(DictSet):
                 pass
         self.kwargs = kwargs
         uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
-        if magnetic_check(structure):
-            uis.update({'ISPIN': 2})
-        else:
-            uis.update({'ISPIN': 1})
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
 
         PreStaticSet.CONFIG['INCAR'].update(uis)
         super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, sort_structure=False, **kwargs)
@@ -190,10 +192,11 @@ class ForceConstantsSet(DictSet):
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
         uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
-        if magnetic_check(structure):
-            uis.update({'ISPIN': 2})
-        else:
-            uis.update({'ISPIN': 1})
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
         ForceConstantsSet.CONFIG['INCAR'].update(uis)
 
         super(ForceConstantsSet, self).__init__(
@@ -245,10 +248,11 @@ class StaticSet(DictSet):
         uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
         uis['ISIF'] = isif
 
-        if magnetic_check(structure):
-            uis.update({'ISPIN': 2})
-        else:
-            uis.update({'ISPIN': 1})
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
         StaticSet.CONFIG['INCAR'].update(uis)
         super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
 
@@ -377,10 +381,11 @@ class BornChargeSet(DictSet):
                 pass
         self.kwargs = kwargs
 
-        if magnetic_check(structure):
-            uis.update({'ISPIN': 2})
-        else:
-            uis.update({'ISPIN': 1})
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
 
         BornChargeSet.CONFIG['INCAR'].update(uis)
 
