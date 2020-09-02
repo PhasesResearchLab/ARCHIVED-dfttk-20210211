@@ -1,6 +1,7 @@
 import six
 import os
 import subprocess
+import copy
 
 from pymatgen.io.vasp.inputs import Kpoints, Incar
 from pymatgen.io.vasp.sets import DictSet, get_vasprun_outcar, get_structure_from_prev_run, _load_yaml_config
@@ -81,16 +82,21 @@ class RelaxSet(DictSet):
         self.kwargs = kwargs
         self.volume_relax = volume_relax
         self.isif = isif
-        uis = kwargs.get('user_incar_settings', {})
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
         if self.volume_relax and self.isif is not None:
             raise ValueError("isif cannot have a value while volume_relax is True.")
         if self.volume_relax:
-            uis['ISIF'] = 7
+            uis.update({'ISIF': 7})
+            #uis['ISIF'] = 7
         if self.isif is not None:
-            uis['ISIF'] = self.isif
-        if kwargs.get('user_incar_settings', None):
-            kwargs.pop('user_incar_settings')
-        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
+            uis.update({'ISIF': self.isif})
+
+        if magnetic_check(structure):
+            uis.update({'ISPIN': 2})
+        else:
+            uis.update({'ISPIN': 1})
+        RelaxSet.CONFIG['INCAR'].update(uis)
+        super(RelaxSet, self).__init__(structure, RelaxSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class PreStaticSet(DictSet):
@@ -133,6 +139,13 @@ class PreStaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
+        if magnetic_check(structure):
+            uis.update({'ISPIN': 2})
+        else:
+            uis.update({'ISPIN': 1})
+
+        PreStaticSet.CONFIG['INCAR'].update(uis)
         super(PreStaticSet, self).__init__(structure, PreStaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
@@ -176,6 +189,13 @@ class ForceConstantsSet(DictSet):
 
     def __init__(self, structure, **kwargs):
         self.kwargs = kwargs
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
+        if magnetic_check(structure):
+            uis.update({'ISPIN': 2})
+        else:
+            uis.update({'ISPIN': 1})
+        ForceConstantsSet.CONFIG['INCAR'].update(uis)
+
         super(ForceConstantsSet, self).__init__(
             structure, ForceConstantsSet.CONFIG, sort_structure=False, **kwargs)
 
@@ -214,8 +234,7 @@ class StaticSet(DictSet):
     def __init__(self, structure, isif=2, **kwargs):
         # pop the old kwargs, backwards compatibility from the complex StaticSet
         self.isif = isif
-        uis = kwargs.get('user_incar_settings', {})
-        uis['ISIF'] = isif
+        
         old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
         for k in old_kwargs:
             try:
@@ -223,7 +242,15 @@ class StaticSet(DictSet):
             except KeyError:
                 pass
         self.kwargs = kwargs
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
+        uis['ISIF'] = isif
+
+        if magnetic_check(structure):
+            uis.update({'ISPIN': 2})
+        else:
+            uis.update({'ISPIN': 1})
+        StaticSet.CONFIG['INCAR'].update(uis)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
 
 
 class ATATIDSet():
@@ -340,7 +367,7 @@ class BornChargeSet(DictSet):
     def __init__(self, structure, isif=2, **kwargs):
         # pop the old kwargs, backwards compatibility from the complex StaticSet
         self.isif = isif
-        uis = kwargs.get('user_incar_settings', {})
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
         uis['ISIF'] = isif
         old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol', 'lrpa']
         for k in old_kwargs:
@@ -351,13 +378,12 @@ class BornChargeSet(DictSet):
         self.kwargs = kwargs
 
         if magnetic_check(structure):
-            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 2})
+            uis.update({'ISPIN': 2})
         else:
-            BornChargeSet.CONFIG['INCAR'].update({'ISPIN': 1})
+            uis.update({'ISPIN': 1})
 
-        if kwargs.get('user_incar_settings', None):
-            kwargs.pop('user_incar_settings')
+        BornChargeSet.CONFIG['INCAR'].update(uis)
 
-        super(BornChargeSet, self).__init__(structure, BornChargeSet.CONFIG, sort_structure=False, user_incar_settings=uis, **kwargs)
+        super(BornChargeSet, self).__init__(structure, BornChargeSet.CONFIG, sort_structure=False, **kwargs)
 
 
