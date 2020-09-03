@@ -224,6 +224,10 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
                  phonon_supercell_matrix_max=phonon_supercell_matrix_max, optimize_sc=optimize_sc, level=level,
                  force_phonon=force_phonon, stable_tor=stable_tor)
+    elif WORKFLOW == "born":
+        wf = get_wf_borncharge(structure=structure, metadata=metadata, db_file=db_file, isif=2, name="born charge", 
+                      vasp_cmd=vasp_cmd, override_default_vasp_params=override_default_vasp_params, 
+                      modify_incar=modify_incar_params)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf

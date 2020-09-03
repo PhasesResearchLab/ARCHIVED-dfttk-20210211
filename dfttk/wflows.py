@@ -7,11 +7,12 @@ from uuid import uuid4
 from copy import deepcopy
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
-from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW
+from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW, BornChargeFW
 from dfttk.ftasks import CheckRelaxScheme
 from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
+from dfttk.scripts.querydb import is_property_exist_in_db
 
 
 def _get_deformations(def_frac, num_def):
@@ -65,7 +66,9 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
     return wf
 
 
-def get_wf_borncharge(structure=None, metadata=None, tag=None):
+def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 
+                      vasp_input_set=None,vasp_cmd=None, override_default_vasp_params=None, 
+                      tag=None, modify_incar=None, **kwargs):
     '''
     The born charge work flow
 
@@ -86,6 +89,41 @@ def get_wf_borncharge(structure=None, metadata=None, tag=None):
         wf: workflow
             The borncharge workflow
     '''
+    vasp_cmd = vasp_cmd or VASP_CMD
+    metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
+    metadata.update({'tag': tag})
+    struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+
+    fws = []
+    if struct_energy_bandgap:
+        #not False
+        structures = struct_energy_bandgap[0]
+        energies = struct_energy_bandgap[1]
+        bandgap = struct_energy_bandgap[2]
+        for i in range(0,len(bandgap)):
+            structure = structures[i]
+            if bandgap[i] > 0:
+                fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                                  vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                                  override_default_vasp_params=override_default_vasp_params, tag=tag,
+                                  prev_calc_loc=False, db_file=db_file, **kwargs)
+                fws.append(fw)
+    else:
+        if structure is None:
+            raise ValueError('You must provide metadata existed in mongodb or structure')
+        else:
+            fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                              vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                              override_default_vasp_params=override_default_vasp_params, tag=tag,
+                              prev_calc_loc=False, db_file=db_file, **kwargs)
+            fws.append(fw)
+    if not fws:
+        raise ValueError('The system is metal or no static result under given metadata in the mongodb')
+
+    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+    wf = Workflow(fws, name=wfname, metadata=metadata)
+    return wf
 
 
 def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), phonon=False, isif4=False,
