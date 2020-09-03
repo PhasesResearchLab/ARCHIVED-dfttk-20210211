@@ -64,12 +64,36 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
+
+def get_wf_borncharge(structure=None, metadata=None, tag=None):
+    '''
+    The born charge work flow
+
+    structure or metadata must be given.
+        If structure is given, then run borncharge for the structure
+        If metadata is given, then it will try to find the static calculations form mongodb,
+            then it will run born charge calculaions for all structures, if not exist, raise error
+        If both are given, then it will try to find structure from mongodb, if not exist, using the given structure
+        If both are not given, raise error
+
+    Parameters
+    ----------
+        structure: pymatgen.Structure
+        metadata: dict
+            metadata = {'tag': xxxxxxx}
+    Return
+    ------
+        wf: workflow
+            The borncharge workflow
+    '''
+
+
 def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), phonon=False, isif4=False,
                         phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
-                        phonon_supercell_matrix_max=120, optimize_sc=False):
+                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01):
     """
     E - V
     curve
@@ -118,6 +142,13 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     modify_kpoints_params : dict
         User can use these params to modify the KPOINTS set. It is a dict of class ModifyKpoints with keywords in Workflow name.
         Only 'kpts' supported now.
+    phonon_supercell_matrix_min/max: int
+        minimum/maximum atoms/lattice/volume(controlled by scale_object, default is using atoms)
+    optimize_sc: bool
+        Optimize the super cell matrix (True) or not (False)
+            If False, then use the closest integer transformation matrix of ideal matrix
+    stable_tor: float
+        The tolerance for phonon stability (the percentage of negative part frequency)
    """
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
@@ -158,7 +189,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
         if not (ph_scm_size[0] == 3 and ph_scm_size[1] == 3):
             raise ValueError('Current phonon_supercell_matrix({}) is not correct.'.format(phonon_supercell_matrix))
         phonon_wf = PhononFW(structure, phonon_supercell_matrix, parents=robust_opt_fw, prev_calc_loc='static', 
-                             name='structure_{:.3f}-phonon'.format(structure.volume),
+                             name='structure_{:.3f}-phonon'.format(structure.volume), stable_tor=stable_tor,
                              **t_kwargs, **common_kwargs)
         fws.append(phonon_wf)
         check_qha_parent.append(phonon_wf)
@@ -168,8 +199,8 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
     fws.append(check_relax_fw)
     check_qha_parent.append(check_relax_fw)
 
-    check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, 
-                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,
+    check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, stable_tor=stable_tor,
+                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
                                         override_symmetry_tolerances=override_symmetry_tolerances,
                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
                             parents=check_qha_parent, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))

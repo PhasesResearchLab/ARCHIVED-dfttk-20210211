@@ -23,7 +23,7 @@ from pymatgen.analysis.eos import Vinet, EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
-from dfttk.analysis.phonon import get_f_vib_phonopy, get_phonon_band_dos
+from dfttk.analysis.phonon import get_f_vib_phonopy, get_phonon_band_dos, phonon_stable
 from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols, check_symmetry
@@ -1115,3 +1115,41 @@ class BornChargeToDb(FiretaskBase):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['borncharge'].insert_one(born_result)
+
+
+@explicit_serialize
+class  PhononStable(FiretaskBase):
+    """
+    Stability by phonon
+    This fire task will judge if the structure is stable or not by phonon dos.
+    If the negative part percentage of dos is larger than stable_tor(default 1%), then the structure is unstable
+
+    """
+    required_params = ['supercell_matrix', 'db_file', 'tag']
+    optional_params = ['metadata', 'qpoint_mesh', 'stable_tor']
+
+    def run_task(self, fw_spec):
+
+        tag = self["tag"]
+        metadata = self.get('metadata', {})
+        metadata['tag'] = tag
+
+        unitcell = Structure.from_file('POSCAR-unitcell')
+        supercell_matrix = self['supercell_matrix']
+        qpoint_mesh = self.get('qpoint_mesh', (50, 50, 50))
+        stable_tor = self.get('stable_tor', 0.01)
+
+        vasprun = PhonopyVasprun(vasprun_path='vasprun.xml')
+        force_constants, elements = vasprun.read_force_constants()
+
+        phonon_stability = phonon_stable(unitcell, supercell_matrix, force_constants, 
+                                         qpoint_mesh=qpoint_mesh, stable_tor=stable_tor)
+
+        stability = {'phonon_stability': {'stability': phonon_stability, 'stable_tolerance': stable_tor,
+                     'qpoint_mesh': qpoint_mesh}}
+
+        # insert into database
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        vasp_db.db['phonon'].insert_one(stability)
+        

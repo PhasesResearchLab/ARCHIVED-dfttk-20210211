@@ -508,23 +508,25 @@ def get_mat_info(struct):
     return name, configuration, occupancy, site_ratio
  
 
-def mark_adopted_TF(tag, db_file, adpoted):
+def mark_adopted_TF(tag, db_file, adpoted, phonon=False):
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     if vasp_db:
         vasp_db.collection.update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
-        vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
+        if phonon:
+            vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
 
 
-def mark_adopted(tag, db_file, volumes):
-    mark_adopted_TF(tag, db_file, False)             # Mark all as adpoted
+def mark_adopted(tag, db_file, volumes, phonon=False):
+    mark_adopted_TF(tag, db_file, False, phonon=phonon)             # Mark all as adpoted
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     for volume in volumes:
         vasp_db.collection.update({'$and':[ {'metadata.tag': tag}, {'output.structure.lattice.volume': volume} ]},
                                   {'$set': {'adopted': True}}, upsert = True, multi = False)            # Mark only one
-        vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
-                                    {'$set': {'adopted': True}}, upsert = True, multi = False)
+        if phonon:
+            vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
+                                        {'$set': {'adopted': True}}, upsert = True, multi = False)
 
 
 def consistent_check_db(db_file, tag):

@@ -10,7 +10,7 @@ from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet, BornChargeSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
     CheckSymmetry, CheckRelaxation, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate, \
-    Record_relax_running_path, Record_PreStatic_result, CheckSymmetryToDb, BornChargeToDb
+    Record_relax_running_path, Record_PreStatic_result, CheckSymmetryToDb, PhononStable, BornChargeToDb
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
 
@@ -331,8 +331,8 @@ class PhononFW(Firework):
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
                  name="phonon", vasp_input_set=None, override_default_vasp_params=None,
-                 vasp_cmd="vasp", metadata=None, tag=None,
-                 prev_calc_loc=True, db_file=None, parents=None,
+                 vasp_cmd="vasp", metadata=None, tag=None, qpoint_mesh=(50, 50, 50).
+                 prev_calc_loc=True, db_file=None, parents=None, stable_tor=0.01,
                  **kwargs):
 
         metadata = metadata or {}
@@ -370,6 +370,7 @@ class PhononFW(Firework):
         t.append(PyTask(func='dfttk.vasprun_fix.fix_vasprun', args=['vasprun.xml']))
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))
+        t.append(PhononStable(supercell_matrix=supercell_matrix, db_file=db_file, tag=tag, metadata=metadata, qpoint_mesh=qpoint_mesh, stable_tor=stable_tor))
 
         super(PhononFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)

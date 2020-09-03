@@ -200,7 +200,8 @@ class EVcheck_QHA(FiretaskBase):
     optional_params = ['structure', 'tag', 'metadata', 'deformations', 'relax_scheme', 'eos_tolerance', 'threshold', 
                        'del_limited', 'vol_spacing', 't_min', 't_max', 't_step', 'phonon', 'phonon_supercell_matrix', 
                        'verbose', 'modify_incar_params', 'run_num','modify_kpoints_params', 'site_properties', 
-                       'override_symmetry_tolerances', 'override_default_vasp_params', 'db_file', 'vasp_cmd']
+                       'override_symmetry_tolerances', 'override_default_vasp_params', 'db_file', 'vasp_cmd',
+                       'force_phonon', 'stable_tor']
 
     def run_task(self, fw_spec):
         ''' 
@@ -227,6 +228,7 @@ class EVcheck_QHA(FiretaskBase):
         t_max = self.get('t_max', 2000)
         t_step = self.get('t_step', 5)
         phonon = self.get('phonon', False)
+        force_phonon = self.get('force_phonon', False)
         phonon_supercell_matrix = self.get('phonon_supercell_matrix', None)
         verbose = self.get('verbose', False)
         modify_incar_params = self.get('modify_incar_params', {})
@@ -240,7 +242,8 @@ class EVcheck_QHA(FiretaskBase):
         relax_phonon = fw_spec.get('relax_phonon', False)
 
         #Only set phonon=True and ISIF=4 passed, then run phonon
-        phonon = phonon and relax_phonon
+        if not force_phonon:
+            phonon = phonon and relax_phonon
 
         metadata = self.get('metadata', {})
         tag = self.get('tag', metadata.get('tag', None))
@@ -296,7 +299,7 @@ class EVcheck_QHA(FiretaskBase):
                 EVcheck_result['selected'] = volume
                 EVcheck_result['append'] = (vol_adds).tolist()
                 # Marked as adopted in db
-                mark_adopted(tag, db_file, volume)
+                mark_adopted(tag, db_file, volume, phonon=phonon)
             lpad = LaunchPad.auto_load()
             fws = []
             if len(vol_adds) > 0:      # VASP calculations need to append
@@ -330,14 +333,14 @@ class EVcheck_QHA(FiretaskBase):
 
                         if phonon:
                             #visphonon = ForceConstantsSet(struct)
-                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=None,
+                            phonon_fw = PhononFW(struct, phonon_supercell_matrix, vasp_input_set=None, stable_tor=stable_tor,
                                                  name='structure_{:.3f}-phonon'.format(vol_add), prev_calc_loc=True,
                                                  parents=static_fw, **t_kwargs, **common_kwargs)
                             fws.append(phonon_fw)
                             calcs.append(phonon_fw)
                     check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, run_num=run_num,
-                                                        verbose=verbose, site_properties=site_properties,
-                                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,
+                                                        verbose=verbose, site_properties=site_properties, stable_tor=stable_tor,
+                                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
                                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs), 
                                             parents=calcs, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
                     fws.append(check_result)
