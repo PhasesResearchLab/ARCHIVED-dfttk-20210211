@@ -11,7 +11,7 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 1.376,
+    "Gruneisen parameter": 1.377,
     "LSORBIT": false,
     "LTC quality": 0,
     "METADATA": {
@@ -19,17 +19,17 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-31 15:16:16.543190",
+    "Postprocess time": "2020-09-01 22:31:35.241817",
     "bandgap": 2.5797999999999996,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
         "A1 00000": [559.9, "ir_active"],
         "A1 00001": [326.5, "ir_active"],
-        "A1 00002": [151.7, "ir_active"],
+        "A1 00002": [151.6, "ir_active"],
         "A2 00000": [274.7, "silent_mode"],
         "E 00000": [468.6, "ir_active"],
         "E 00001": [301.8, "ir_active"],
-        "E 00002": [281.5, "ir_active"],
+        "E 00002": [281.6, "ir_active"],
         "E 00003": [149.3, "ir_active"]
     },
 
@@ -40,7 +40,7 @@
 
     "phonon quality": "0.992782",
     "pseudo_potential": {
-        "functional": "pbe",
+        "functional": "PBE",
         "labels": ["Ba_sv", "Ti_sv", "O"],
         "pot_type": "paw"
     }

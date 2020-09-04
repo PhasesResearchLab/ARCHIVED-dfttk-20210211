@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # The template for batch run of DFTTK
 import argparse
+import datetime
 from pymatgen import MPRester, Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 from pymatgen.io.vasp.inputs import Potcar
@@ -48,6 +49,8 @@ class thfindMDB ():
         #items = vasp_db.db['phonon'].find({F_vib: {$gt: 0}})
         #items = vasp_db.db['phonon'].find({'metadata.tag': "djdjd"})
         #items = vasp_db.db['phonon'].find({})
+        self.check = args.check
+        self.remove = args.remove
         self.items = (self.vasp_db).db[self.qhamode].find({})
         self.tags = []
         self._Yphon = []
@@ -95,7 +98,8 @@ class thfindMDB ():
         return False
     
     def run_console(self):
-        if self.qhamode=='phonon': self.phonon_find()
+        if self.check: self.check_find()
+        elif self.qhamode=='phonon': self.phonon_find()
         else: self.debye_find()
         return self.tags
 
@@ -215,3 +219,130 @@ class thfindMDB ():
             if self.skipby(phases[i], m['tag']): continue
             print (m, ":", phases[i])
             self.tags.append({'tag':m['tag'],'phasename':phases[i]})
+
+
+    def check_find(self):
+        """
+        hit = []
+        relaxations_collection = (self.vasp_db).db['relaxations'].find({})
+        for i in relaxations_collection:
+            try:
+                mm = i['metadata']
+                hit.append(mm)
+            except:
+                continue
+
+        lastupdated = [None] * len(hit)
+        for i,mm in enumerate(hit):
+            static_calc = (self.vasp_db).collection.\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in static_calc:
+                lnew = calc['last_updated']
+                if lastupdated[i]!=None:
+                    lold = lastupdated[i]
+                    if lnew > lold: lastupdated[i] = lnew
+                else:
+                    lastupdated[i] = lnew
+
+        """
+        hit = []
+        lastupdated = []
+        static_collection = (self.vasp_db).collection.find({})
+        for i in static_collection:
+            try:
+                mm = i['metadata']
+            except:
+                continue
+            if mm in hit:
+                idx = hit.index(mm)
+                lold = lastupdated[idx]
+                lnew = i['last_updated']
+                if lnew > lold: lastupdated[idx] = lnew
+            else:
+                lastupdated.append(i['last_updated'])
+                hit.append(mm)
+
+
+        phases =  [""] * len(hit)
+        supercellsize =  [0] * len(hit)
+        phonon_count = [0] * len(hit)
+        for i,mm in enumerate(hit):
+            phonon_calc = (self.vasp_db).db['phonon'].\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in phonon_calc:
+                try:
+                    ii = len(calc['S_vib'])
+                except:
+                    continue
+                if ii <= 0: continue 
+                phonon_count[i] += 1
+                if phonon_count[i]==1:
+                    structure = Structure.from_dict(calc['unitcell'])
+                    natoms = len(structure.sites)
+                    supercell_matrix = calc['supercell_matrix']
+                    supercellsize[i]= (natoms*int(np.linalg.det(np.array(supercell_matrix))+.5))
+                    formula_pretty = structure.composition.reduced_formula
+                    sa = SpacegroupAnalyzer(structure)
+                    phasename = formula_pretty+'_'\
+                        + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
+                    if phasename in phases:
+                        for jj in range (10000):
+                            nphasename = phasename + "#" + str(jj)
+                            if nphasename in phases: continue
+                            phasename = nphasename
+                            break
+                    phases[i] = phasename
+
+        print("\nfinding complete calculations in the static collection\n")
+
+        static_count = [0] * len(hit)
+        for i,mm in enumerate(hit):
+            if self.skipby(phases[i], mm['tag']): continue
+            static_calc = (self.vasp_db).collection.\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in static_calc:
+                static_count[i] += 1
+
+        print("\nfinding complete calculations in the qha collection\n")
+
+        qha_count = [0] * len(hit)
+        for i,mm in enumerate(hit):
+            qha_calc = (self.vasp_db).db['qha'].\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in qha_calc:
+                qha_count[i] += 1
+
+        print("\nfinding complete calculations in the qha_phonon collection\n")
+
+        qha_phonon_count = [0] * len(hit)
+        for i,mm in enumerate(hit):
+            qha_phonon_calc = (self.vasp_db).db['qha_phonon'].\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in qha_phonon_calc:
+                qha_phonon_count[i] += 1
+
+        print("\nfinding complete calculations in the relaxations collection\n")
+
+        relaxations_count = [0] * len(hit)
+        for i,mm in enumerate(hit):
+            relaxations_calc = (self.vasp_db).db['relaxations'].\
+                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            for calc in relaxations_calc:
+                relaxations_count[i] += 1
+
+        nTBD = 0
+        for i,mm in enumerate(hit):
+                #dd = datetime.datetime.strptime(lastupdated[i], '%Y-%m-%d %H:%M:%S.%f').date()
+                dd = lastupdated[i].date()
+                now = datetime.datetime.now().date()
+                if supercellsize[i]>=16 and phonon_count[i]>=5: continue
+                if dd >now-datetime.timedelta(days=7): continue
+                nTBD += 1
+                sys.stdout.write('[{:>04}] relax: {:>2}, static: {:>2}, qha: {:>2}, qha_phonon: {:>2}, phonon: {:>2}, SN: {:>3}, phases: {}, {}\n'.format(i, relaxations_count[i], static_count[i], qha_count[i], qha_phonon_count[i], phonon_count[i], supercellsize[i], phases[i], dd))
+                #sys.stdout.write('{}, static: {:>2}, qha: {:>2}, qha_phonon: {:>2}, phonon: {:>2}, SN: {:>3}, phases: {}, date: {}\n'.format(mm['tag'], static_count[i], qha_count[i], qha_phonon_count[i], phonon_count[i], supercellsize[i], phases[i], lastupdated[i]))
+                self.tags.append({'tag':mm['tag'],'phasename':phases[i]})
+
+        print("\n", nTBD,"/", len(hit), "recs to be removed\n")
+
+        for t in self.tags:
+            print(t)

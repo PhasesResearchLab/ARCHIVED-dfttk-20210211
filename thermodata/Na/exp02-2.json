@@ -1,0 +1,15 @@
+[
+    {
+        "Compound": "Na",
+        "property" : "linear thermal expansion",
+        "Author" : "Touloukian, Y. S. Touloukian, R. K. Kirby, R. E. Taylor, and P. D. Desai, Thermophysical Properties of Matter, Vol. 12 (Plenum, New York, 1975).",
+        "Unit" : "1/K",
+        "natom" : 1,
+        "data": [
+75,36e-6,
+100,45e-6,
+200,65e-6,
+293,71e-6
+        ]
+    }
+]

@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-01 21:47:54.989461",
+    "Postprocess time": "2020-09-01 22:41:32.523816",
     "bandgap": 0.45030000000000037,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -metatag 2cea34aa-8570-41a6-b281-29fa6e3c57f5 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
         "T2g 00000": [506.3, "raman_active"]
     },

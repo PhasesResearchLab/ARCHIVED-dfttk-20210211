@@ -556,7 +556,7 @@ def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
       if self.debug:
         T = T_remesh(t0,t1,td,_nT=65)
       else:
-        T = T_remesh(t0,t1,td,_nT=129)
+        T = T_remesh(t0,t1,td,_nT=257)
     nT = len(T)
     U_el = np.zeros(nT)
     S_el = np.zeros(nT)
@@ -792,9 +792,35 @@ def BMDifB(vol, F, BMfunc, N=7):
     val, idx = min((val, idx) for (idx, val) in enumerate(yy))
     if idx <N//2 or idx>=len(xx)-N//2-2:
         return -1.0, -1.0, 0.,0.
-
     v = brentq(BMfitP, xx[idx-1], xx[idx+1], args=(vol, F, BMfunc), maxiter=10000)
+    ff = BMfitF(v, vol, F, BMfunc)
+    bb, pp = BMfitB(v, vol, F, BMfunc)
+    return bb, v, ff, pp
 
+    """
+        t0 = xx[idx-1]
+        d0 = BMfitP(t0, vol, F, BMfunc)
+        if d0==0.0:
+            v=t0
+        else:
+            t1 = xx[idx+1]
+            d1 = BMfitP(t1, vol, F, BMfunc)
+            #print("0 eeeeeeeee", t0, t1)
+            if d1==0.0:
+                v=t1
+            else:
+                for i in range(99):
+                    v = (t0 + t1)*0.5
+                    d2 = BMfitP(v, vol, F, BMfunc)
+                    if d2 == 0.0: break
+                    elif d2*d0 < 0.0:
+                        t1 = v
+                        d1 = d2
+                    else:
+                        t0 = v
+                        d0 = d2
+                    if abs(t1-t0) <1.e-14: break
+    """
     """
     from scipy.optimize import minimize
     args, pcov = curve_fit(BMfunc, vol, F)
@@ -806,9 +832,6 @@ def BMDifB(vol, F, BMfunc, N=7):
     print(v, res.x, v-res.x)
     """
 
-    ff = BMfitF(v, vol, F, BMfunc)
-    bb, pp = BMfitB(v, vol, F, BMfunc)
-    return bb, v, ff, pp
 
 
 def SymDif(v, vol, F, N=7,kind='cubic'):
@@ -987,7 +1010,7 @@ class thelecMDB():
         if self.debug:
             self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=65)
         else:
-            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=129)
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=257)
 
         print ("extract the superfij.out used by Yphon ...")
         phdir = self.phasename+'/Yphon'

@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-08-31 23:20:25.121975",
+    "Postprocess time": "2020-09-01 23:05:15.452394",
     "bandgap": 5.003699999999999,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
         "T1u 00000": [158.2, "ir_active"]
     },

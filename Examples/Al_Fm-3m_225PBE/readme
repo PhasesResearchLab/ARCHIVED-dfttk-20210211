@@ -19,9 +19,9 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-01 22:04:51.168592",
+    "Postprocess time": "2020-09-02 14:26:39.302107",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json -metatag add5a9cc-a69e-46d0-b07b-72df99cf8dbd",
     "kpoints": {
         "generation_style": "Monkhorst",
         "kpoints": [20, 20, 20]

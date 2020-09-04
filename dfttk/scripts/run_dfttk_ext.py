@@ -143,7 +143,7 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-T0", "-t0", dest="t0", nargs="?", type=float, default=0.0,
                       help="Low temperature limit. \n"
                            "Default: 0")
-    pthelec.add_argument("-T1", "-t1", dest="t1", nargs="?", type=float, default=2000,
+    pthelec.add_argument("-T1", "-t1", dest="t1", nargs="?", type=float, default=4000,
                       help="High temperature limit. \n"
                            "Default: 1300")
     pthelec.add_argument("-dT", "-td", dest="td", nargs="?", type=float, default=10,
@@ -283,6 +283,12 @@ def run_ext_thfind(subparsers):
                            "Default: False")
     pthfind.add_argument("-get", "--get", dest="get", action='store_true', default=False,
                       help="get the thermodyamic data for all found entries. \n"
+                           "Default: False")
+    pthfind.add_argument("-check", "--check", dest="check", action='store_true', default=False,
+                      help="check database. \n"
+                           "Default: False")
+    pthfind.add_argument("-remove", "--remove", dest="remove", action='store_true', default=False,
+                      help="remove database. \n"
                            "Default: False")
     shared_aguments(pthfind)
     pthfind.set_defaults(func=ext_thfind)

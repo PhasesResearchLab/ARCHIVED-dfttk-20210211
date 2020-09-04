@@ -469,6 +469,9 @@ def thermoplot(folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=N
         ax.plot(xx,yy,'-',linewidth=2,color='b', label=_label)
     elif thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower():
         ax.plot(x,y,'-',linewidth=2,color='b', label=_label)
+    elif thermodynamicproperty.lower()=="Bulk modulus (GPa)".lower():
+        ax.plot(x,reflin,'--',linewidth=2,color='k', label=_label+",$B_s$")
+        ax.plot(x,y,'-',linewidth=2,color='b', label=_label+",$B_T$")
     elif thermodynamicproperty.lower()=="LTC analysis (1/K)".lower():
         ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,4))
         ax.plot(x,y,'-',linewidth=2,color='b', label="dfttk")
@@ -709,6 +712,18 @@ def myjsonout(data,fp,indent="",comma=""):
 			fp.write('{}{}{}\n\n'.format(indent,'}', comma))
 		else:
 			fp.write('{}{}{}\n'.format(indent, '}', comma))
+
+
+def Myjsonout(data,out):
+    if (isinstance(data,dict)):
+        myjsonout(data, out, indent="", comma="")
+    elif (isinstance(data,list)):
+        out.write("[\n")
+        for j,rec in enumerate(data):
+            if j!=len(data)-1: myjsonout(rec, out, indent="", comma=",")
+            else: myjsonout(rec, out, indent="", comma="")
+        out.write("]\n")
+
 
 def similar(pp,pall):
   known = ["L12", "delta", "D022", "Gamma"]
@@ -1744,7 +1759,9 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=xlim, label=plotlabel)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,10]),yzero=0.0, xlim=70, label=plotlabel)
   if volumes is not None:
-    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]),expt=expt, yzero=0.0,xlim=xlim, label=plotlabel)
+    bs = np.ones((len(thermo[:,9])), dtype=float)
+    bs[1:] = thermo[1:,6]/thermo[1:,7]*thermo[1:,9]
+    thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]), reflin=list(bs) , expt=expt, yzero=0.0,xlim=xlim, label=plotlabel)
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,16]),xlim=xlim, label=plotlabel)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list(thermo[:,17]),xlim=xlim, label=plotlabel)
   thermoplot(folder,"Absolute thermal electric force (V)",list(thermo[:,0]),list(thermo[:,15]), xlim=xlim, label=plotlabel)
@@ -1878,7 +1895,10 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
     thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), elonly=300, expt=expt, CoT=True, label=plotlabel)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=xlim, label=plotlabel)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=70, label=plotlabel)
-  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim, label=plotlabel)
+  #thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim, label=plotlabel)
+  bs = np.ones((len(thermo[:,15])), dtype=float)
+  bs[1:] = thermo[1:,6]/thermo[1:,7]*thermo[1:,15]
+  thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]), reflin=list(bs) , expt=expt, yzero=0.0,xlim=xlim, label=plotlabel)
   T = copy.deepcopy(thermo[:,0])
   t22 = copy.deepcopy(thermo[:,22])
   if T[0]==0.0: 
@@ -2102,8 +2122,6 @@ def Plot298(folder, V298, volumes):
   cwd = os.getcwd()
   os.chdir( phdir298 )
 
-  """
-  #temp for debug
   cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
   if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   #cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
@@ -2123,6 +2141,8 @@ def Plot298(folder, V298, volumes):
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
+  """
+  #temp for debug
   """
   #temp for debug
 

@@ -66,7 +66,7 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
 
 def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), phonon=False, isif4=False,
                         phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
-                        t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
+                        t_step=5, eos_tolerance=0.01, volume_spacing_min=0.05, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
                         phonon_supercell_matrix_max=120, optimize_sc=False):

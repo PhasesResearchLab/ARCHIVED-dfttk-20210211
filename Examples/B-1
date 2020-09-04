@@ -2,7 +2,7 @@
 #PBS -N BExamplesdft
 #PBS -A open
 #PBS -l nodes=1:ppn=1
-#PBS -l walltime=05:59:00
+#PBS -l walltime=11:59:00
 cd $PBS_O_WORKDIR
 set VSPCMD = "vasp_std"
 module load intel impi mkl vasp
@@ -11,7 +11,7 @@ unalias rm
 #remove python bugs for unable to print character's with number larger than 128
 #export LC_ALL='en_US.utf8'
 setenv LC_ALL en_US.utf8
-dfttk thfind -py -td -50 -plot "find_or_DFT" -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json
+dfttk thfind -py -td -50 -plot "find_or_DFT" -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json
 #for regular calculation
 #dfttk thfind -py -td -50 -plot "find_or_DFT" -eq 4 -smooth -el 1 -renew -get -ss 30
 #for those with -fitF turned on (a file named "fifF" must be set using touch etc) 
