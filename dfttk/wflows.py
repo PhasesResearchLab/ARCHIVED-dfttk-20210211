@@ -7,10 +7,12 @@ from uuid import uuid4
 from copy import deepcopy
 from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
-from dfttk.fworks import OptimizeFW, StaticFW, RobustOptimizeFW
-from dfttk.input_sets import PreStaticSet, RelaxSet
+from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW, BornChargeFW
+from dfttk.ftasks import CheckRelaxScheme
+from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
-from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname
+from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
+from dfttk.scripts.querydb import is_property_exist_in_db
 
 
 def _get_deformations(def_frac, num_def):
@@ -61,6 +63,192 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
     else:
         wfname = f"unknown:{structure.composition.reduced_formula}:unknown"
     wf = Workflow(fws, name=wfname, metadata=metadata)
+    return wf
+
+
+def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 
+                      vasp_input_set=None,vasp_cmd=None, override_default_vasp_params=None, 
+                      tag=None, modify_incar=None, **kwargs):
+    '''
+    The born charge work flow
+
+    structure or metadata must be given.
+        If structure is given, then run borncharge for the structure
+        If metadata is given, then it will try to find the static calculations form mongodb,
+            then it will run born charge calculaions for all structures, if not exist, raise error
+        If both are given, then it will try to find structure from mongodb, if not exist, using the given structure
+        If both are not given, raise error
+
+    Parameters
+    ----------
+        structure: pymatgen.Structure
+        metadata: dict
+            metadata = {'tag': xxxxxxx}
+    Return
+    ------
+        wf: workflow
+            The borncharge workflow
+    '''
+    vasp_cmd = vasp_cmd or VASP_CMD
+    metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
+    metadata.update({'tag': tag})
+    struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+
+    fws = []
+    if struct_energy_bandgap:
+        #not False
+        structures = struct_energy_bandgap[0]
+        energies = struct_energy_bandgap[1]
+        bandgap = struct_energy_bandgap[2]
+        for i in range(0,len(bandgap)):
+            structure = structures[i]
+            if bandgap[i] > 0:
+                fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                                  vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                                  override_default_vasp_params=override_default_vasp_params, tag=tag,
+                                  prev_calc_loc=False, db_file=db_file, **kwargs)
+                fws.append(fw)
+    else:
+        if structure is None:
+            raise ValueError('You must provide metadata existed in mongodb or structure')
+        else:
+            fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                              vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                              override_default_vasp_params=override_default_vasp_params, tag=tag,
+                              prev_calc_loc=False, db_file=db_file, **kwargs)
+            fws.append(fw)
+    if not fws:
+        raise ValueError('The system is metal or no static result under given metadata in the mongodb')
+
+    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+    wf = Workflow(fws, name=wfname, metadata=metadata)
+    return wf
+
+
+def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1), phonon=False, isif4=False,
+                        phonon_supercell_matrix=None, override_symmetry_tolerances=None, t_min=5, t_max=2000, 
+                        t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
+                        metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
+                        modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
+                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01):
+    """
+    E - V
+    curve
+
+    workflow
+    Parameters
+    ------
+    structure: pymatgen.Structure
+        The initial structure
+    num_deformations: int
+        The number of deformation
+    deformation_fraction: float
+        Can be a float (a single value) or a 2-type of a min,max deformation fraction.
+        Default is (-0.1, 0.1) leading to volumes of 0.90-1.10. A single value gives plus/minus by default.
+    phonon : bool
+        Whether to do a phonon calculation. Defaults to False, meaning the Debye model.
+    phonon_supercell_matrix : list/str
+        3x3 array of the supercell matrix, e.g. [[2,0,0],[0,2,0],[0,0,2]]. Must be specified if phonon is specified.
+         if string, choose from 'atoms', 'lattice' or 'volume' (only the first letter works, case insensitive), 
+            which determine who to determin the matrix
+    override_symmetry_tolerances : dict
+        The symmetry tolerance. It contains three keys, default: {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.1}
+    t_min : float
+        Minimum temperature
+    t_step : float
+        Temperature step size
+    t_max : float
+        Maximum temperature (inclusive)
+    eos_tolerance: float
+        Acceptable value for average RMS, recommend >= 0.005.
+    volume_spacing_min: float
+        Minimum ratio of Volumes spacing
+    vasp_cmd : str
+        Command to run VASP. If None (the default) is passed, the command will be looked up in the FWorker.
+    db_file : str
+        Points to the database JSON file. If None (the default) is passed, the path will be looked up in the FWorker.
+    name : str
+        Name of the workflow
+    metadata : dict
+        Metadata to include
+    override_default_vasp_params: dict
+        Override vasp parameters for all vasp jobs. e.g override_default_vasp_params={'user_incar_settings': {'ISIF': 4}}
+    modify_incar_params : dict
+        Override vasp settings in firework level
+        User can use these params to modify the INCAR set. It is a dict of class ModifyIncar with keywords in Workflow name.
+    modify_kpoints_params : dict
+        User can use these params to modify the KPOINTS set. It is a dict of class ModifyKpoints with keywords in Workflow name.
+        Only 'kpts' supported now.
+    phonon_supercell_matrix_min/max: int
+        minimum/maximum atoms/lattice/volume(controlled by scale_object, default is using atoms)
+    optimize_sc: bool
+        Optimize the super cell matrix (True) or not (False)
+            If False, then use the closest integer transformation matrix of ideal matrix
+    stable_tor: float
+        The tolerance for phonon stability (the percentage of negative part frequency)
+   """
+    vasp_cmd = vasp_cmd or VASP_CMD
+    db_file = db_file or DB_FILE
+
+    override_symmetry_tolerances = override_symmetry_tolerances or {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.10}
+    override_default_vasp_params = override_default_vasp_params or {}
+
+    site_properties = deepcopy(structure).site_properties
+
+    metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
+    metadata.update({'tag': tag})
+
+    deformations = _get_deformations(deformation_fraction, num_deformations)
+    vol_spacing = max((deformations[-1] - deformations[0]) / (num_deformations - 1), volume_spacing_min)
+
+    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                     'override_default_vasp_params': override_default_vasp_params}
+    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'level': level, 'override_symmetry_tolerances': override_symmetry_tolerances}
+    vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+    t_kwargs = {'t_min': t_min, 't_max': t_max, 't_step': t_step}
+    eos_kwargs = {'deformations': deformations, 'vol_spacing': vol_spacing, 'eos_tolerance': eos_tolerance, 'threshold': 14}
+
+    fws = []
+
+    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax',
+                                     **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
+    fws.append(robust_opt_fw)
+    check_qha_parent = []
+
+    if phonon:
+        if isinstance(phonon_supercell_matrix, str):
+            phonon_supercell_matrix = supercell_scaling_by_atom_lat_vol(structure, min_obj=phonon_supercell_matrix_min,
+                                            max_obj=phonon_supercell_matrix_max, scale_object=phonon_supercell_matrix,
+                                            target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
+                                            verbose=False, sc_tolerance=1e-5, optimize_sc=optimize_sc)
+        ph_scm_size = np.array(phonon_supercell_matrix).shape
+        if not (ph_scm_size[0] == 3 and ph_scm_size[1] == 3):
+            raise ValueError('Current phonon_supercell_matrix({}) is not correct.'.format(phonon_supercell_matrix))
+        phonon_wf = PhononFW(structure, phonon_supercell_matrix, parents=robust_opt_fw, prev_calc_loc='static', 
+                             name='structure_{:.3f}-phonon'.format(structure.volume), stable_tor=stable_tor,
+                             **t_kwargs, **common_kwargs)
+        fws.append(phonon_wf)
+        check_qha_parent.append(phonon_wf)
+
+    check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=robust_opt_fw,
+                              name="{}-CheckRelaxScheme".format(structure.composition.reduced_formula))
+    fws.append(check_relax_fw)
+    check_qha_parent.append(check_relax_fw)
+
+    check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, stable_tor=stable_tor,
+                                        phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
+                                        override_symmetry_tolerances=override_symmetry_tolerances,
+                                        **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
+                            parents=check_qha_parent, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
+    fws.append(check_qha_fw)
+
+    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+    wf = Workflow(fws, name=wfname, metadata=metadata)
+    add_modify_incar_by_FWname(wf, modify_incar_params = modify_incar_params)
+    add_modify_kpoints_by_FWname(wf, modify_kpoints_params = modify_kpoints_params)
+
     return wf
 
 

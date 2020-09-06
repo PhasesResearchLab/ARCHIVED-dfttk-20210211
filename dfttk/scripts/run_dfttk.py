@@ -3,7 +3,7 @@
 import argparse
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Potcar
-from dfttk.wflows import get_wf_gibbs
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
@@ -31,7 +31,7 @@ def creat_folders(folder):
     Create folders if not exist, leave a warning if exists
     """
     if os.path.exists(folder):
-        warning.warn( folder + " exists!")
+        warnings.warn( folder + " exists!")
     else:
         os.makedirs(folder)
 
@@ -130,6 +130,13 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     phonon = settings.get('phonon', False)
     #list(3x3), the supercell matrix for phonon, e.g. [[2.0, 0, 0], [0, 2.0, 0], [0, 0, 2.0]]
     phonon_supercell_matrix = settings.get('phonon_supercell_matrix', None)
+    phonon_supercell_matrix_min = settings.get('phonon_supercell_matrix_min', None)
+    phonon_supercell_matrix_max = settings.get('phonon_supercell_matrix_max', None)
+    optimize_sc = settings.get('optimize_sc', False)
+    #run phonon always, no matter ISIF=4 passed or not
+    force_phonon  = settings.get('force_phonon', False)
+    #The tolerance for phonon stable
+    stable_tor = settings.get('stable_tor', 0.01)
     #float, the mimimum of temperature in QHA process, e.g. 5
     t_min = settings.get('t_min', 5)
     #float, the maximum of temperature in QHA process, e.g. 2000
@@ -137,11 +144,15 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #float, the step of temperature in QHA process, e.g. 5
     t_step = settings.get('t_step', 5)
     #float, acceptable value for average RMS, recommend >= 0.005
-    tolerance = settings.get('tolerance', 0.01) 
+    eos_tolerance = settings.get('eos_tolerance', 0.01) 
     #str, the vasp command, if None then find in the FWorker configuration
     vasp_cmd = settings.get('vasp_cmd', None)
     #dict, metadata to be included, this parameter is useful for filter the data, e.g. metadata={"phase": "BCC_A2", "tag": "AFM"}
     metadata = settings.get('metadata', None)
+    #It is for RobustOptimizeFW, if run ISIF=4 followed ISIF=7
+    isif4 = settings.get('isif4', False)
+    #The level for robust optimization
+    level = settings.get('level', 1)
     #float, the tolerannce for symmetry, e.g. 0.05
     symmetry_tolerance = settings.get('symmetry_tolerance', 0.05)
     #bool, set True to pass initial VASP running if the results exist in DB, use carefully to keep data consistent.
@@ -152,6 +163,13 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     pass_isif4 = settings.get('pass_isif4', False)
     #Set the path already exists for new static calculations; if set as '', will try to get the path from db_file
     relax_path = settings.get('relax_path', '')
+    #The symmetry tolerance, including three keys, 
+    #e.g. override_symmetry_tolerances={'tol_strain': 0.05, 'tol_energy': 0.025, 'tol_bond': 0.10}
+    override_symmetry_tolerances = settings.get('override_symmetry_tolerances', None)
+    #Global settings for all vasp job, e.g.
+    #override_default_vasp_params = {'user_incar_settings': {}, 'user_kpoints_settings': {}, 'user_potcar_functional': str}
+    #If some value in 'user_incar_settings' is set to None, it will use vasp's default value
+    override_default_vasp_params = settings.get('override_default_vasp_params', {})
     #dict, dict of class ModifyIncar with keywords in Workflow name. e.g.
     """
     modify_incar_params = { 'Full relax': {'incar_update': {"LAECHG":False,"LCHARG":False,"LWAVE":False}},
@@ -165,6 +183,20 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #bool, print(True) or not(False) some informations, used for debug
     verbose = settings.get('verbose', False)
 
+    #Set the default value for phonon_supercell_matrix_min/max
+    if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
+        if phonon_supercell_matrix.lower().startswith('a'):
+            phonon_supercell_matrix_min = 60
+            phonon_supercell_matrix_max = 130
+        elif phonon_supercell_matrix.lower().startswith('l'):
+            phonon_supercell_matrix_min = 8
+            phonon_supercell_matrix_max = 12
+        elif phonon_supercell_matrix.lower().startswith('v'):
+            phonon_supercell_matrix_min = 512
+            phonon_supercell_matrix_max = 1728
+        else:
+            raise ValueError("Unknown parameters for phonon_supercell_matrix({}), support 'atoms', 'lattice' or 'volume' or 3x3 list.".format(phonon_supercell_matrix))
+
     if magmom:
         structure.add_site_property('magmom', magmom)
     if not db_file:
@@ -175,11 +207,27 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
         #Currently, only this workflow is supported
         wf = get_wf_gibbs(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction, 
                     phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix,  t_min=t_min, t_max=t_max, 
-                    t_step=t_step, tolerance=tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
+                    t_step=t_step, eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min,vasp_cmd=vasp_cmd, 
                     db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
                     run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
                     verbose=verbose)
+    elif WORKFLOW == "eos":
+        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
+                  num_deformations=num_deformations, override_symmetry_tolerances=override_default_vasp_params, metadata=metadata)
+    elif WORKFLOW == "robust":
+        wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
+                 phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, 
+                 eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
+                 isif4=isif4, metadata=metadata, name='EV_QHA', override_symmetry_tolerances=override_symmetry_tolerances,
+                 override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
+                 modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
+                 phonon_supercell_matrix_max=phonon_supercell_matrix_max, optimize_sc=optimize_sc, level=level,
+                 force_phonon=force_phonon, stable_tor=stable_tor)
+    elif WORKFLOW == "born":
+        wf = get_wf_borncharge(structure=structure, metadata=metadata, db_file=db_file, isif=2, name="born charge", 
+                      vasp_cmd=vasp_cmd, override_default_vasp_params=override_default_vasp_params, 
+                      modify_incar=modify_incar_params)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
@@ -211,6 +259,7 @@ def run(args):
     MATCH_PATTERN = args.MATCH_PATTERN  # Match patterns for structure file, e.g. *POSCAR
     RECURSIVE = args.RECURSIVE          # recursive or not
     WORKFLOW = args.WORKFLOW            # workflow, current only get_wf_gibbs
+    PHONON = args.PHONON                # run phonon
     LAUNCH = args.LAUNCH               # Launch to lpad or not
     MAX_JOB = args.MAX_JOB              # Max job to submit
     SETTINGS = args.SETTINGS            # Settings file    
@@ -222,6 +271,9 @@ def run(args):
     ## Initial wfs and metadatas
     wfs = []
     metadatas = {}
+
+    if os.path.exists('METADATAS.yaml'):
+        metadatas = loadfn('METADATAS.yaml')
 
     ## generat the wf
     for STR_FILE in STR_FILES:
@@ -247,6 +299,15 @@ def run(args):
             if flag_run:
                 user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
+                metadatai = metadatas.get(STR_FILE, None)
+                if metadatai:
+                    user_settings.update({'metadata': metadatai})
+                if PHONON:
+                    user_settings.update({'phonon': True})
+                phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+                if phonon_supercell_matrix is None:
+                    user_settings.update({"phonon_supercell_matrix": "atoms"})
+
                 wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
 
                 metadatas[STR_FILE] = wf.as_dict()["metadata"]
@@ -256,7 +317,7 @@ def run(args):
                     dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
                     wf.to_file(dfttk_wf_filename)
             
-    #Write Out the metadata for POST purpose
+    #Write Out the metadata for POST and continue purpose
     dumpfn(metadatas, "METADATAS.yaml")
 
     if LAUNCH:
@@ -353,6 +414,8 @@ def run_dfttk():
                       help="""Specify the workflow to run.\n
                            Default: get_wf_gibbs \n
                            (NOTE: currently, only get_wf_gibbs is supported.)""")
+    prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
+                      help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",
                       help="Launch the wf to launchpad")
     prun.add_argument("-m", "--max_job", dest="MAX_JOB", nargs="?", type=int, default=0,

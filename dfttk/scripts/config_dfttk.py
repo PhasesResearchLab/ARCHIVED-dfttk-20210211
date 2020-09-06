@@ -470,11 +470,19 @@ def config_pymatgen(psp_dir=None, def_fun="PBE", mapi=None, path_to_store_psp="p
     if os.path.exists(pmg_config_file):
         pmg_config = loadfn(pmg_config_file)
         for key in keys_required:
+            flag_exist = 0
+            key_old = key[4:]   #old style not "PMG_"
+            if key_old in pmg_config:
+                if pmg_config[key_old]:
+                    params[key] = pmg_config[key]
+                    flag_exist = 1
             if key in pmg_config:
                 if pmg_config[key]:
                     # Not empty or None
                     params[key] = pmg_config[key]
-                    keys_exist.append(key)
+                    flag_exist = 1
+            if flag_exist:
+                keys_exist.append(key)
         keys_required = list(set(keys_required).difference(set(keys_exist)))
         if len(keys_required) == 0:
             warnings.warn("The pymatgen has been configured before.")
@@ -517,13 +525,10 @@ def update_configfile(filename, base_file):
                     flag_update = False
         if flag_update:
             ori_file[item] = base_file[item]
-    with open(filename, 'w+') as f:
-        if filename.endswith(".json"):
-            from json import dump
-            dump(ori_file, f, indent=4)
-        elif filename.endswith(".yaml"):
-            from yaml import dump
-            dump(ori_file, f, default_flow_style=False, sort_keys=False, indent=4)
+    if filename.endswith(".json"):
+        dumpfn(ori_file, filename, indent=4)
+    elif filename.endswith(".yaml"):
+        dumpfn(ori_file, filename, default_flow_style=False, indent=4)
 
 def config_atomate(path_to_store_config=".", config_folder="config", queue_script="vaspjob.pbs", 
     queue_type="pbs", vasp_cmd_flag="vasp_std"):
@@ -669,7 +674,7 @@ class ConfigFworker(ConfigTemplate):
                 {"db_file": os.path.join(self.PATH_TO_STORE_CONFIG, "config/db.json"),
                  "vasp_cmd": self.VASP_CMD,
                  "scratch_dir": "null",
-                 "incar_update":{"NCORE": math.floor(math.sqrt(int(self.PPNODE)))}}
+                 "incar_update": "{}"}
             }
 
 def test_config(test_pymagen=True, test_atomate=True):

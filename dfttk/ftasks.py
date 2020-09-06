@@ -1,6 +1,7 @@
 """
 Custom Firetasks for the DFTTK
 """
+import warnings
 import subprocess
 import os
 import json
@@ -8,9 +9,10 @@ import numpy as np
 import copy
 import six
 import shlex
+from phonopy.interface.vasp import Vasprun as PhonopyVasprun
 from pymatgen import Structure
 from pymatgen.io.vasp.inputs import Incar
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from custodian.custodian import Custodian
 from custodian.vasp.handlers import VaspErrorHandler, AliasingErrorHandler, \
     MeshSymmetryErrorHandler, UnconvergedErrorHandler, PotimErrorHandler, \
@@ -21,10 +23,10 @@ from pymatgen.analysis.eos import Vinet, EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
-from dfttk.analysis.phonon import get_f_vib_phonopy
+from dfttk.analysis.phonon import get_f_vib_phonopy, get_phonon_band_dos, phonon_stable
 from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from dfttk.analysis.quasiharmonic import Quasiharmonic
-from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols
+from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols, check_symmetry
 from dfttk.custodian_jobs import ATATWalltimeHandler, ATATInfDetJob
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
@@ -242,7 +244,6 @@ class CalculatePhononThermalProperties(FiretaskBase):
         vasp_db.db['phonon'].insert_one(thermal_props_dict)
 
 
-
 @explicit_serialize
 class QHAAnalysis(FiretaskBase):
     """
@@ -381,10 +382,10 @@ class QHAAnalysis(FiretaskBase):
         with open('qha_summary.json', 'w') as fp:
             json.dump(qha_result, fp, indent=4)
 
-        if self['phonon']:
-            vasp_db.db['qha_phonon'].insert_one(qha_result)
-        else:
-            vasp_db.db['qha'].insert_one(qha_result)
+        #if self['phonon']:
+        #    vasp_db.db['qha_phonon'].insert_one(qha_result)
+        #else:
+        vasp_db.db['qha'].insert_one(qha_result)
 
 
 @explicit_serialize
@@ -688,133 +689,112 @@ class CheckRelaxation(FiretaskBase):
 
     Follow the following flow (assuming fixed volume):
 
-                                          +--------+
-                                          | ISIF 7 |
-                                          |        |
-                                          | Input  |
-                                          +---+- --+
-                                              |
-                                              |
-                                              v
-                                          +---+----+
-                                          | ISIF 5 |
-                                          |        |
-                                          | Shape  |
-                                          | Only   |
-                                          +-+----+-+
-                                            |    |
-                          +--------+        |    |       +--------+
-                Pass      | ISIF 4 |  Pass  |    | Fail  | ISIF 2 |        Fail
-             +------------+        +<-------+    +------>+        +--------------+
-             |            | Shape  |                     | Ions   |              |
-             |            | & Ions |                     | Only   |              |
-             |            ----+----+                     +----+---+              |
-             |                |                               |                  |
-             |                |Fail                           |Pass              |
-             |                |                               |                  |
-             v                v                               v                  v
-    +--------+------+  +------+--------------+  +-------------+--------+  +------+---------------+
-    | Static        |  | Static              |  |  Static              |  |  Static              |
-    |               |  |                     |  |                      |  |                      |
-    | Fully relaxed |  | Constrained: ISIF 5 |  |  Constrained: ISIF 2 |  |  Constrained: ISIF 7 |
-    |               |  | Broken     : ISIF 4 |  |  Broken     : ISIF 5 |  |  Broken     : ISIF 2 |
-    +---------------+  +---------------------+  +----------------------+  +----------------------+
-
-    Above diagram made with http://asciiflow.com
-
+                       ISIF4=TRUE       PASS  +---+               NOTE:  7 -- Volume only
+                    7  ---------->  4   ----> | 4 |                      5 -- Shape only
+                                              +---+                      2 -- Ions only
+                    |               |                                    4 -- Shape & Ions
+        ISIF4=FALSE |               |                                         +---+
+         (default)  |     FAIL      |                                    N in |   | means Relax Scheme
+                    |<--------------+                                         +---+
+                    |                                               
+                    v                         
+                          FAIL                 +---+
+                    5  ---------+              | 0 |
+                                |              +---+                   
+                    |           |                A
+               PASS |           |                |
+                    |           |                | YES
+                    v           v                |
+                        FAIL        FAIL                 NO     +---+
+                    4  ------>  2  ------->  5 passed?  ------> | 5 |
+                                                                +---+
+                    |           |
+               PASS |           | PASS
+                    |           |
+                    v           V
+                +-------+              FAIL                 YES                 YES   +---+
+                | 5-->4 |     4(opt)  ------->  5 passed?  ------> E_2 < E_5?  -----> | 2 |
+                +-------+  (default skip)                                             +---+
+                                |                   |                  |
+                                | PASS              | NO               | NO
+                                |                   |                  |
+                                v                   v                  v
+                            +-------+             +---+              +---+
+                            | 2-->4 |             | 2 |              | 5 |
+                            +-------+             +---+              +---+
+    
+    Required parameters
+    -------------------
+        db_file: str
+            The json file to connect to MongoDb, if it is '>>db_file<<', it will look the FireWorks' configuration
+        tag: str
+            Tag to search the database.
+        common_kwargs: dict
+            Some common settings for RobustOptimizeFW
+    Optional parameters
+    -------------------
+        tol_energy/tol_strain/tol_bond: float
+            The tolerance of symmetry check
+        static_kwargs/relax_kwargs: dict
+            The common settings for static/relax run
+        isif4: bool
+            If run ISIF=4 befor ISIF=5
+        level: int
+            To contral if run(level=2) ISIF=4 after ISIF=2 passed or not(level=1, default)
+        energy_with_isif: dict
+            The energy with different isif, energy_with_isif = {2: energy2, 5: energy5}
     """
 
     required_params = ["db_file", "tag", "common_kwargs"]
-    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", "static_kwargs", "relax_kwargs"]
+    optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", 'level', 'isif4',  "energy_with_isif",
+                       "static_kwargs", "relax_kwargs"]
 
     def run_task(self, fw_spec):
-        symm_check_data = self.check_symmetry()
-        passed = symm_check_data["symmetry_checks_passed"]
-        cur_isif = symm_check_data["isif"]
-        next_steps = self.get_next_steps(passed, cur_isif)
-
-        symm_check_data.update({
-            "tag": self["tag"],
-            "metadata": self.get("metadata"),
-            "version_info": {
-                "atomate": atomate_ver,
-                "dfttk": dfttk_ver,
-                "pymatgen": pymatgen_ver,
-            },
-            "next_steps": next_steps,
-        })
-
-        # write to JSON for debugging purposes
-        with open('relaxation_check_summary.json', 'w') as fp:
-            json.dump(symm_check_data, fp)
-
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
-        vasp_db.db['relaxations'].insert_one(symm_check_data)
 
-        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom']))
-
-    def check_symmetry(self):
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
         tol_bond = self.get("tol_bond", 0.10)
+        energy_with_isif = self.get('energy_with_isif', {})
+        self.symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
 
-        # Get relevant files as pmg objects
-        incar = Incar.from_file("INCAR")
-        vasprun = Vasprun("vasprun.xml")
-        inp_struct = Structure.from_file("POSCAR")
-        out_struct = Structure.from_file("CONTCAR")
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+        passed = symm_check_data["symmetry_checks_passed"]
+        cur_isif = symm_check_data["isif"]
+        if passed:
+            energy_with_isif.update({str(cur_isif): symm_check_data['final_energy_per_atom']})
+        isif4 = self.get('isif4', False)
+        level = self.get('level', 1)
+        if cur_isif == 7:
+            if isif4:
+                next_steps = [{"job_type": "relax", "isif": 4, "structure": {"type": "final_structure", "isif": 7}}]
+            else:
+                next_steps = [{"job_type": "relax", "isif": 5, "structure": {"type": "final_structure", "isif": 7}}]
+            if not passed:
+                warnings.warn("Large change in volume during relaxation.")
+        else:
+            prev_item = vasp_db.db['relaxations'].find({'tag': self.get('tag')}).sort('_id', -1)
+            try:
+                prev_isif = prev_item[1]['isif']
+            except Exception as e:
+                #Not exist, which means current is the first one
+                if cur_isif == 4:
+                    prev_isif = 7
+                elif cur_isif == 5:
+                    if isif4:
+                        prev_isif = 4
+                    else:
+                        prev_isif = 7
+                else:
+                    raise ValueError("The first ISIF enter the RobustOptimizeFW should be 4, 5 or 7")
+                    #prev_isif = None
+            next_steps = self.get_next_steps(passed, cur_isif, prev_isif, isif4=isif4, level=level, energy_with_isif=energy_with_isif)
 
-        current_isif = incar['ISIF']
-        initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
-        final_energy = float(vasprun.final_energy)/len(out_struct)
-
-        # perform all symmetry breaking checks
-        failures = []
-        energy_difference = np.abs(final_energy - initial_energy)
-        if energy_difference > tol_energy:
-            fail_dict = {
-                'reason': 'energy',
-                'tolerance': tol_energy,
-                'value': energy_difference,
-            }
-            failures.append(fail_dict)
-        strain_norm = get_non_isotropic_strain(inp_struct.lattice.matrix, out_struct.lattice.matrix)
-        if strain_norm > tol_strain:
-            fail_dict = {
-                'reason': 'strain',
-                'tolerance': tol_strain,
-                'value': strain_norm,
-            }
-            failures.append(fail_dict)
-        bond_distance_change = get_bond_distance_change(inp_struct, out_struct)
-        if bond_distance_change > tol_bond:
-            fail_dict = {
-                'reason': 'bond distance',
-                'tolerance': tol_bond,
-                'value': bond_distance_change,
-            }
-            failures.append(fail_dict)
-
-        symm_data = {
-            "initial_structure": inp_struct.as_dict(),
-            "final_structure": out_struct.as_dict(),
-            "isif": current_isif,
-            "initial_energy_per_atom": initial_energy,
-            "final_energy_per_atom": final_energy,
-            "tolerances": {
-                "energy": tol_energy,
-                "strain": tol_strain,
-                "bond": tol_bond,
-            },
-            "failures": failures,
-            "number_of_failures": len(failures),
-            "symmetry_checks_passed": len(failures) == 0,
-        }
-        return symm_data
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], energy_with_isif=energy_with_isif))
 
     @staticmethod
-    def get_next_steps(symmetry_checks_passed, current_isif):
+    def get_next_steps(symmetry_checks_passed, current_isif, prev_isif, isif4=False, level=1, energy_with_isif={}):
         """Determine what to do next based on whether the checks passed and where we are at in the flowchart
 
         See the docstring for this class for reference to the flowchart.
@@ -824,31 +804,52 @@ class CheckRelaxation(FiretaskBase):
         if symmetry_checks_passed:
             if current_isif == 5:
                 next_steps = [
-                    {"job_type": "relax", "isif": 4, "structure": {"type": "final_structure", "isif": 5}},
-                ]
+                    {"job_type": "relax", "isif": 4, "structure": {"type": "final_structure", "isif": 5}}]
             elif current_isif == 4:
                 next_steps = [
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 4}, "symmetry_type": "constrained"}
-                ]
+                    {"job_type": "static", "isif": 4, "structure": {"type": "final_structure", "isif": 4}, "symmetry_type": "constrained"}]
             elif current_isif == 2:
-                next_steps = [
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"},
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "broken"}
-                ]
+                if level == 1:
+                    energy_isif5 = energy_with_isif.get('5', 0)
+                    energy_isif2 = energy_with_isif.get('2')
+                    if energy_isif2 < energy_isif5:
+                        next_steps = [
+                            {"job_type": "static", "isif": 2, "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"}]
+                    else:
+                        next_steps = [
+                            {"job_type": "static", "isif": 5, "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"}]
+                elif level == 2:
+                    next_steps = [
+                        {"job_type": "relax", "isif": 4 , "structure": {"type": "final_structure", "isif": 2}}]
         # Relaxation failed
         else:
             if current_isif == 5:
                 next_steps = [
-                    {"job_type": "relax", "isif": 2, "structure": {"type": "initial_structure", "isif": 5}},
-                ]
+                    {"job_type": "relax", "isif": 2, "structure": {"type": "initial_structure", "isif": 5}}]
             elif current_isif == 4:
-                next_steps = [
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"},
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 4}, "symmetry_type": "broken"}]
+                if prev_isif == 7:
+                    next_steps = [
+                        {"job_type": "relax", "isif": 5, "structure": {"type": "initial_structure", "isif": 4}}]
+                elif prev_isif == 5:
+                    #Note: though here 5 is passed, but use the initial structure of 5 to compare the energy with 2
+                    next_steps = [
+                        {"job_type": "relax", "isif": 2, "structure": {"type": "initial_structure", "isif": 5}}]
+                elif prev_isif == 2:
+                    energy_isif5 = energy_with_isif.get('5', 0)
+                    energy_isif2 = energy_with_isif.get('2')
+                    if energy_isif2 < energy_isif5:
+                        next_steps = [
+                            {"job_type": "static", "isif": 2, "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "constrained"}]
+                    else:
+                        next_steps = [
+                            {"job_type": "static", "isif": 5, "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"}]
             elif current_isif == 2:
-                next_steps = [
-                    {"job_type": "static", "structure": {"type": "initial_structure", "isif": 5}, "symmetry_type": "constrained"},
-                    {"job_type": "static", "structure": {"type": "final_structure", "isif": 2}, "symmetry_type": "broken"}]
+                if prev_isif == 5:
+                    next_steps = [
+                        {"job_type": "static", "isif": 0, "structure": {"type": "initial_structure", "isif": 5}, "symmetry_type": "constrained"}]
+                elif prev_isif == 4:
+                    next_steps = [
+                        {"job_type": "static", "isif": 5, "structure": {"type": "final_structure", "isif": 5}, "symmetry_type": "constrained"}]
 
         if next_steps is None:
             status = "passed" if symmetry_checks_passed else "failed"
@@ -856,16 +857,15 @@ class CheckRelaxation(FiretaskBase):
 
         return next_steps
 
-    def get_detour_workflow(self, next_steps, final_energy):
+    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
         # delayed imports to avoid circular import
         from fireworks import Workflow
         from .fworks import RobustOptimizeFW, StaticFW
-        tol_energy = self.get("tol_energy", 0.025)
-        tol_strain = self.get("tol_strain", 0.05)
-        tol_bond = self.get("tol_bond", 0.10)
-        symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
+        
+        symmetry_options = self.symmetry_options
+        static_kwargs = self.get('static_kwargs', {})
 
         # Assume the data for the current step is already in the database
         db = VaspCalcDb.from_db_file(self.db_file, admin=True).db['relaxations']
@@ -884,9 +884,272 @@ class CheckRelaxation(FiretaskBase):
                 md = common_copy.get("metadata", {})
                 md['symmetry_type'] = step["symmetry_type"]
                 common_copy["metadata"] = md
-                detour_fws.append(StaticFW(inp_structure, **common_copy))
+                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **static_kwargs, **common_copy))
             elif job_type == "relax":
-                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
+                detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
+                        override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws
+
+
+@explicit_serialize
+class CheckRelaxScheme(FiretaskBase):
+    """
+    Check the MongoDB, and get the relax scheme and the path of the static task
+        1. Searching the 'relax_scheme' collection, if it exists, return an update_spec FWAction
+        2. elif, try to get the relax scheme from 'relaxation' collection
+        3. TODO: return a RobustOptimizeFW followed by CheckRelaxScheme 
+    """
+
+    required_params = ["db_file", "tag"]
+    optional_params = ["metadata"]
+
+    def run_task(self, fw_spec):
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        tag = self.get('tag')
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+
+        def _get_relaxed_structure(isif, tag):
+            passed_item = vasp_db.db['relaxations'].find_one({'$and': [{'tag': tag}, {'isif': isif}, {'symmetry_checks_passed': True}]})
+            return passed_item['final_structure']
+
+        if vasp_db.db['relax_scheme'].count_documents({'tag': tag}) > 0:
+            relax_items = vasp_db.db['relax_scheme'].find_one({'tag': tag})
+            relax_scheme = relax_items['relax_scheme']
+            relax_structure = Structure.from_dict(relax_items['relax_structure'])
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure})
+
+        elif vasp_db.db['relaxations'].count_documents({'tag': self.get('tag')}) > 0:
+            relax_items = vasp_db.db['relaxations'].find({'tag': self.get('tag')}).sort('_id', 1)
+            pass_dict = {2: False, 4: False, 5: False}
+            energy_dict = {}
+            for item in relax_items:
+                pass_dict[item['isif']] = item['symmetry_checks_passed']
+                if item['symmetry_checks_passed']:
+                    energy_dict[item['isif']] = item['final_energy_per_atom']
+                else:
+                    energy_dict[item['isif']] = item['initial_energy_per_atom']
+            if pass_dict[2]:
+                if pass_dict[4]:
+                    relax_scheme = [2, 4]
+                else:
+                    if pass_dict[5]:
+                        if energy_dict[2] < energy_dict[5]:
+                            relax_scheme = [2]
+                        else:
+                            relax_scheme = [5]
+                    else:
+                        relax_scheme = [2]
+            elif pass_dict[5]:
+                if pass_dict[4]:
+                    relax_scheme = [5, 4]
+                else:
+                    relax_scheme = [5]
+            elif pass_dict[4]:
+                relax_scheme = [4]
+            else:
+                relax_scheme = [0]
+            relax_structure = _get_relaxed_structure(relax_scheme[-1], tag)
+
+            relax_scheme_data = {'relax_scheme': relax_scheme, 'relax_structure': relax_structure,
+                                "tag": tag,"metadata": self.get("metadata", {'tag': tag}),
+                                "version_info": {"atomate": atomate_ver, "dfttk": dfttk_ver,"pymatgen": pymatgen_ver}}
+            with open('relax_scheme_check_summary.json', 'w') as fp:
+                json.dump(relax_scheme_data, fp, indent=4)
+
+            vasp_db.db['relax_scheme'].insert_one(relax_scheme_data)
+
+            #Only if ISIF=4 passed, then run phonon
+            if 4 in relax_scheme:
+                relax_phonon = True
+            else:
+                relax_phonon = False
+
+            return FWAction(update_spec={'relax_scheme': relax_scheme, 'structure': relax_structure, 'relax_phonon': relax_phonon})
+        else:
+            raise ValueError('Please run RobustOptimizeFW firstly.')
+
+
+@explicit_serialize
+class GetElectronicDosFromDb(FiretaskBase):
+    """
+    Get electronic dos from MongoDB
+
+    Required parameters
+    -------------------
+        metadata: dict
+        db_file: str [filename like]
+    Optional parameters
+    -------------------
+        save_data: bool
+        save_fig: bool
+        pdos: bool
+    Return
+    ------
+        Updata spec FWAction, add/update 'edos' key in spec
+            edos = [{volume1: {'volume': volume1, 'formula': formula1, 'fermi': fermi1, 'band_gap': band_gap,
+                               'spacegroup': sg1, 'dos': dos1}, 'metadata': metadata,
+                    {volume2: {...}, 'metadata': metadata}
+                     ...]
+            The edos is sorted according to volume
+
+    """
+    required_params = ['metadata', 'db_file']
+    optional_params = ['save_data', 'save_fig', 'pdos']
+    def run_task(self, fw_spec):
+        self.db_file = env_chk(self.get('db_file'), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        dos_items = vasp_db.db['tasks'].find({'metadata': self.metadata}).sort('_id', -1)
+        dos_result = []
+        volumes = []
+        for dos_item in dos_items:            
+            structure = Structure.from_dict(dos_item['output']['structure'])
+            volume = structure.volume
+            formula = structure.composition.reduced_formula
+
+            #sg is a dict, including symbol, number point_group, crystal_symmetry, hall
+            sg = dos_item['output']['spacegroup']
+
+            dos_obj = vaspdb.get_dos(dos_item['task_id'])
+            fermi = dos_obj.efermi
+            band_gap = dos_obj.get_gap()
+            electronic_dos = np.vstack((dos_obj.energies, dos_obj.get_densities()))
+
+            dos_result.append({format(volume, '.3f'): {'volume': volume, 'formula': formula, 'fermi': fermi,
+                               'band_gap': band_gap, 'spacegroup': sg, 'dos': electronic_dos}, 'metadata': metadata})
+            volumes.append(volume)
+        dos_result = sort_x_by_y(dos_result, volumes)
+        return FWAction(update_spec={'edos': dos_result})
+
+
+@explicit_serialize      
+class GetPhononDosFromDb(FiretaskBase):
+    """
+    """
+    required_params = ['metadata', 'db_file']
+    optional_params = ['qpoint_mesh', 'save_data', 'save_fig', 'pdos', 'phonon_band']
+    def run_task(self, fw_spec):
+        qpoint_mesh = self.get('qpoint_mesh', [50, 50, 50])
+
+        self.db_file = env_chk(self.get('db_file'), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        phonon_items = vasp_db.db['phonon'].find({'metadata': self.metadata}).sort('_id', -1)
+
+        phonon_tdos = []
+        volumes = []
+        for phonon_item in phonon_items:
+
+            structure = Structure.from_dict(phonon_item['unitcell'])
+            volume = structure.volume
+            formula = structure.composition.reduced_formula
+
+            supercell_matrix = phonon['supercell_matrix']
+            force_constants = phonon['force_constants']
+
+            phonon_tdos = get_phonon_band_dos(structure, supercell_matrix, force_constants, qpoint_mesh=qpoint_mesh, 
+                                                   phonon_dos=True, phonon_band=False, phonon_pdos=False, save_data=False, save_fig=False)
+
+
+@explicit_serialize
+class CheckSymmetryToDb(FiretaskBase):
+    '''
+    Store the CheckSymmetry result to MongoDB, the stored collection is named as 'relaxations'
+    '''
+    required_params = ["db_file", "tag"]
+    optional_params = ['override_symmetry_tolerances', 'metadata']
+    def run_task(self, fw_spec):
+        override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
+        tol_energy = override_symmetry_tolerances.get("tol_energy", 0.025)
+        tol_strain = override_symmetry_tolerances.get("tol_strain", 0.05)
+        tol_bond = override_symmetry_tolerances.get("tol_bond", 0.10)
+
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+
+        symm_check_data.update({
+            "tag": self["tag"],
+            "metadata": self.get("metadata", {'tag': self["tag"]}),
+            "version_info": {
+                "atomate": atomate_ver,
+                "dfttk": dfttk_ver,
+                "pymatgen": pymatgen_ver,
+            }
+        })
+
+        # write to JSON for debugging purposes
+        with open('relaxation_check_summary.json', 'w') as fp:
+            json.dump(symm_check_data, fp, indent=4)
+
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        vasp_db.db['relaxations'].insert_one(symm_check_data)
+        return FWAction(update_spec={'symmetry_checks_passed': symm_check_data['symmetry_checks_passed']})
+ 
+
+@explicit_serialize
+class BornChargeToDb(FiretaskBase):
+    '''
+    Store the born charge into the database, the stored collection is named as 'borncharge'
+    '''
+    required_params = ["db_file", "tag"]
+    optional_params = ['structure', 'store_input']
+    def run_task(self, fw_spec):
+        incar = Incar.from_file(filename='INCAR').as_dict()
+        lepsilon = incar.get('LEPSILON', False)
+        lrpa = incar.get('LRPA', False)
+        outcar = Outcar('OUTCAR')
+        if lepsilon and (not lrpa):
+            born_charge_matrix = outcar.born.tolist()
+            dielectric_tensor = outcar.dielectric_tensor
+        else:
+            raise ValueError('The incar is not correct for born charge calculation.')
+
+        structure = self.get('structure', Structure.from_file('POSCAR'))
+
+        born_result = {'metadata': {'tag': self.get('tag')},
+                       'born_charge': born_charge_matrix,
+                       'dielectric_tensor': dielectric_tensor,
+                       'volume': structure.volume,
+                       'inputs': {'incar': incar}}
+
+        self.db_file = env_chk(self.get("db_file"), fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        vasp_db.db['borncharge'].insert_one(born_result)
+
+
+@explicit_serialize
+class  PhononStable(FiretaskBase):
+    """
+    Stability by phonon
+    This fire task will judge if the structure is stable or not by phonon dos.
+    If the negative part percentage of dos is larger than stable_tor(default 1%), then the structure is unstable
+
+    """
+    required_params = ['supercell_matrix', 'db_file', 'tag']
+    optional_params = ['metadata', 'qpoint_mesh', 'stable_tor']
+
+    def run_task(self, fw_spec):
+
+        tag = self["tag"]
+        metadata = self.get('metadata', {})
+        metadata['tag'] = tag
+
+        unitcell = Structure.from_file('POSCAR-unitcell')
+        supercell_matrix = self['supercell_matrix']
+        qpoint_mesh = self.get('qpoint_mesh', (50, 50, 50))
+        stable_tor = self.get('stable_tor', 0.01)
+
+        vasprun = PhonopyVasprun(vasprun_path='vasprun.xml')
+        force_constants, elements = vasprun.read_force_constants()
+
+        phonon_stability = phonon_stable(unitcell, supercell_matrix, force_constants, 
+                                         qpoint_mesh=qpoint_mesh, stable_tor=stable_tor)
+
+        stability = {'phonon_stability': {'stability': phonon_stability, 'stable_tolerance': stable_tor,
+                     'qpoint_mesh': qpoint_mesh}}
+
+        # insert into database
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        vasp_db.db['phonon'].insert_one(stability)
+        
