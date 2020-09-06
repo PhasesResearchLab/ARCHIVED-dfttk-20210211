@@ -1,3 +1,4 @@
+#This is part of DFTTK
 #Template of SETTINGS.yaml
 #All the value listed here is the default value
 
@@ -21,6 +22,11 @@ phonon_supercell_matrix : 'atoms'
 #units: number of atoms for 'atoms', A and A^3 for 'lattice' and 'volume', respectively
 phonon_supercell_matrix_min : 60
 phonon_supercell_matrix_max : 130
+
+#run phonon always, no matter ISIF=4 passed or not
+force_phonon : False
+#The tolerance for phonon stable
+stable_tor : 0.01
 
 #int, the number of initial deformations, e.g. 7
 num_deformations : 7

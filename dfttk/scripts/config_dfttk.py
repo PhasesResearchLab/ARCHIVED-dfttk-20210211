@@ -677,7 +677,7 @@ class ConfigFworker(ConfigTemplate):
                 {"db_file": os.path.join(self.PATH_TO_STORE_CONFIG, "config/db.json"),
                  "vasp_cmd": self.VASP_CMD,
                  "scratch_dir": "null",
-                 "incar_update": "{}"}
+                 "incar_update": {}}
             }
 
 def test_config(test_pymagen=True, test_atomate=True):
