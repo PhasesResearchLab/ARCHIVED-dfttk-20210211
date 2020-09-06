@@ -314,8 +314,8 @@ def run(args):
                 wfs.append(wf)
 
                 if WRITE_OUT_WF:
-                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
-                    wf.to_file(dfttk_wf_filename)
+                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                    dumpfn(wf.to_dict(), dfttk_wf_filename)
             
     #Write Out the metadata for POST and continue purpose
     dumpfn(metadatas, "METADATAS.yaml")
