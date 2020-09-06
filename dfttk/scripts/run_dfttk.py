@@ -3,7 +3,7 @@
 import argparse
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Potcar
-from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from monty.serialization import loadfn, dumpfn
