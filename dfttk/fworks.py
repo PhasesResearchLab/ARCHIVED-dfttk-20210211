@@ -331,7 +331,7 @@ class PhononFW(Firework):
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
                  name="phonon", vasp_input_set=None, override_default_vasp_params=None,
-                 vasp_cmd="vasp", metadata=None, tag=None, qpoint_mesh=(50, 50, 50).
+                 vasp_cmd="vasp", metadata=None, tag=None, qpoint_mesh=(50, 50, 50),
                  prev_calc_loc=True, db_file=None, parents=None, stable_tor=0.01,
                  **kwargs):
 
