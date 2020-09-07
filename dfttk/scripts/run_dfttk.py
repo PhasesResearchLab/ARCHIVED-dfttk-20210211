@@ -297,7 +297,7 @@ def run(args):
                     "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
 
             if flag_run:
-                user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+                user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
                 metadatai = metadatas.get(STR_FILE, None)
                 if metadatai:

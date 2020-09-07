@@ -595,7 +595,7 @@ class ConfigTemplate(object):
         self.QUEUE = kwargs.get("queue", "open")
         self.PMEM = kwargs.get("pmem", "8gb")
         self.PRE_ROCKET = kwargs.get("pre_rocket", "module load intel impi vasp")
-        self.POST_ROCKET = kwargs.get("post_rocket", "null")
+        self.POST_ROCKET = kwargs.get("post_rocket", '')
 
     def write_file(self):
         filename = os.path.join(self.PATH_TO_STORE_CONFIG, "config/" + self.FILENAME)

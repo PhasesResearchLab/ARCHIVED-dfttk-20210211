@@ -237,6 +237,9 @@ class EVcheck_QHA(FiretaskBase):
         override_default_vasp_params = self.get('override_default_vasp_params', {})
         override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
 
+        stable_tor = self.get('stable_tor', 0.01)
+        force_phonon = self.get('force_phonon', False)
+
         relax_structure = self.get('structure') or fw_spec.get('structure', None)
         relax_scheme = self.get('relax_scheme') or fw_spec.get('relax_scheme', [2])
         relax_phonon = fw_spec.get('relax_phonon', False)
