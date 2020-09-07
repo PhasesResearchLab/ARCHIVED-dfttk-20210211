@@ -410,10 +410,10 @@ def run_dfttk():
                            "\t End with -SETTINGS (individual settings)")
     prun.add_argument("-r", "--recursive", dest="RECURSIVE", action="store_true", 
                       help="Recursive the path.")
-    prun.add_argument("-wf", "--workflow", dest="WORKFLOW", type=str, default="get_wf_gibbs",
+    prun.add_argument("-wf", "--workflow", dest="WORKFLOW", type=str, default="robust",
                       help="""Specify the workflow to run.\n
-                           Default: get_wf_gibbs \n
-                           (NOTE: currently, only get_wf_gibbs is supported.)""")
+                           Default: robust (run get_wf_gibbs_robust workflow) \n
+                           (NOTE: currently, only robust and born are supported.)""")
     prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
                       help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",
