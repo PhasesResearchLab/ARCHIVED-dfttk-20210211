@@ -297,7 +297,7 @@ def run(args):
                     "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
 
             if flag_run:
-                user_settings = get_user_settings(STR_FILENAME, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+                user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
                 metadatai = metadatas.get(STR_FILE, None)
                 if metadatai:
@@ -314,8 +314,8 @@ def run(args):
                 wfs.append(wf)
 
                 if WRITE_OUT_WF:
-                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME + ".yaml")
-                    wf.to_file(dfttk_wf_filename)
+                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                    dumpfn(wf.to_dict(), dfttk_wf_filename)
             
     #Write Out the metadata for POST and continue purpose
     dumpfn(metadatas, "METADATAS.yaml")
@@ -410,10 +410,10 @@ def run_dfttk():
                            "\t End with -SETTINGS (individual settings)")
     prun.add_argument("-r", "--recursive", dest="RECURSIVE", action="store_true", 
                       help="Recursive the path.")
-    prun.add_argument("-wf", "--workflow", dest="WORKFLOW", type=str, default="get_wf_gibbs",
+    prun.add_argument("-wf", "--workflow", dest="WORKFLOW", type=str, default="robust",
                       help="""Specify the workflow to run.\n
-                           Default: get_wf_gibbs \n
-                           (NOTE: currently, only get_wf_gibbs is supported.)""")
+                           Default: robust (run get_wf_gibbs_robust workflow) \n
+                           (NOTE: currently, only robust and born are supported.)""")
     prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
                       help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",

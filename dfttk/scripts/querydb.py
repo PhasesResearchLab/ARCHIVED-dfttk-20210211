@@ -32,8 +32,7 @@ def get_static_structure_by_metadata(metadata, db_file=None):
     if (db_file is None) or (db_file == '>>db_file<<'):
         db_file = DB_FILE
     vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
-    collection = PRO_COLLECTION_MAP[property]
-    static_items = vasp_db.db['tasks'].find({'metadata': metadata})
+    static_items = list(vasp_db.db['tasks'].find({'metadata': metadata}))
     structure_list = [Structure.from_dict(itemi['output']['structure']) for itemi in static_items]
     energies = [itemi['output']['energy_per_atom'] for itemi in static_items]
     band_gap = [itemi['output']['direct_gap'] for itemi in static_items]
