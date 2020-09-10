@@ -21,7 +21,7 @@ import shutil
 import numpy as np
 from fireworks.fw_config import config_to_dict
 from atomate.vasp.database import VaspCalcDb
-from dfttk.analysis.ywutils import formula2composition
+from dfttk.analysis.ywutils import formula2composition, reduced_formula
 
 class thfindMDB ():
     """
@@ -75,6 +75,7 @@ class thfindMDB ():
     def skipby(self, phase, metatag):
         if self.metatag!=None:
             if self.metatag!=metatag: return True
+        #print("eeeeeeee",phase)
         els,tmp = formula2composition(phase.split('_')[0])
         if len (self.within) != 0:
             for e in els:
@@ -132,6 +133,11 @@ class thfindMDB ():
                 supercell_matrix = i['supercell_matrix']
                 self.supercellsize.append(natoms*int(np.linalg.det(np.array(supercell_matrix))+.5))
                 formula_pretty = structure.composition.reduced_formula
+                try:
+                    formula2composition(formula_pretty)
+                except:
+                    formula_pretty = reduced_formula(structure.composition.alphabetical_formula)
+
                 sa = SpacegroupAnalyzer(structure)
                 phasename = formula_pretty+'_'\
                     + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())

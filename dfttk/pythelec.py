@@ -3,6 +3,7 @@
 # common block named comcon
 from __future__ import division
 import sys
+import gzip
 import os
 import subprocess
 import math
@@ -556,7 +557,7 @@ def runthelec(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom,
       if self.debug:
         T = T_remesh(t0,t1,td,_nT=65)
       else:
-        T = T_remesh(t0,t1,td,_nT=257)
+        T = T_remesh(t0,t1,td,_nT=self.nT)
     nT = len(T)
     U_el = np.zeros(nT)
     S_el = np.zeros(nT)
@@ -676,8 +677,19 @@ def BMvol4(T, a, b, c, d):
 def BMvol5(T, a, b, c, d, e):
   return (BMvol(T, [a,b,c,d,e]))
 
+def alt_curve_fit(BMfunc, x, y):
+  #it is found the python curve_fit can result in numerical instability
+  if 1==0: return curve_fit(BMfunc, x, y)
+
+  #change back to linear fitting to avoid numerical instability
+  xx = x**(-1/3)
+  if BMfunc.__name__=="BMvol4":
+    return np.polyfit(xx, y, 3)[::-1], 0
+  elif BMfunc.__name__=="BMvol5":
+    return np.polyfit(xx, y, 4)[::-1], 0
+
 def BMfitB(V, x, y, BMfunc):
-  f, pcov = curve_fit(BMfunc, x, y)
+  f, pcov = alt_curve_fit(BMfunc, x, y)
   p = BMvolP(V, f)
   b = BMvolB(V, f)
   P = p*V**(-4./3)*(-1./3.)
@@ -685,14 +697,14 @@ def BMfitB(V, x, y, BMfunc):
   return B*V, P
 
 def BMfitP(V, x, y, BMfunc):
-  f, pcov = curve_fit(BMfunc, x, y)
+  f, pcov = alt_curve_fit(BMfunc, x, y)
   p = BMvolP(V, f)
-  b = BMvolB(V, f)
   P = p*V**(-4./3)*(-1./3.)
   return P
 
 def BMfitF(V, x, y, BMfunc):
-  f, pcov = curve_fit(BMfunc, x, y)
+  f, pcov = alt_curve_fit(BMfunc, x, y)
+  #print("eeeeeee",f,pcov)
   return BMvol(V,f)
 
 def BMsmooth(_V, _E0, _Flat, _Fel, _Slat, _Sel, BMfunc, elmode):
@@ -735,7 +747,11 @@ def CenDif(v, vol, F, N=7,kind='cubic'):
     vx = max(vol)
     dV = 0.001*(vx-vn)
     if kind=='cubic':
-        f2 = interp1d(vol, F, kind='cubic')
+        if 1==1:
+            f2 = interp1d(vol, F, kind='cubic')
+        else:
+            f0 = splrep(vol, F)
+            return splev(v, f0, der=1)
     else:
         f2 = UnivariateSpline(vol, F)
 
@@ -761,14 +777,25 @@ def CenDifB(vol, F, N=7,kind='cubic'):
     val, idx = min((val, idx) for (idx, val) in enumerate(yy))
     if idx <N//2 or idx>=len(xx)-N//2-2:
         return -1.0, -1.0, 0.
-    
+
     try:
-        #print ("eeeee, idx", idx, xx[idx-1], xx[idx+1], vn, vx)
         v = brentq(CenDif, xx[idx-1], xx[idx+1], args=(vol, F, N, kind), maxiter=10000)
         ff = interp1d(vol, F)(v)
     except:
         return -1.0, -1.0, 0.
 
+    if 1==0:
+        with open ("debug", "a") as fp:
+            fp.write('#v={}\n'.format(v))
+            for i,x in enumerate(vol):
+                fp.write('{} {}\n'.format(x, F[i]))
+            fp.write('\n\n')
+
+            fp.write('#v={}\n'.format(v))
+            for i,x in enumerate(xx):
+                fp.write('{} {}\n'.format(x, yy[i]))
+            fp.write('\n\n')
+    
     n = N//2
     dV = xx[1]-xx[0]
     for nx in range(n, 0, -1):
@@ -784,7 +811,7 @@ def CenDifB(vol, F, N=7,kind='cubic'):
     except:
         return -1.0, -1.0, 0.
 
-def BMDifB(vol, F, BMfunc, N=7):
+def BMDifB(vol, F, BMfunc, N=7, _T=0):
     vn = min(vol)
     vx = max(vol)
     xx = np.linspace(vn,vx,1000)
@@ -793,6 +820,19 @@ def BMDifB(vol, F, BMfunc, N=7):
     if idx <N//2 or idx>=len(xx)-N//2-2:
         return -1.0, -1.0, 0.,0.
     v = brentq(BMfitP, xx[idx-1], xx[idx+1], args=(vol, F, BMfunc), maxiter=10000)
+
+    if 1==0:
+        with open ("debug", "a") as fp:
+            fp.write('#v={}\n'.format(v))
+            for i,x in enumerate(vol):
+                fp.write('{} {}\n'.format(x, F[i]))
+            fp.write('\n\n')
+
+            fp.write('#T= {} v= {}\n'.format(_T, v))
+            for i,x in enumerate(xx):
+                fp.write('{} {}\n'.format(x, yy[i]))
+            fp.write('\n\n')
+    
     ff = BMfitF(v, vol, F, BMfunc)
     bb, pp = BMfitB(v, vol, F, BMfunc)
     return bb, v, ff, pp
@@ -805,7 +845,6 @@ def BMDifB(vol, F, BMfunc, N=7):
         else:
             t1 = xx[idx+1]
             d1 = BMfitP(t1, vol, F, BMfunc)
-            #print("0 eeeeeeeee", t0, t1)
             if d1==0.0:
                 v=t1
             else:
@@ -823,7 +862,7 @@ def BMDifB(vol, F, BMfunc, N=7):
     """
     """
     from scipy.optimize import minimize
-    args, pcov = curve_fit(BMfunc, vol, F)
+    args, pcov = alt_curve_fit(BMfunc, vol, F)
     print("eeeeeee",BMfunc(v,*args))
     print("eeeeeee",F)
     print("eeeeeee",BMfunc(vol,*args))
@@ -994,31 +1033,34 @@ class thelecMDB():
         self.debug=debug
         self.renew=renew
         self.fitF=fitF
+        if self.debug:
+            if self.dope==0.0: self.dope=-1.e-5
         if args!=None:
+            self.nT = args.nT
             self.doscar=args.doscar
             self.poscar=args.poscar
             self.vdos=args.vdos
         #print ("iiiii=",len(self._Yphon))
 
 
-    def toYphon(self):
+    def toYphon(self, _T=None, for_plot=False):
         self.Vlat = []
         self.Flat = []
         self.Clat = []
         self.Slat = []
         self.quality = []
-        if self.debug:
+        if _T is not None:
+            self.T_vib = copy.deepcopy(_T)
+        elif self.debug:
             self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=65)
         else:
-            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=257)
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=self.nT)
 
         print ("extract the superfij.out used by Yphon ...")
         phdir = self.phasename+'/Yphon'
         if not os.path.exists(phdir):
             os.mkdir(phdir)
         for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
-            #print("eeeeeeeeeeee", self.Vlat)
-            #print("eeeeeeeeeeee", i['volume'])
             if i['volume'] not in self.volumes: continue
             if vol_within(float(i['volume']), self.Vlat): continue
             try:
@@ -1094,7 +1136,6 @@ class thelecMDB():
                 f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, natoms \
                     = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
                 self.quality.append(quality)
-                #print ("eeeeeee", cv_vib*96484, self.natoms)
 
             self.Flat.append(f_vib)
             self.Slat.append(s_vib)
@@ -1110,6 +1151,7 @@ class thelecMDB():
         self.Flat = np.array(sort_x_by_y(self.Flat, self.Vlat))
         self.Vlat = np.array(sort_x_by_y(self.Vlat, self.Vlat))
         self.Dlat = np.full((len(self.Vlat)), 400.)
+        if for_plot: return
         self.volT = np.zeros(len(self.T_vib))
         self.GibT = np.zeros(len(self.T_vib))
 
@@ -1257,6 +1299,27 @@ class thelecMDB():
             """
             self.theall[:,:,i] = np.array( prp_vol ) # convert Tuple into array for the convenience of quasistatic interpolation
 
+            """
+            """
+            phdir = self.phasename+'/Yphon'
+            if not os.path.exists(phdir): os.mkdir(Yphon)
+            vol = 'V{:010.6f}'.format(self.volumes[i])
+            voldir = phdir+'/'+vol
+            if not os.path.exists(voldir):
+                os.mkdir(voldir)
+            doscar = voldir+'/DOSCAR.gz'
+            if not os.path.exists(doscar):
+                with gzip.open (doscar,'wt') as out:
+                    for j in range(5):
+                        out.write('   {}\n'.format(j))
+                    eup = np.max(dos.energies)
+                    edn = np.min(dos.energies)
+                    out.write('{:>16.8}{:>16.8}{:5}{:>16.8}{:>16.8}\n'.format(eup,edn,len(dos.energies),dos.efermi,1.0))
+                    vaspEdos = np.array(dos.get_densities())
+                    ados = cumtrapz(vaspEdos, dos.energies, initial=0.0)
+                    for j,d in enumerate(dos.energies):
+                        out.write('{:>11.3f} {:>11.4e} {:>11.4e}\n'.format(d,vaspEdos[j],ados[j]))
+
 
     def find_vibrational(self):
         if self.pyphon:
@@ -1348,7 +1411,6 @@ class thelecMDB():
             p1 = np.poly1d(np.polyfit(self.volumes, FF, 1))
             FF = p1(self.volumes)
             blat, self.volT[i], newF = CenDifB(self.volumes, self.energies+FF, N=7,kind='cubic')
-            #print ("eeeeee", self.volT[i])
             self.blat.append(blat)
             if newF!=None: self.GibT[i] = newF
             if self.volT[i] < 0: break
@@ -1380,13 +1442,12 @@ class thelecMDB():
             
             if self.eqmode==4 or self.eqmode==5:
                 #print ("iiii", self.T[i], self.volT[i], E0+Flat+Fel)
-                blat, self.volT[i], self.GibT[i], P = BMDifB(self.volumes, E0+FF, self.BMfunc, N=7)
+                blat, self.volT[i], self.GibT[i], P = BMDifB(self.volumes, E0+FF, self.BMfunc, N=7, _T=self.T[i])
                 if blat < 0: return -1.0, 0.0
                 if self.T[i]!=0.0: beta = (BMfitP(self.volT[i], self.volumes, E0+FF+self.T[i]*(Slat+Sel), 
                     self.BMfunc) + P)/self.T[i]/blat
                 else: beta = 0.0
             else:
-                #print ("eeeeeee=", self.T[i])
                 blat, self.volT[i], newF = CenDifB(self.volumes, E0+FF, N=7,kind=kind)
                 if blat < 0: return -1.0, 0.0
                 if newF!=None: self.GibT[i] = newF
@@ -1419,6 +1480,8 @@ class thelecMDB():
         #with open(self.phasename+'/key_comments.json', 'w') as fp:
         #    myjsonout(self.key_comments, fp, indent="", comma="")
         
+        if self.debug:
+            fvol = open(self.phasename+'/fvol', "w")
         thermofile = self.phasename+'/'+self.outf
         with open(thermofile, 'w') as fvib:
             fvib.write('#Found quasiharmonic mode : {}\n'.format(self.qhamode))
@@ -1431,12 +1494,20 @@ class thelecMDB():
             if self.hasSCF:
                 if self.fitF: 
                     self.calc_TE_V_fitF()
-                    _beta = copy.deepcopy(self.beta)
+                    nT = len(self.beta)
+                    #_beta = copy.deepcopy(self.beta)
                 else:
                     self.blat = np.zeros((len(self.T)), dtype=float)
                     self.beta = np.zeros((len(self.T)), dtype=float)
                     nT = len(self.T)
                     for i in range(len(self.T)):
+                        if self.debug:
+                            fvol.write('#T= {}\n'.format(self.T[i]))
+                            for j,v in enumerate(self.volumes):
+                                fvol.write('{} {} {} {} {}\n'.format(v, self.Flat[j,i], self.theall[0,i,j],
+                                    self.Slat[j,i], self.theall[1,i,j]))
+                            fvol.write('\n\n')
+
                         if self.elmode>=1: 
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
                         else:
@@ -1445,12 +1516,10 @@ class thelecMDB():
                             nT = i
                             print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                             break
+                """
                     _beta = copy.deepcopy(self.beta)
-                    #print("eeeeeee", _beta)
 
                     if self.eqmode==4 or self.eqmode==5:
-                        #if nT < len(self.T):
-                        #    if self.blat[nT] < 0: nT -= 1
                         #f2 = splrep(self.T[0:nT], self.volT[0:nT], s=3, k=5)
                         f2 = splrep(self.T[0:nT], self.volT[0:nT])
                         if 1==0:
@@ -1476,12 +1545,6 @@ class thelecMDB():
                             tused = _b2[i]
                         _beused[i]=tused
                         _b2[i]=tused
-                        """
-                        if (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i]) < 0.0: 
-                            if (_b2[i]-_b2[i-1])*(_b2[i+1]-_b2[i]) > 0.0: _beused[i]=_b2[i]
-                        if (_b2[i]-_b2[i-1])*(_b2[i+1]-_b2[i]) < 0.0: 
-                            if (_beused[i]-_beused[i-1])*(_beused[i+1]-_beused[i]) > 0.0: _b2[i]=_beused[i]
-                        """
                 self.beta = _beused
 
                 LTCzigzag = 0
@@ -1490,12 +1553,16 @@ class thelecMDB():
                     if self.beta[i] < 1.e-6: continue #check irregularity of along LTC curve
                     if (self.beta[i]-self.beta[i-1])*(self.beta[i+1]-self.beta[i]) < 0.0: LTCzigzag += 1
                 self.key_comments['LTC quality'] = LTCzigzag
+                """
 
 
+            if nT <3: return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
+            self.TupLimit = self.T[-1]
             for i in range(len(self.T)):
                 if self.hasSCF:
                     blat, beta = self.blat[i], self.beta[i]
                     if blat < 0: 
+                        self.TupLimit = self.T[i-1]
                         print ("\nblat<0! Perhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
                     try:
@@ -1505,6 +1572,7 @@ class thelecMDB():
                         dlat = interp1d(self.volumes, self.Dlat)(self.volT[i])
                         cplat = clat+beta*beta*blat*self.volT[i]*self.T[i]
                     except:
+                        self.TupLimit = self.T[i-1]
                         print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
 
@@ -1525,15 +1593,16 @@ class thelecMDB():
 
                 if self.hasSCF:
                     debyeT = get_debye_T_from_phonon_Cv(self.T[i], clat, dlat, self.natoms)
-                    fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
+                    fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
                     format(self.T[i], self.volT[i]/self.natoms, self.GibT[i]/self.natoms, (slat+prp_T[1])*toJmol,
                     (self.GibT[i]+self.T[i]*(slat+prp_T[1]))*toJmol, 
                     beta/3., (cplat+prp_T[2])*toJmol, (clat+prp_T[2])*toJmol, 
                     cplat*toJmol, blat*toGPa, debyeT, dlat, 
                     prp_T[0]/self.natoms, prp_T[1]*toJmol, prp_T[2]*toJmol, 
                     prp_T[3], prp_T[4], L, prp_T[5]/self.natoms, prp_T[6]/self.natoms, 
-                    prp_T[7]/self.natoms, prp_T[8]*toJmol, _bsplev[i]/3.0, prp_T[10]/self.natoms, 
+                    prp_T[7]/self.natoms, prp_T[8]*toJmol, prp_T[10]/self.natoms, 
                     prp_T[11]/self.natoms, prp_T[12]/self.natoms, prp_T[13]/self.natoms))
+                    #prp_T[7]/self.natoms, prp_T[8]*toJmol, _bsplev[i]/3.0, prp_T[10]/self.natoms, 
                 else:
                     #(T[i], F_el_atom[i], S_el_atom[i], C_el_atom[i], M_el[i], seebeck_coefficients[i], L, 
                     #Q_el[i], Q_p[i], Q_e[i], C_mu[i], W_p[i], W_e[i], Y_p[i], Y_e[i])
@@ -1546,8 +1615,20 @@ class thelecMDB():
 
 
     def add_comput_inf(self):
-        vn = min(self.volT)
-        vx = max(self.volT)
+        self.key_comments['METADATA'] = {'tag':self.tag}
+        self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
+        nT = len(self.volT)
+        for i in range(nT):
+            if self.blat[i] < 0:
+                nT = i
+                break
+        if nT < 3: 
+            self.key_comments['ERROR'] = "Fatal ERROR! Calculation corrupted due to some reason! Perhaps very bad E-V curve!"
+            #raise ValueError('Fatal ERROR! Calculation corrupted due to some reason! Perhaps very bad E-V curve!')
+            return False
+
+        vn = min(self.volT[0:nT])
+        vx = max(self.volT[0:nT])
         for ix,vol in enumerate(self.volumes):
            if vol>vn: break
         try:
@@ -1555,17 +1636,50 @@ class thelecMDB():
             q = 0.0
             for i in range(ix-1, len(self.volumes)):
                 n = n+1
-                q = self.quality[i]
+                q += self.quality[i]
                 if self.volumes[i] > vx: break
             q /= n
             self.key_comments['phonon quality'] = '{:8.6}'.format(q)
         except:
             self.key_comments['phonon quality'] = '{:8.6}'.format(-1.0)
-        self.key_comments['METADATA'] = {'tag':self.tag}
-        #self.key_comments['E-V'] = {'Natoms':self.natoms, 'volumes':list(self.volumes), 'energies':list(self.energies)}
-        self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
-        #self.key_comments['volumes'] = list(self.volumes)
-        #self.key_comments['energies'] = list(self.energies)
+        return True
+
+
+    def find_fitting_quality(self, xx, orig_points, fitted, readme):
+        nT = len(self.volT)
+        for i in range(nT):
+            if self.blat[i] < 0:
+                nT = i
+                break
+        #print("eeeeeeeee", self.volT[0:nT], nT)
+        vn = min(self.volT[0:nT])
+        vx = max(self.volT[0:nT])
+        for ix,vol in enumerate(self.volumes):
+           if vol>vn: break
+        #try:
+        if True:
+            n = 0
+            q = 0.0
+            qmax = 0.0
+            #print("eeeeeeee", vn, vx)
+            for i in range(ix-1, len(self.volumes)):
+                #print("eeeeeeee", self.volumes[i])
+                n = n+1
+                for k,t in enumerate(self.T):
+                    for j in range(len(xx)-1):
+                        if (xx[j]-self.volumes[i])*(xx[j+1]-self.volumes[i])<0:
+                            #print ('eeeeeee', fitted[k,j])
+                            fn = fitted[k][j]+(self.volumes[i]-xx[j])/(xx[j+1]-xx[j])*(fitted[k][j+1]-fitted[k][j])
+                            q += abs(fn-orig_points[k][i])
+                            qmax = max(qmax,abs(fn-orig_points[k][i]))
+                            break
+                if self.volumes[i] > vx: break
+            q /= n*len(self.T)*self.natoms
+            qmax /= self.natoms
+            readme['Helmholtz energy quality'] = '+-{:.1e} eV'.format(q)
+            readme['Helmholtz energy max error'] = '{:.1e} eV'.format(qmax)
+        #except:
+        #    readme['Helmholtz energy quality'] = '+-{} eV'.format(9999)
      
            
     def run_console(self):
@@ -1589,7 +1703,7 @@ class thelecMDB():
         if self.pyphon:
             self.T = self.T_vib
         elif self.td < 0:
-            self.T = T_remesh(min(self.T_vib), min(self.t1,max(self.T_vib)), self.td)
+            self.T = T_remesh(min(self.T_vib), min(self.t1,max(self.T_vib)), self.td, nT=self.nT)
             #print ("xxxxx 2", len(self.T))
         else:
             self.T = T[T<=self.t1]
@@ -1602,11 +1716,68 @@ class thelecMDB():
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
-        self.add_comput_inf()
         a,b,c = self.calc_thermodynamics()
-        return a,b,c,self.key_comments
+        if self.add_comput_inf(): return a,b,c,self.key_comments
+        else: return None,b,c,self.key_comments
 
 
+    def calc_TE_V_general_for_plot(self,i,xx, kind='cubic'):
+        if self.smooth:
+            E0, Flat, Fel, Slat, Sel = BMsmooth(self.volumes, self.energies, self.Flat[:,i], 
+                self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:], self.BMfunc, self.elmode)
+        else:
+            E0, Flat, Fel, Slat, Sel = self.energies, self.Flat[:,i], \
+                self.theall[0,i,:], self.Slat[:,i], self.theall[1,i,:]
+
+        if True:
+            FF = E0+Flat+Fel
+            
+            if self.eqmode==4 or self.eqmode==5:
+                f, pcov = alt_curve_fit(self.BMfunc, self.volumes, FF)
+                return BMvol(xx,f)
+            else:
+                f2 = interp1d(self.volumes, E0+FF, kind=kind)
+                return f2(xx)
+
+
+    def calc_free_energy_for_plot(self, readme):
+        vn = min(self.volumes)
+        vx = max(self.volumes)
+        xx = np.linspace(vn,vx,1000)
+        fitted = []
+        orig_points = []
+        for i in range(len(self.T)):
+            if self.fitF: 
+                FF = self.Flat[:,i] + self.theall[0,i,:]
+                p1 = np.poly1d(np.polyfit(self.volumes, FF, 1))
+                FF = p1(self.volumes)
+                f2 = interp1d(self.volumes, self.energies+FF, kind='cubic')
+                yy = f2(xx)
+            elif self.elmode>=1: 
+                yy = self.calc_TE_V_general_for_plot(i, xx, kind='UnivariateSpline')
+            else:
+                yy = self.calc_TE_V_general_for_plot(i, xx, kind='cubic')
+            fitted.append(yy)
+            orig_points.append((self.energies_orig+self.Flat[:,i] + self.theall[0,i,:]))
+
+        self.find_fitting_quality(xx, orig_points, fitted, readme)
+        return np.array(self.volumes)/self.natoms, np.array(xx)/self.natoms, \
+            np.array(orig_points)/self.natoms, np.array(fitted)/self.natoms
+
+
+    def get_free_energy_for_plot(self, readme):
+        if not self.hasSCF or not self.pyphon: return None
+        self.T = np.linspace(0, self.TupLimit, 17, endpoint=True)
+        self.toYphon(_T=self.T,for_plot=True)
+        self.check_vol()
+        self.energies_orig = copy.deepcopy(self.energies)
+
+        if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
+        else : self.get_static_calculations()
+        v,x,o,f = self.calc_free_energy_for_plot(readme)
+        return v, x, self.T, o, f
+
+    
     def get_formula(self):
         return self.formula_pretty
 
@@ -1638,7 +1809,6 @@ class thelecMDB():
                 prp_vol = runthelec(self.t0, self.t1, self.td, self.xdn, self.xup, self.dope, self.ndosmx,
                     self.gaussian, self.natfactor, dos=fp, _T=self.T, fout=sys.stdout, vol=volume)
                 self.theall[:,:] = np.array( prp_vol ) # convert Tuple into array for the convenience of quasistatic interpolation
-                #print ("eeeeeeee", self.theall[:,0])
 
         if self.vdos is not None:
             with open(self.vdos, "r") as fp:
@@ -1689,7 +1859,7 @@ class thelecMDB():
            
     def run_single(self):
         if self.td < 0:
-            self.T = T_remesh(self.t0, self.t1, self.td, _nT=513)
+            self.T = T_remesh(self.t0, self.t1, self.td, _nT=self.nT)
         else:
             nT = int((self.t1-self.t0)/self.td+1.5)
             self.T = np.linspace(self.t0, self.t1, nT, endpoint=True)

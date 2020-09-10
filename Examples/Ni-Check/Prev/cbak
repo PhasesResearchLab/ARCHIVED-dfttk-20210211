@@ -1,0 +1,36 @@
+#!/bin/csh -f
+#
+set s = "`pwd`"
+set h = $s:t
+
+unalias cp
+
+foreach ee ( 1.000 )
+    set d = V"$ee"
+
+       set hd = $h"$d"
+
+        cd $d
+
+#set hhhh = $HOME"/"
+#set pwdc = `pwd`
+#set Name = $pwdc:t
+#set tpwd = `echo $pwdc | sed "s|$hhhh||g;s|/|_|g"`
+#set tmpdir = "/scratch/`whoami`/$tpwd"
+#set tmpdir = `vasppbs | grep tmpdir | sed "s/set tmpdir = //g" | sed 's/"//g'`
+   set tmpdir = `vasppbs | grep tmpdir | sed "s/set tmpdir = //g" | sed 's/"//g' | sed 's/\$//g'`
+   set tmpdir = `echo $tmpdir | sed "s|SCRATCH|$SCRATCH|g"`
+
+          set cfile = "$tmpdir/CONTCAR"
+          set ofile = "$tmpdir/OSZICAR"
+          set tfile = "$tmpdir/OUTCAR"
+          if ( -e $cfile ) then
+            if ( ! -z $cfile ) then
+              cp $cfile .
+              cp $ofile .
+              cp $tfile .
+            endif
+          endif
+        cd ..
+end
+

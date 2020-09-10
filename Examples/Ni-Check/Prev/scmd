@@ -1,0 +1,30 @@
+#!/bin/csh -f
+#
+set s = "`pwd`"
+set h = $s:t
+unalias cp
+
+foreach ee ( 1.000 )
+
+    set d = V"$ee"
+
+        cd $d
+if ( -e OUTCAR ) then
+    if ( ! -z OUTCAR ) then
+        if ( -e OUTCAR.gz ) mv OUTCAR.gz OUTCAR.gz.old
+        gzip OUTCAR
+        if ( -e DOSCAR.gz ) mv DOSCAR.gz DOSCAR.gz.old
+        gzip DOSCAR
+    endif
+endif
+          if (-e CONTCAR) then
+            if ( ! -z CONTCAR ) then
+              cp -f CONTCAR "$1".CON
+              if (-e OSZICAR) cp -f OSZICAR "$1".OSZ
+              if (-e OUTCAR.gz) cp -f OUTCAR.gz "$1".OUT.gz
+              if (-e DOSCAR.gz) cp -f DOSCAR.gz "$1".DOS.gz
+            endif
+          endif
+        cd ..
+end
+

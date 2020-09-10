@@ -19,6 +19,7 @@ import sys
 import shutil
 from datetime import datetime
 from dfttk.analysis.ywplot import myjsonout
+from dfttk.analysis.ywutils import get_melting_temperature_from_JANAF
 
 def ext_thelec(args):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
@@ -72,16 +73,23 @@ def ext_thelec(args):
         from fireworks.fw_config import config_to_dict
         from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
+        if expt!=None: 
+            _t1 = get_melting_temperature_from_JANAF(metatag, expt, db_file, args)
+            if _t1!=None: t1 = _t1
+
         readme = {}
         record_cmd(readme)
         proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file=db_file, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, debug=args.debug, 
-            phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF)
+            phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF, args=args)
         volumes, energies, thermofile, comments = proc.run_console()
-        if volumes is None: return
-        readme.update(comments)
-        #record_cmd(thermofile, readme)
+
+        if comments!=None: readme.update(comments)
+        else: return
+        if volumes is None: 
+            record_cmd_print(thermofile, readme)
+            return
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         #print(args.plot, "eeeeeeeee", volumes)
@@ -89,9 +97,15 @@ def ext_thelec(args):
             #print("eeeeeeeee", volumes)
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
-                formula = proc.get_formula(),
+                formula = proc.get_formula(), debug=args.debug,
                 plotlabel=args.plot):
-                record_cmd_print(thermofile, readme)
+                vtof = proc.get_free_energy_for_plot(readme)
+                if vtof is not None:
+                    plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+                    formula = proc.get_formula(), vtof=vtof, plotlabel=args.plot)
+            """
+            """
+        record_cmd_print(thermofile, readme)
     elif args.vdos is not None:
         readme = {}
         record_cmd(readme)
@@ -105,7 +119,7 @@ def ext_thelec(args):
         if args.plot!=None: 
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, None, None, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp,
-                formula = proc.get_formula(),
+                formula = proc.get_formula(), debug=args.debug,
                 poscar=args.poscar,vdos=args.vdos, doscar=args.doscar, natoms=natoms, plotlabel=args.plot):
                 record_cmd_print(thermofile, readme)
     else:
@@ -131,10 +145,14 @@ def record_cmd_print(fdir, readme):
         with open (dir+"/readme", "w") as fp:
             myjsonout(readme, fp, indent="", comma="")
         with open ("runs.log", "a") as fp:
-            fp.write('phonon quality={}, LTC zigzag={}'.format(readme['phonon quality'], readme['LTC quality']))
-            if os.path.exists(dir+'/fitF'): fp.write(', for fitF is  on: {}\n'.format(dir))
-            else: fp.write(', for fitF is off: {}\n'.format(dir))
-
+            try:
+                #fp.write('phonon quality={}, LTC zigzag={}'.format(readme['phonon quality'], readme['LTC quality']))
+                fp.write('phonon quality={}={}'.format(readme['phonon quality']))
+                if os.path.exists(dir+'/fitF'): fp.write(', for fitF is  on: {}\n'.format(dir))
+                else: fp.write(', for fitF is off: {}\n'.format(dir))
+            except:
+                fp.write(', FETAL ERROR{}\n'.format(dir))
+                pass
 
 def shared_aguments(pthelec):
     pthelec.add_argument("-py", "--pyphon", dest="pyphon", action='store_true', default=False,
@@ -145,7 +163,7 @@ def shared_aguments(pthelec):
                            "Default: 0")
     pthelec.add_argument("-T1", "-t1", dest="t1", nargs="?", type=float, default=4000,
                       help="High temperature limit. \n"
-                           "Default: 1300")
+                           "Default: 4000")
     pthelec.add_argument("-dT", "-td", dest="td", nargs="?", type=float, default=10,
                       help="Temperature increment. \n"
                            "Default: 10")
@@ -165,6 +183,9 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-natom", "--natom", dest="natom", nargs="?", type=int, default=1,
                       help="number of atoms in the DOSCAR. \n"
                            "Default: 1")
+    pthelec.add_argument("-nT", "--nT", dest="nT", nargs="?", type=int, default=257,
+                      help="number of temperatures, used together with -td -50. \n"
+                           "Default: 257")
     pthelec.add_argument("-e", "--everyT", dest="everyT", nargs="?", type=int, default=1,
                       help="number of temperature points skipped from QHA analysis. \n"
                            "Default: 1")

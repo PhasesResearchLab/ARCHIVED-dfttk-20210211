@@ -12,6 +12,8 @@
 
     "ENCUT": 520.0,
     "Gruneisen parameter": 1.433,
+    "Helmholtz energy max error": "4.1e-04 eV",
+    "Helmholtz energy quality": "+-1.0e-04 eV",
     "LSORBIT": false,
     "LTC quality": 0,
     "METADATA": {
@@ -19,7 +21,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-01 22:56:01.801562",
+    "Postprocess time": "2020-09-10 03:20:38.533983",
     "bandgap": 1.6115999999999993,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
@@ -34,7 +36,7 @@
         "kpoints": [11, 11, 11]
     },
 
-    "phonon quality": "0.916785",
+    "phonon quality": "0.998823",
     "pseudo_potential": {
         "functional": "PBE",
         "labels": ["Ti_sv", "Pb_d", "O"],

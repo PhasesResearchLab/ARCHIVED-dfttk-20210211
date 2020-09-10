@@ -1,0 +1,5 @@
+#
+foreach f ( `ls -lt *.png | awk '{print $9}'` )
+echo $f
+display $f
+end

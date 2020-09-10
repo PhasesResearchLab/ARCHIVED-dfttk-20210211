@@ -1,0 +1,4 @@
+<Confiure>
+time=Fri Apr 30 10:40:37 2010 host=cyberstar.psu.edu
+cmd=Vconfig -pr Accurate -ispin 2 -ISMEAR 1 -k 8 -s0 ion_shape -kt G -POT GGA_PAW_PBE -ll 1.00 1.00 0.01 -renew_all -atom Ni
+</Confiure>

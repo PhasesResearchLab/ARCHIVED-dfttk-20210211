@@ -1,0 +1,70 @@
+#!/bin/csh
+#PBS -N BV1.015Li3V2
+#PBS -A open
+#PBS -l nodes=1:ppn=8
+#PBS -l walltime=48:00:00
+cd $PBS_O_WORKDIR
+set VSPCMD = "vasp_std"
+module load intel impi mkl vasp
+set tmpdir = "/gpfs/scratch/yuw3/work_dfttk_Examples_Li3V2O5-Check_V1.015"
+unalias cp
+unalias rm
+if ( !(-e $tmpdir) ) mkdir $tmpdir
+cd /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015
+unalias cp
+unalias mv
+cp -f KPOINTS  $tmpdir
+#cp -f POTCAR   $tmpdir
+
+if ( -e ../tplate/POTCAR ) then
+  cp -f ../tplate/POTCAR   $tmpdir
+else if ( -e ../tplate/POTCAR.gz ) then
+  zcat ../tplate/POTCAR.gz   >$tmpdir/POTCAR
+else if ( -e ../../POTCAR.gz ) then
+  zcat ../../POTCAR.gz   >$tmpdir/POTCAR
+endif
+
+cp -f INCAR    $tmpdir
+
+if ( -e CONTCAR ) then
+  if ( -z CONTCAR ) then 
+    cp -f POSCAR   $tmpdir
+  else
+    cp -f CONTCAR   $tmpdir/POSCAR
+  endif
+else    
+  cp -f POSCAR   $tmpdir
+endif
+
+cd $tmpdir
+
+$VSPCMD >& $tmpdir/B-"Li3V2O5-Check".error
+
+if ( ! -z OSZICAR ) cp -f OSZICAR /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/.
+if ( ! -z CONTCAR ) cp -f CONTCAR /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/.
+
+if ( "full" == "full" ) then
+  if ( ! -z OUTCAR ) cp -f OUTCAR /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/.
+  if ( ! -z DOSCAR ) cp -f DOSCAR /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/.
+else
+  if ( ! -z OUTCAR ) tail -500 OUTCAR >/storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/OUTCAR
+endif
+
+if ( "clean" == "clean" && "/storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015" != "$tmpdir" ) then
+  set done = '`grep -v \'\^$\' /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015/OSZICAR | tail -1 | grep E0 | wc -l | awk "{print $1}"`'
+  set run = "$done"
+  if ( "$tmpdir":h != "/storage/home/yuw3" && "$run" != ""0"" ) then
+    rm $tmpdir/*
+    rmdir $tmpdir
+  endif
+endif
+cd /storage/work/y/yuw3/dfttk/Examples/Li3V2O5-Check/V1.015
+if ( -e OUTCAR ) then
+    if ( ! -z OUTCAR ) then
+        if ( -e OUTCAR.gz ) mv OUTCAR.gz OUTCAR.gz.old
+        gzip OUTCAR
+        if ( -e DOSCAR.gz ) mv DOSCAR.gz DOSCAR.gz.old
+        gzip DOSCAR
+    endif
+endif
+cp $tmpdir/B-"Li3V2O5-Check".error .

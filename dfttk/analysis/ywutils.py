@@ -5,6 +5,9 @@ from numpy.linalg import solve
 from fractions import Fraction
 from dfttk.utils import sort_x_by_y
 import os
+import json
+from pymatgen import MPRester, Structure
+from atomate.vasp.database import VaspCalcDb
 
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,
               'O': 15.9994, 'F': 18.9984032, 'Ne': 20.1797, 'Na': 22.98976928, 'Mg': 24.305, 'Al': 26.9815386,
@@ -43,7 +46,7 @@ formula - chemical formula
 return:
 element list and composition list
 """
-def formula2composition(formula):
+def formula2composition(formula, normalize=True):
   formula = formula.replace(" ",'').replace("-",'').replace(",",'')
   newc = ""
   """Follow the convention, elemental symbol must start from capital letter"""
@@ -67,20 +70,18 @@ def formula2composition(formula):
         newcc = newcc + c
 
     if (newel not in periodictable):
-      print('"',newel,'" is not an element! your formula is wrong!')
-      sys.exit(1)
+      raise ValueError('"'+newel+'" is not an int number! your formula is wrong!')
     ele.append(newel)
 
     if (len(newcc)!=0):
       if (isfloat(newcc)):
         com.append(float(newcc))
       else:
-        print('"',newcc,'" is not a float number! your formula is wrong!')
-        sys.exit(1)
+        raise ValueError('"'+newcc+'" is not an int number! your formula is wrong!')
     else:
       com.append(1.0)
   com = np.array(list(map(float,com)))
-  com = com/sum(com)
+  if normalize: com = com/sum(com)
 
   #sorted the sequence and merge the duplicate
   elist = sorted(set(ele))
@@ -92,10 +93,80 @@ def formula2composition(formula):
   return elist,clist
 
 
+"""make the reduced formula
+els - a list of elements
+natype - a list of number of elements
+return:
+"""
+def reduced_formula(formula):
+  _els, nat = formula2composition(formula.replace(' ',''), False)
+  #_els=els.split(' ')
+  #_els = [k for k in _els if k != '']
+  _nat = np.array(list(map(int,nat)))
+  els = sorted(set(_els))
+  nat = np.zeros(len(els),dtype=int)
+  for i,el in enumerate(_els):
+    ix = els.index(el)
+    nat[ix] += _nat[i]
+
+  Nd = min(nat)
+  for i in range(Nd,0,-1):
+    out = True
+    for j in range(len(nat)):
+      if ((nat[j]//i)*i!=nat[j]):
+        out = False
+        break
+    if out:
+      break
+  form = ""
+  for j,el in enumerate(els):
+    ix = nat[j]//i
+    form = form+el
+    if ix!=1:
+      form = form+str(ix)
+  #print("eeeeeeee", _els, _nat, formula.replace(' ',''), _nat,form)
+  return form
+
 def vol_within(vol, volumes, thr=0.001):
     for i,v in enumerate(volumes):
         if (abs(vol-v) < thr*vol): return True
     return False
+
+
+def get_expt(expt, formula):
+    with open(expt, encoding='utf-8') as element_json_file:
+        _expt = json.load(element_json_file)
+    f0 = reduced_formula(formula)
+    #print ("eeeeeee f0=", f0, formula)
+    data = []
+    for ee in _expt:
+        if reduced_formula(ee['Compound'])!=f0: continue
+        #print ("eeeeeee ee['Compound']", ee['Compound'])
+        data.append(ee)
+    return data
+
+
+def get_melting_temperature_from_JANAF(metatag, expt, db_file, args):
+    try:
+        _T1 = args.t1
+    except:
+        return None
+
+    if expt!=None and metatag!=None and db_file!=None:
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        static_calculations = vasp_db.collection.\
+            find({'$and':[ {'metadata.tag': metatag}, {'adopted': True} ]})
+        structure = Structure.from_dict(static_calculations[0]['output']['structure'])
+        formula = reduced_formula(structure.composition.alphabetical_formula)
+        
+        _expt =get_expt(expt, formula)
+        for d in _expt:
+            #print("eeeeeeee", d)
+            if "Malcolm W. Chase, Jr. NIST-JANAF Thermochemical Tables" in d['Author']:
+                if 'heat capacity'==d['property']:
+                    _T1 = max(d['data'][0::2])
+                    break
+    return _T1
 
 
 def get_rec_from_metatag(vasp_db,m):
@@ -121,7 +192,8 @@ def get_rec_from_metatag(vasp_db,m):
         stresses.append(sts)
         lattices.append(lat)
         bandgaps.append(gap)
-        pressures.append((sts[0][0]+sts[1][1]+sts[2][2])/3.)
+        if sts!=None: pressures.append((sts[0][0]+sts[1][1]+sts[2][2])/3.)
+        else: pressures.append(None)
         if not gapfound: gapfound = float(gap) > 0.0
     energies = sort_x_by_y(energies, volumes)
     pressures = sort_x_by_y(pressures, volumes)

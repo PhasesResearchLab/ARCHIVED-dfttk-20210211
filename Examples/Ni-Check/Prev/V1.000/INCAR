@@ -1,0 +1,16 @@
+System = phonon of Zr bcc - omiga
+
+NWRITE = 0
+
+IBRION = 6
+NFREE=4
+ALGO=Very_Fast
+
+EDIFF=1.d-6
+
+ISPIN = 2
+PREC = Accurate
+ISMEAR = 1
+SIGMA = 0.2
+NSW=1
+MAGMOM=64*2

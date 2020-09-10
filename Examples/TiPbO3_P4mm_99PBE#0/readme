@@ -12,24 +12,25 @@
 
     "ENCUT": 520.0,
     "Gruneisen parameter": 0.476,
+    "Helmholtz energy max error": "2.3e-03 eV",
+    "Helmholtz energy quality": "+-4.3e-04 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "c520e091-75fe-40bb-abdb-d81b6362f985"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-03 21:27:55.485958",
+    "Postprocess time": "2020-09-10 19:01:59.793642",
     "bandgap": 1.9318999999999997,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
-        "A1 00000": [758.9, "ir_active"],
+        "A1 00000": [759.0, "ir_active"],
         "A1 00001": [407.7, "ir_active"],
         "A1 00002": [168.2, "ir_active"],
         "B1 00000": [265.5, "raman_active"],
         "E 00000": [507.8, "ir_active"],
-        "E 00001": [273.2, "ir_active"],
-        "E 00002": [252.2, "ir_active"],
+        "E 00001": [273.1, "ir_active"],
+        "E 00002": [252.3, "ir_active"],
         "E 00003": [92.7, "ir_active"]
     },
 
@@ -38,7 +39,7 @@
         "kpoints": [9, 9, 8]
     },
 
-    "phonon quality": "0.994601",
+    "phonon quality": "0.995158",
     "pseudo_potential": {
         "functional": "PBE",
         "labels": ["Ti_sv", "Pb_d", "O"],

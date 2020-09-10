@@ -1,0 +1,4 @@
+<Confiure>
+time=Mon Sep 10 11:29:40 2012 host=cyberstar.psu.edu
+cmd=Vconfig -pr High -ispin 2 -ISMEAR -5 -k 8 -s0 norelax -kt M -POT GGA_PAW_PBE -vfix -ll 0.94 1.075 0.015 -renew_all -atom Ni_pv
+</Confiure>

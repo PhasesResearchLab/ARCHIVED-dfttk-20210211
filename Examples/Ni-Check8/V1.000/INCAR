@@ -1,0 +1,17 @@
+System = phonon of Zr bcc - omiga
+
+NWRITE = 0
+
+IBRION = 2
+
+EDIFF=1.d-6
+
+ISPIN = 2
+PREC = A
+MAGMOM=1
+NEDOS=5001
+ISMEAR = -5
+NSW=0
+LWAVE=.T.
+LCHARG=.T.
+ENCUT=520
