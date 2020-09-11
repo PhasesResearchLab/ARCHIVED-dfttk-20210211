@@ -11,19 +11,18 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 1.658,
+    "Gruneisen parameter": 1.659,
     "Helmholtz energy max error": "2.3e-04 eV",
     "Helmholtz energy quality": "+-4.8e-05 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "5293de01-de87-45fa-b8dc-cbd383704729"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 00:15:26.285409",
+    "Postprocess time": "2020-09-11 14:50:11.233683",
     "bandgap": 4.532799999999999,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 5293de01-de87-45fa-b8dc-cbd383704729 -g -noel",
     "gamma phonons (cm^{-1})": {
         "T1u 00000": [361.3, "ir_active"]
     },

@@ -11,16 +11,15 @@
     },
 
     "ENCUT": 520.0,
-    "Helmholtz energy max error": "7.7e-03 eV",
-    "Helmholtz energy quality": "+-1.9e-03 eV",
+    "Helmholtz energy max error": "6.1e-04 eV",
+    "Helmholtz energy quality": "+-2.1e-04 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "9c8a92e8-eaa3-4b4b-9a5c-fe8b41f92c08"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 01:23:33.266961",
+    "Postprocess time": "2020-09-11 15:39:53.251917",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
@@ -33,7 +32,7 @@
         "kpoints": [18, 18, 11]
     },
 
-    "phonon quality": "0.989257",
+    "phonon quality": "0.987087",
     "pseudo_potential": {
         "functional": "LDA",
         "labels": ["Hg"],

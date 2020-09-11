@@ -18,7 +18,7 @@ import os
 import sys
 import shutil
 from datetime import datetime
-from dfttk.analysis.ywplot import myjsonout
+from dfttk.analysis.ywplot import myjsonout, thermoplot
 from dfttk.analysis.ywutils import get_melting_temperature_from_JANAF
 
 def ext_thelec(args):
@@ -87,7 +87,9 @@ def ext_thelec(args):
 
         if comments!=None: readme.update(comments)
         else: return
-        if volumes is None: 
+        if "ERROR" in readme.keys(): 
+            print ("\n**********FETAL ERROR encountered, you may check readme and E-V plot in the folder", \
+                args.phasename+'/figures', "\n")
             record_cmd_print(thermofile, readme)
             return
 
@@ -144,6 +146,17 @@ def record_cmd_print(fdir, readme):
         if dir == "": dir = "./"
         with open (dir+"/readme", "w") as fp:
             myjsonout(readme, fp, indent="", comma="")
+
+        if "ERROR" in readme.keys(): 
+            #try:
+                volumes = readme['E-V']['volumes']
+                energies = readme['E-V']['energies']
+                folder = dir+'/figures'
+                if not os.path.exists(folder): os.mkdir(folder)
+                thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies, plottitle=dir, lp=True)
+            #except:
+            #    pass
+
         with open ("runs.log", "a") as fp:
             try:
                 #fp.write('phonon quality={}, LTC zigzag={}'.format(readme['phonon quality'], readme['LTC quality']))

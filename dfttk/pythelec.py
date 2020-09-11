@@ -1480,8 +1480,8 @@ class thelecMDB():
         #with open(self.phasename+'/key_comments.json', 'w') as fp:
         #    myjsonout(self.key_comments, fp, indent="", comma="")
         
-        if self.debug:
-            fvol = open(self.phasename+'/fvol', "w")
+        #if self.debug:
+        #    fvol = open(self.phasename+'/fvol', "w")
         thermofile = self.phasename+'/'+self.outf
         with open(thermofile, 'w') as fvib:
             fvib.write('#Found quasiharmonic mode : {}\n'.format(self.qhamode))
@@ -1501,12 +1501,14 @@ class thelecMDB():
                     self.beta = np.zeros((len(self.T)), dtype=float)
                     nT = len(self.T)
                     for i in range(len(self.T)):
+                        """
                         if self.debug:
                             fvol.write('#T= {}\n'.format(self.T[i]))
                             for j,v in enumerate(self.volumes):
                                 fvol.write('{} {} {} {} {}\n'.format(v, self.Flat[j,i], self.theall[0,i,j],
                                     self.Slat[j,i], self.theall[1,i,j]))
                             fvol.write('\n\n')
+                        """
 
                         if self.elmode>=1: 
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
@@ -1718,7 +1720,7 @@ class thelecMDB():
         else : self.get_static_calculations()
         a,b,c = self.calc_thermodynamics()
         if self.add_comput_inf(): return a,b,c,self.key_comments
-        else: return None,b,c,self.key_comments
+        else: return a,b,c,self.key_comments
 
 
     def calc_TE_V_general_for_plot(self,i,xx, kind='cubic'):

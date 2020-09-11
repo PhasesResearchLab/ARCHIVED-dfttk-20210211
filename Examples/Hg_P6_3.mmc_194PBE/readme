@@ -11,16 +11,15 @@
     },
 
     "ENCUT": 520.0,
-    "Helmholtz energy max error": "7.7e-04 eV",
-    "Helmholtz energy quality": "+-1.9e-04 eV",
+    "Helmholtz energy max error": "6.0e-04 eV",
+    "Helmholtz energy quality": "+-1.5e-04 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "2e7c4ba9-bae1-41f5-b791-66b56cb73661"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 03:53:40.378951",
+    "Postprocess time": "2020-09-11 00:01:59.844147",
     "bandgap": 0.02410000000000001,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {

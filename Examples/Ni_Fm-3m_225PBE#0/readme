@@ -11,17 +11,16 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 1.346,
-    "Helmholtz energy max error": "2.9e-02 eV",
-    "Helmholtz energy quality": "+-7.6e-03 eV",
+    "Gruneisen parameter": 1.345,
+    "Helmholtz energy max error": "1.6e-02 eV",
+    "Helmholtz energy quality": "+-5.3e-03 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "f1d9cdaf-3f42-4ced-a139-e91033e6c0e8"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 01:35:56.801085",
+    "Postprocess time": "2020-09-11 15:51:04.148565",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "kpoints": {
@@ -29,7 +28,7 @@
         "kpoints": [20, 20, 20]
     },
 
-    "phonon quality": "0.997392",
+    "phonon quality": " 0.99802",
     "pseudo_potential": {
         "functional": "PBE",
         "labels": ["Ni_pv"],

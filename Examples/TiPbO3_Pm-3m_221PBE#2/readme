@@ -15,13 +15,12 @@
     "Helmholtz energy max error": "3.5e-02 eV",
     "Helmholtz energy quality": "+-6.4e-03 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "439e505c-74ee-4cf2-bde5-a7fa310719b1"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 04:02:16.926596",
+    "Postprocess time": "2020-09-11 00:10:18.893378",
     "bandgap": 1.6115999999999993,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {

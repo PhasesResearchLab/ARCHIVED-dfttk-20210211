@@ -15,13 +15,12 @@
     "Helmholtz energy max error": "3.6e-03 eV",
     "Helmholtz energy quality": "+-1.2e-03 eV",
     "LSORBIT": false,
-    "LTC quality": 0,
     "METADATA": {
         "tag": "10ba3315-af90-4ac4-ba43-3c4e4a1f9650"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 03:29:41.347374",
+    "Postprocess time": "2020-09-10 23:40:21.570915",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "kpoints": {

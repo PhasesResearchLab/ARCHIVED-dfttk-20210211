@@ -12,16 +12,15 @@
 
     "ENCUT": 520.0,
     "Gruneisen parameter": 2.886,
-    "Helmholtz energy max error": "5.7e-02 eV",
-    "Helmholtz energy quality": "+-1.3e-02 eV",
+    "Helmholtz energy max error": "8.9e-03 eV",
+    "Helmholtz energy quality": "+-3.1e-03 eV",
     "LSORBIT": false,
-    "LTC quality": 1,
     "METADATA": {
         "tag": "16595679-292b-4c0e-9004-94371cc5ad55"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 01:53:52.283983",
+    "Postprocess time": "2020-09-11 16:06:12.877963",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "kpoints": {

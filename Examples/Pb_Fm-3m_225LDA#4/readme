@@ -15,15 +15,14 @@
     "Helmholtz energy max error": "7.5e-03 eV",
     "Helmholtz energy quality": "+-3.4e-03 eV",
     "LSORBIT": false,
-    "LTC quality": 1,
     "METADATA": {
         "tag": "1f28debf-6d2d-4f9e-9a78-7d4de52f0cea"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-10 10:34:56.974414",
+    "Postprocess time": "2020-09-11 16:09:33.403702",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 1f28debf-6d2d-4f9e-9a78-7d4de52f0cea",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "kpoints": {
         "generation_style": "Monkhorst",
         "kpoints": [20, 20, 20]

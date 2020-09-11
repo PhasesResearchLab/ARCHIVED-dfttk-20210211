@@ -497,7 +497,7 @@ def proStoichiometricCp():
 
 
 class thermoplot:
-    def __init__(self, folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=None,xT=None,xlabel="T (K)", 
+    def __init__(self, folder,thermodynamicproperty,x,y,reflin=None, yzero=None,fitted=None,xT=None,xlabel="T (K)", lp=False,
         ylabel=None, ytext=None, xlim=None, elonly=None, expt=None, CoT=False, label=None, single=False, plottitle=None):
 
         plt.rc('font', size=24)
@@ -509,8 +509,8 @@ class thermoplot:
 
         self.folder = folder
         self.thermodynamicproperty = thermodynamicproperty
-        self.x = x
-        self.y = y
+        self.x = np.array(x)
+        self.y = np.array(y)
         self.reflin = reflin
         self.yzero = yzero
         self.fitted = fitted
@@ -523,20 +523,18 @@ class thermoplot:
         self.plottitle = plottitle
 
         self._xlabel = xlabel
+        self.lp = lp
         self._ylabel = thermodynamicproperty
-        self._label = self.thermodynamicproperty
         if ylabel!=None: self._ylabel = ylabel
+        self._label = self.thermodynamicproperty
         if label!=None: self._label = label
+        self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
 
+        self.ax.set_xlim([0,np.array(list(map(float,x))).max()])
         self.xlim = xlim
         if xlim!=None:
-            try:
-                self.ax.set_xlim([0,xlim])
-            except:
-                self.ax.set_xlim(xlim)
-        else: self.ax.set_xlim([0,np.array(list(map(float,x))).max()])
-
-        self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
+            try: self.ax.set_xlim([0,xlim])
+            except: self.ax.set_xlim(xlim)
 
         if self.thermodynamicproperty=="0 K total energies (eV/atom)": self.plot_EV()
         elif self.thermodynamicproperty=="Helmholtz energy (eV/atom)": self.plot_Helmholtz_energy()
@@ -545,36 +543,41 @@ class thermoplot:
         elif self.thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower(): self.plot_Electron_DOS()
         elif self.thermodynamicproperty.lower()=="Bulk modulus (GPa)".lower(): self.plot_Bulk_modulus()
         elif self.thermodynamicproperty.lower()=="LTC analysis (1/K)".lower(): self.plot_LTC_analysis()
+        elif self.thermodynamicproperty=="Gamma point phonons": self.plot_Gamma_point_phonons()
         elif self.thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower(): self.plot_default()
-        elif self.thermodynamicproperty=="Bulk modulus (GPa)": self.plot_expt(expt, 'bulk modulus', self.ax)
         else: self.plot_Heat_Capacity()
 
         if self.plottitle!=None: plt.title(self.plottitle)
         plt.xlabel(self._xlabel)
         plt.ylabel(self._ylabel)
-        figures.update({self.thermodynamicproperty:folder.split('/')[-1]+'/'+self.fname})
         self.ax.legend(loc=0, prop={'size': 24})
         self.fig.savefig(self.fname,bbox_inches='tight')
         plt.close(self.fig)
+
         os.chdir( self.cwd )
+        figures.update({self.thermodynamicproperty:folder.split('/')[-1]+'/'+self.fname})
     
 
     def plot_EV(self):
-        _xlabel = "atomic volume ($Angstrom^3$)"
-        _ylabel = "0 K total energies (eV/atom)"
+        self._xlabel = "atomic volume ($\AA^3$)"
+        self._ylabel = "0 K total energies (eV/atom)"
         self.ax.set_xlim([min(self.x)*0.95,max(self.x)*1.05])
-        self.ax.plot(self.x, self.y, fillstyle='none', marker='o', markersize=12, 
-            color='k', linestyle='None', label=self._label)
+        if self.lp:
+            self.ax.plot(self.x, self.y, marker='o', markersize=12, 
+                color='r', linestyle='-', label=self._label)
+        else:
+            self.ax.plot(self.x, self.y, fillstyle='none', marker='o', markersize=12, 
+                color='k', linestyle='None', label=self._label)
         xnew = np.linspace(min(self.x)*0.95,max(self.x)*1.05, 300)  
-        from dfttk.pythelec import BMvol4, BMvol
-        f2, pcov = curve_fit(BMvol4, self.x, self.y)
+        from dfttk.pythelec import BMvol4, BMvol, alt_curve_fit
+        f2, pcov = alt_curve_fit(BMvol4, self.x, self.y)
         ynew = BMvol(xnew, f2)
         self.ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
 
 
     def plot_Helmholtz_energy(self):
         self.fig.set_size_inches(12,11)
-        self._xlabel = "Atomic volume ($Angstrom^3$)"
+        self._xlabel = "Atomic volume ($\AA^3$)"
         plt.ylabel("Helmholtz energy (eV/atom)")
         self.ax.plot(self.x, self.y, marker='o', markersize=4, color='k', linestyle=':')
         self.ax.set_xlim([min(self.x)*0.95,max(self.x)*1.05])
@@ -597,8 +600,8 @@ class thermoplot:
 
     def plot_Effective_charge_carrier_concentration(self):
         self.ax.set_yscale('symlog')
-        yy = np.array(self.y)[np.array(self.x)>0]
-        xx = np.array(self.x)[np.array(self.x)>0]
+        yy = self.y[self.x>0]
+        xx = self.x[self.x>0]
         self.ax.plot(xx,yy,'-',linewidth=2,color='b', label=self._label)
         if self.xlim!=None:
             self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(int(self.xlim))+".png"
@@ -612,6 +615,7 @@ class thermoplot:
     def plot_Bulk_modulus(self):
         self.ax.plot(self.x,self.reflin,'--',linewidth=2,color='k', label=self._label+",$B_s$")
         self.ax.plot(self.x,self.y,'-',linewidth=2,color='b', label=self._label+",$B_T$")
+        plot_expt(self.expt, 'bulk modulus', self.ax, xlim=self.xlim)
 
 
     def plot_LTC_analysis(self):
@@ -620,59 +624,52 @@ class thermoplot:
         self.ax.plot(self.x,self.reflin,'--',linewidth=2,color='k', label="splev")
 
 
+    def plot_Gamma_point_phonons(self):
+        if self.reflin is not None:
+            self.ax.plot(self.x,self.reflin,':',linewidth=1,color='k')
+        self.ax.plot(self.x,self.y,'-',linewidth=2,color='b', label=self._label)
+        self.ax.set_xlim([min(self.x)*1.05,max(self.x)*1.05])
+        xx0 = np.array(self.ytext[0])
+        yy0 = np.array(self.ytext[1])
+        ss0 = self.ytext[2]
+        for i in range (len(ss0)):
+            self.ax.text(xx0[i], yy0[i], ss0[i], color='r', rotation=90, 
+                horizontalalignment='left', verticalalignment='bottom')
+
+
     def plot_default(self):
         if self.thermodynamicproperty.split('(')[0].strip()=="Debye temperature":
-            if float(self.x[0])==0.0: self.y[0]=float("nan")
+            self.y=self.y[self.x>0]
+            self.x=self.x[self.x>0]
         if self.yzero != None:
             y0 = np.nanmin(np.array(list(map(float,self.y))))
             y1 = np.nanmax(np.array(list(map(float,self.y))))
-            ylow = 0.0
-            yhigh = y1*1.05
-            if y0 < 0.0:
-              ylow = y0
-            self.ax.set_ylim([ylow,yhigh])
+            self.ax.set_ylim([min(0.0, y0),y1*1.05])
             self.ax.ticklabel_format(axis='y',style='sci',scilimits=(-2,4))
         if self.reflin is not None:
             self.ax.plot(self.x,self.reflin,':',linewidth=1,color='k')
         self.ax.plot(self.x,self.y,'-',linewidth=2,color='b', label=self._label)
-        if self.ytext is not None:
-            self.ax.set_xlim([min(self.x)*1.05,max(self.x)*1.05])
-            xx0 = np.array(self.ytext[0])
-            yy0 = np.array(self.ytext[1])
-            ss0 = self.ytext[2]
-            for i in range (len(ss0)):
-                self.ax.text(xx0[i], yy0[i], ss0[i], color='r', rotation=90, 
-                    horizontalalignment='left', verticalalignment='bottom')
         if self.fitted!=None:
             self.ax.plot(self.xT[::5],self.fitted[::5],'--',fillstyle='none', marker='o', markersize=12, 
                 linewidth=2,color='k', label="fitted")
         if self.xlim!=None: 
-            t0 = np.array(list(map(float,self.x)))
-            t1 = np.array(list(map(float,self.y)))
-            tmp = np.array(list(map(float,t1[t0<=self.xlim])))
             self.ax.set_xlim([0.0,self.xlim])
-            #print([0.95*np.nanmin(tmp),1.05*np.nanmax(tmp)])
-            self.ax.set_ylim([0.98*np.nanmin(tmp),1.02*np.nanmax(tmp)])
+            self.ax.set_ylim([0.98*min(self.y),1.02*max(self.y)])
             self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+".png"
         if self.thermodynamicproperty=="LTC (1/K)":
             plot_expt(self.expt, 'linear thermal expansion', self.ax)
-        elif self.thermodynamicproperty=="Bulk modulus (GPa)":
-            plot_expt(self.expt, 'bulk modulus', self.ax)
         elif self.thermodynamicproperty=="Entropy (J/mol-atom/K)":
             plot_expt(self.expt, 'entropy', self.ax)
         elif self.thermodynamicproperty=="Enthalpy-H298 (J/mol-atom)":
             plot_expt(self.expt, 'enthalpy', self.ax)
+        elif self.thermodynamicproperty=="Lorenz number ($WΩK^{−2}$)":
+            self.ax.set_ylim([min(2.e-8, np.array(self.y).min()),max(3.e-8,np.array(self.y).max())])
 
 
     def plot_Heat_Capacity(self):
         if self.fitted!=None:
-            y0 = []
-            y1 = []
-            y2 = []
-            for x0,x1,x2 in self.y:
-              y0.append(x0)
-              y1.append(x1)
-              y2.append(x2)
+            y = np.array(self.y)
+            y0,y1,y2 = y[:,0], y[:,1], y[:,2]
             self.ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
             self.ax.plot(self.x,y0,'-',linewidth=2,color='b', label=_label+",$C_p$")
             self.ax.plot(self.xT[::5],self.fitted[::5],'--',fillstyle='none', marker='o', markersize=12, 
@@ -681,94 +678,86 @@ class thermoplot:
             self.ax.plot(self.x,y2,':',linewidth=2,color='g', label="$C_{v,ion}$")
             y2 = np.array(list(map(float,y1))) - np.array(list(map(float,y2)))
             self.ax.plot(self.x,y2,'-.',linewidth=2,color='r', label="$C_{el}$")
+            self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+"_fitted.png"
         else:
-            y0 = []
-            y1 = []
-            for x0,x1 in self.y:
-                y0.append(x0)
-                y1.append(x1)
-
-            if self.xlim!=None: 
-                ylim = 0.0
-                if self.CoT:
-                    xx = np.array(self.x)
-                    yy = np.array(y0)
-                    yy = yy[xx!=0.0]
-                    xx = xx[xx!=0.0]
-                    yy = yy/xx
-                    self.ax.set_xlim([0.0,self.xlim])
-                    xx = xx*xx
-                    xnew = xx[xx<self.xlim*1.5]
-                    ynew = yy[xx<self.xlim*1.5]
-                    self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+"_oT2.png"
-                else:
-                    for i,v in enumerate(self.x):
-                        if v <= self.xlim: ylim=max(ylim,y0[i])
-                    self.ax.set_xlim([0.0,xlim])
-                    self.ax.set_ylim([0.0,ylim*1.05])
-                    self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+".png"
-            elif self.elonly!=None:
-                ylim = 0.0
-                for i,v in enumerate(self.x):
-                    if v <= self.elonly: 
-                        if self.CoT:
-                            if v!=0.0: 
-                                tmp = (y0[i]-y1[i])/v
-                                ylim=max(ylim,tmp)
-                        else:
-                            if v>0.0: ylim=max(ylim,(y0[i]-y1[i]))
-                self.ax.set_xlim([0.0,self.elonly])
-                if ylim==0.0: ylim=1.e-4
-                self.ax.set_ylim([0.0,ylim*1.2])
-                tmp = ""
-                if self.CoT: tmp = "_oT"
-                self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+\
-                    '_'+str(self.elonly)+'_el'+tmp+".png"
-            else:
-                if self.fitted!=None:
-                    self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+"_fitted.png"
-                else:
-                    self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
-                if self.thermodynamicproperty.lower()!="heat capacities (J/mol-atom/K)".lower():
-                    self.ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
-            if self.elonly==None:
-                if self.CoT:
-                    if self.single:
-                        self.ax.plot(xnew,ynew,'-',linewidth=2,color='b', label=self._label+",$C_{v,lat+el}/T$")
-                    else:
-                        self.ax.plot(xnew,ynew,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}/T$")
-                    plot_expt(self.expt, 'heat capacity', self.ax, CoT=self.CoT, xlim=self.xlim)
-                else:
-                    if self.single:
-                        self.ax.plot(self.x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{v,lat+el}$")
-                        self.ax.plot(self.x,y1,'--',linewidth=2,color='black', label="$C_{v,lat}$")
-                    else:
-                        self.ax.plot(self.x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}$")
-                        self.ax.plot(self.x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
-                    plot_expt(self.expt, 'heat capacity', self.ax)
-            y2 = np.array(list(map(float,y0))) - np.array(list(map(float,y1)))
+            x = np.array(self.x)
+            y = np.array(self.y)
+            y0,y1 = y[:,0], y[:,1]
+            y2 = y0 - y1
             if self.CoT:
-                if self.xlim==None:
-                    for i,v in enumerate(self.x):
-                        if v>0.0: y2[i] /= v
-                        else: y2[i] = float("nan")
-                    self.ax.plot(self.x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}/T$")
-                    plot_expt(self.expt, 'electronic heat capacity', self.ax, CoT=self.CoT)
-                plt.gca().set_ylim(bottom=0)
+                y0 = y0[x>0]
+                y = y2[x>0]
+                x = x[x>0]
+                if self.elonly!=None:
+                    self._xlabel = "$T (K)$"
+                    self._ylabel = "$C_el/T$ (J/mol-atom/K/K)"
+                    y = y[x<=self.elonly*1.2]
+                    x = x[x<=self.elonly*1.2]
+                    self.ax.set_xlim([0.0,self.elonly])
+                    self.ax.plot(x,y/x,'-.',linewidth=2,color='r', label=self._label+",$C_{el}/T$")
+                    ymax = plot_expt(self.expt, 'electronic heat capacity', self.ax, CoT=self.CoT, xlim=self.elonly)
+                    self.ax.set_ylim([0.0,max(ymax,(y/x).max())*1.1])
+                    self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+\
+                        '_'+str(self.elonly)+'_el_oT'".png"
+                elif self.xlim!=None:
+                    self._xlabel = "$T^2 (K^2)$"
+                    self._ylabel = "$C/T$ (J/mol-atom/K/K)"
+                    y = y0/x
+                    x = x*x
+                    y = y[x<self.xlim*1.2]
+                    x = x[x<self.xlim*1.2]
+                    self.ax.set_xlim([0.0,self.xlim])
+                    if self.single:
+                        self.ax.plot(x,y,'-',linewidth=2,color='b', label=self._label+",$C_{v,lat+el}/T$")
+                    else:
+                        self.ax.plot(x,y,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}/T$")
+                    plot_expt(self.expt, 'heat capacity', self.ax, CoT=self.CoT, xlim=self.xlim)
+                    self.fname = self.thermodynamicproperty.split('(')[0].strip().\
+                        replace(' ','_')+'_'+str(self.xlim)+"_oT2.png"
+            elif self.xlim!=None: 
+                self.ax.set_xlim([0.0,self.xlim])
+                y0 = y0[x<=self.xlim*1.1]
+                y1 = y1[x<=self.xlim*1.1]
+                y2 = y2[x<=self.xlim*1.1]
+                x = x[x<=self.xlim*1.1]
+                if self.single:
+                    self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{v,lat+el}$")
+                    self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{v,lat}$")
+                else:
+                    self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}$")
+                    self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
+                plot_expt(self.expt, 'heat capacity', self.ax, xlim=self.xlim)
+                if y2.max() > 1.e-2:
+                    self.ax.plot(x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
+                    plot_expt(self.expt, 'electronic heat capacity', self.ax, xlim=self.xlim)
+                self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+".png"
+            elif self.elonly!=None:
+                self.ax.set_xlim([0.0,self.elonly])
+                y2 = y2[x<=self.xlim*1.1]
+                x = x[x<=self.xlim*1.1]
+                self.ax.plot(x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
+                plot_expt(self.expt, 'electronic heat capacity', self.ax, xlim=self.elonly)
+                self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.elonly)+'_el.png'
             else:
-                tmp = y2.max()
-                if tmp > 1.e-2:
-                    self.ax.plot(self.x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
-                    plot_expt(self.expt, 'electronic heat capacity', self.ax, CoT=self.CoT)
-    
-            if self.CoT and self.xlim!=None:
-                self._xlabel = "$T^2 (K^2)$"
-                self._ylabel = "$C/T$ (J/mol-atom/K/K)"
+                if self.single:
+                    self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{v,lat+el}$")
+                    self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{v,lat}$")
+                else:
+                    self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}$")
+                    self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
+                plot_expt(self.expt, 'heat capacity', self.ax)
+                if y2.max() > 1.e-2:
+                    self.ax.plot(x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
+                    plot_expt(self.expt, 'electronic heat capacity', self.ax)
+                self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
+
+            plt.gca().set_ylim(bottom=0)
 
 
 def plot_expt (expt, prp, ax, CoT=False, xlim=None):
     #global mindex
     mindex = 0
+    ymax = 0.0
     if expt!=None:
         for rec in expt:
             if prp!=rec['property']: continue
@@ -791,17 +780,29 @@ def plot_expt (expt, prp, ax, CoT=False, xlim=None):
             elif Unit=='cal/K' : yval *= 4.184
 
             if CoT:
-                if xlim!=None:
+                if prp!='electronic heat capacity':
                     xx = xval[xval>0]*xval[xval>0]
                     yy = yval[xval>0]/xval[xval>0]
                     yy = yy[xx<xlim]
                     xx = xx[xx<xlim]
-                    ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
                 else:
-                    ax.plot(xval,yval/xval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+                    xx = xval[xval>0]
+                    yy = yval[xval>0]/xval[xval>0]
+                    yy = yy[xx<xlim]
+                    xx = xx[xx<xlim]
+            elif xlim!=None:
+                yy = yval[xval<xlim]
+                xx = xval[xval<xlim]
             else:
-                ax.plot(xval,yval, marker=markers[mindex%len(markers)], markersize=8, linestyle='None', label=Author.split(',')[0])
+                yy = yval
+                xx = xval
+
+            if len(xx)>0:
+                ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, 
+                    linestyle='None', label=Author.split(',')[0])
+                ymax = max(yy.max(), ymax)
             mindex += 1
+    return ymax
 
 def myjsonout(data,fp,indent="",comma=""):
 	#print (data)
@@ -1060,8 +1061,8 @@ def Genergy(thermofile,dir0):
   threcord.update({"S298.15 (J/mol-atom/K)":round(S298,6)})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
-  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
-  thermoplot(folder,"atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]))
+  zthermo.update({"atomic volume ($\AA^3$)":list(thermo[:,1])})
+  thermoplot(folder,"atomic volume ($\AA^3$)",list(thermo[:,0]),list(thermo[:,1]))
   zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
@@ -1104,7 +1105,7 @@ def Genergy(thermofile,dir0):
   thermoplot(folder,"bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0)
 
   threcord.update({"zthermodynamic properies":zthermo})
-  threcord.update({"Atomic volume at 298.15 K (Angstrom^3)":round(V298,6)})
+  threcord.update({"Atomic volume at 298.15 K ($\AA^3$)":round(V298,6)})
 
   with open(vdos_e.replace('thermo/vdos_e','tplate/POSCAR'), 'r') as f:
     vvv = f.readlines()
@@ -1149,7 +1150,7 @@ def Genergy(thermofile,dir0):
     f.write('set output "E-V.eps"\n')
     f.write('{}\n'.format(fitF))
     f.write('set key right bottom\n')
-    f.write('set xlabel "atomic volume ($Angstrom^3$)\n')
+    f.write('set xlabel "atomic volume ($\AA^3$)\n')
     f.write('set ylabel "static energy (eV/atom)\n')
     f.write('plot "../E-V.dat" title "calculated" w p pt 7, \\\n')
     f.write('     f_expr(x) title "'+ffun+'" w l lt -1\n')
@@ -1539,7 +1540,7 @@ def extractGph():
   threcord.update({"gamma point phonons (cm-1) ":phononmode})
     
 def Phonon298(dir0, pvdos=False):
-  V298 = threcord.get("Atomic volume at 298.15 K (Angstrom^3)")
+  V298 = threcord.get("Atomic volume at 298.15 K ($\AA^3$)")
   phdir298 = dir0 + '/phonon298.15K'
   if not os.path.exists(phdir298):
     os.mkdir(phdir298)
@@ -1865,7 +1866,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
     threcord.update({"S298.15 (J/mol-atom/K)":S298})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
-  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
+  zthermo.update({"atomic volume ($\AA^3$)":list(thermo[:,1])})
   zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
@@ -1880,7 +1881,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
     myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
   if volumes is not None:
-    thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel,plottitle=plottitle)
+    thermoplot(folder,"Atomic volume ($\AA^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel,plottitle=plottitle)
   if T0 <= thermo[-1,0] : 
     thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim,plottitle=plottitle)
     thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), 
@@ -2009,7 +2010,7 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
   threcord.update({"S298.15 (J/mol-atom/K)":S298})
 
   zthermo.update({"temperature (K)":list(thermo[:,0])})
-  zthermo.update({"atomic volume ($Angstrom^3$)":list(thermo[:,1])})
+  zthermo.update({"atomic volume ($\AA^3$)":list(thermo[:,1])})
   zthermo.update({"Gibbs energy (eV/atom)":list(thermo[:,2])})
   zthermo.update({"enthalpy (J/mol-atom)":list(thermo[:,4])})
   zthermo.update({"entropy (J/mol-atom/K)":list(thermo[:,3])})
@@ -2022,7 +2023,7 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
     myjsonout(SGTErec, fp, indent="", comma="")
   myjsonout(SGTErec, sys.stdout, indent="", comma="")
 
-  thermoplot(folder,"Atomic volume ($Angstrom^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel)
+  thermoplot(folder,"Atomic volume ($\AA^3$)",list(thermo[:,0]),list(thermo[:,1]), xlim=xlim, label=plotlabel)
   thermoplot(folder,"Gibbs energy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,2]*eVtoJ-H298), xlim=xlim, label=plotlabel)
   #print(thermo[:,4]-H298)
   thermoplot(folder,"Enthalpy-H298 (J/mol-atom)",list(thermo[:,0]),list(thermo[:,4]-H298), 
