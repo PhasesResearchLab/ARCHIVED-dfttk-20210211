@@ -11,16 +11,16 @@
     },
 
     "ENCUT": 520.0,
-    "ERROR": "Fatal ERROR! Calculation corrupted due to some reason! Perhaps very bad E-V curve!",
+    "ERROR": "Fetal ERROR! Calculation corrupted due to certain reason! Perhaps very bad E-V curve!",
     "LSORBIT": false,
     "METADATA": {
         "tag": "4a655690-935b-4900-afa6-8c114be7690e"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-11 20:02:55.670078",
+    "Postprocess time": "2020-09-13 14:15:27.911449",
     "bandgap": 3.4098000000000006,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 4a655690-935b-4900-afa6-8c114be7690e -g -noel",
     "kpoints": {
         "generation_style": "Gamma",
         "kpoints": [5, 5, 8]

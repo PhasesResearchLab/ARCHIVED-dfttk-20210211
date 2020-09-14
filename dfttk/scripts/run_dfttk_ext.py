@@ -88,9 +88,7 @@ def ext_thelec(args):
         if comments!=None: readme.update(comments)
         else: return
         if "ERROR" in readme.keys(): 
-            print ("\n**********FETAL ERROR encountered, you may check readme and E-V plot in the folder", \
-                args.phasename+'/figures', "\n")
-            record_cmd_print(thermofile, readme)
+            record_cmd_print(thermofile, readme, dir=args.phasename)
             return
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
@@ -138,7 +136,7 @@ def record_cmd(readme):
     #fp.write('{}\n'.format(' '.join(cmdline)))
 
 
-def record_cmd_print(fdir, readme):
+def record_cmd_print(fdir, readme, dir=None):
     dir = fdir
     #readme['finished at'] = '{}'.format(datetime.now())
     if not os.path.isdir(dir):
@@ -148,23 +146,29 @@ def record_cmd_print(fdir, readme):
             myjsonout(readme, fp, indent="", comma="")
 
         if "ERROR" in readme.keys(): 
-            #try:
-                volumes = readme['E-V']['volumes']
-                energies = readme['E-V']['energies']
-                folder = dir+'/figures'
-                if not os.path.exists(folder): os.mkdir(folder)
-                thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies, plottitle=dir, lp=True)
-            #except:
-            #    pass
+            error ="**********FETAL ERROR encountered, you may check readme and E-V plot in the folder "+dir+"/figures"
+            volumes = readme['E-V']['volumes']
+            energies = readme['E-V']['energies']
+            folder = dir+'/figures'
+            if not os.path.exists(folder): os.mkdir(folder)
+            thermoplot(folder,"0 K total energies (eV/atom)",volumes, energies, plottitle=dir, lp=True)
+            with open (dir+"/ERROR", "w") as fp:
+                fp.write('{}\n'.format(readme['ERROR']))
+                if dir!=None:
+                    fp.write('{}\n'.format(error))
+                    print ("\n", error, "\n")
+        else:
+            if os.path.exists(dir+"/ERROR"): os.remove(dir+"/ERROR")
+
 
         with open ("runs.log", "a") as fp:
             try:
                 #fp.write('phonon quality={}, LTC zigzag={}'.format(readme['phonon quality'], readme['LTC quality']))
-                fp.write('phonon quality={}={}'.format(readme['phonon quality']))
+                fp.write('phonon quality={}'.format(readme['phonon quality']))
                 if os.path.exists(dir+'/fitF'): fp.write(', for fitF is  on: {}\n'.format(dir))
                 else: fp.write(', for fitF is off: {}\n'.format(dir))
             except:
-                fp.write(', FETAL ERROR{}\n'.format(dir))
+                fp.write('FETAL ERROR in {}\n'.format(dir))
                 pass
 
 def shared_aguments(pthelec):

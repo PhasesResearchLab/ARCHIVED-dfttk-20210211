@@ -11,19 +11,18 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 2.155,
-    "Helmholtz energy max error": "5.6e+00 eV",
-    "Helmholtz energy quality": "+-5.5e+00 eV",
+    "Gruneisen parameter": 2.132,
+    "Helmholtz energy max error": "1.8e-06 eV",
+    "Helmholtz energy quality": "+-3.6e-07 eV",
     "LSORBIT": false,
-    "LTC quality": 5,
     "METADATA": {
         "tag": "21d29b4e-907d-4363-b694-5fbbb1e8df8a"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-08 13:04:45.157642",
+    "Postprocess time": "2020-09-13 11:45:36.414539",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 21d29b4e-907d-4363-b694-5fbbb1e8df8a -eq 0 -T1 1800",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 21d29b4e-907d-4363-b694-5fbbb1e8df8a -g -eq 0",
     "kpoints": {
         "generation_style": "Monkhorst",
         "kpoints": [20, 20, 20]

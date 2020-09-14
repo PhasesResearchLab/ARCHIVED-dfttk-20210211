@@ -11,19 +11,18 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 1.928,
-    "Helmholtz energy max error": "5.7e+00 eV",
-    "Helmholtz energy quality": "+-5.7e+00 eV",
+    "Gruneisen parameter": 1.891,
+    "Helmholtz energy max error": "3.5e-07 eV",
+    "Helmholtz energy quality": "+-1.3e-07 eV",
     "LSORBIT": false,
-    "LTC quality": 1,
     "METADATA": {
         "tag": "3d25a8f6-170a-4a46-8228-6ba66c45f542"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-08 11:33:16.202910",
+    "Postprocess time": "2020-09-13 12:24:46.807709",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -expt ExptData/ExptData.json -eq 0 -all NiAl -T1 1800",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -renew -get -ss 30 -expt ExptData/ExptData.json -metatag 3d25a8f6-170a-4a46-8228-6ba66c45f542 -eq 0",
     "gamma phonons (cm^{-1})": {
         "T1u 00000": [304.1, "ir_active"],
         "T1u 00001": [216.4, "ir_active"],

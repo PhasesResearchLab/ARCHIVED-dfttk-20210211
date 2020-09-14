@@ -150,10 +150,22 @@ class thfindMDB ():
                 phases.append(phasename)
 
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
+        total = 0
+        total_qha_phonon = 0
         for i,m in enumerate(hit):
             if self.skipby(phases[i], m['tag']): continue
+            total += 1
             static_calculations = (self.vasp_db).collection.\
                 find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
+            qha_phonon_success =True
+            #if True:
+            try:
+                qha_phonon_calculations = self.vasp_db.db['qha_phonon'].find({'metadata.tag': m['tag']})
+                T = qha_phonon_calculations[0]['phonon']['temperatures']
+                total_qha_phonon += 1
+            except:
+                qha_phonon_success = False
+
             nS = 0
             gapfound = False
             potsoc = ""
@@ -187,9 +199,12 @@ class thfindMDB ():
             else:
                 if count[i] < self.nV: continue
                 if self.supercellsize[i] < self.supercellN: continue
-                sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
+                sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, SN: {:>3}, qha_phonon: {:<1.1s}, {}\n'\
+                    .format(m, count[i], nS, self.supercellsize[i], str(qha_phonon_success), phases[i]))
                 #if count[i]>=5: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
                 if count[i]>=self.nV: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
+        sys.stdout.write ('\n{}/{} qha_phonon successful under the given searching conditions.\n'\
+            .format(total_qha_phonon, total))
 
 
     def debye_find(self):
@@ -210,6 +225,10 @@ class thfindMDB ():
                 count.append(1)
                 structure = Structure.from_dict(i['structure'])
                 formula_pretty = structure.composition.reduced_formula
+                try:
+                    formula2composition(formula_pretty)
+                except:
+                    formula_pretty = reduced_formula(structure.composition.alphabetical_formula)
                 sa = SpacegroupAnalyzer(structure)
                 phasename = formula_pretty+'_'\
                     + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())

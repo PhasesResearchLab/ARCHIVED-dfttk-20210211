@@ -10,6 +10,7 @@ import datetime
 import numpy as np
 from scipy.optimize import linprog
 from scipy.interpolate import interp1d
+from scipy.interpolate import make_interp_spline, BSpline
 from scipy import interpolate
 from numpy.linalg import solve
 from fractions import Fraction
@@ -26,7 +27,7 @@ from scipy.optimize import brentq
 from scipy.integrate import cumtrapz, trapz, simps
 from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from dfttk.analysis.ywutils import get_expt
+from dfttk.analysis.ywutils import get_expt, formula2composition
 
 import re
 import json
@@ -537,7 +538,8 @@ class thermoplot:
             except: self.ax.set_xlim(xlim)
 
         if self.thermodynamicproperty=="0 K total energies (eV/atom)": self.plot_EV()
-        elif self.thermodynamicproperty=="Helmholtz energy (eV/atom)": self.plot_Helmholtz_energy()
+        elif self.thermodynamicproperty=="Helmholtz energy (eV/atom)": self.plot_Helmholtz_energy_v0()
+        elif self.thermodynamicproperty=="Helmholtz energy analysis (eV/atom)": self.plot_Helmholtz_energy_v1()
         elif self.thermodynamicproperty.lower()=="Effective charge carrier concentration ($e/cm^{3}$)".lower():
             self.plot_Effective_charge_carrier_concentration()
         elif self.thermodynamicproperty.lower()=="Electron DOS (States/Atom/eV)".lower(): self.plot_Electron_DOS()
@@ -575,7 +577,7 @@ class thermoplot:
         self.ax.plot(xnew,ynew,'-',linewidth=1,color='b', label="BMvol4")
 
 
-    def plot_Helmholtz_energy(self):
+    def plot_Helmholtz_energy_v0(self):
         self.fig.set_size_inches(12,11)
         self._xlabel = "Atomic volume ($\AA^3$)"
         plt.ylabel("Helmholtz energy (eV/atom)")
@@ -585,6 +587,7 @@ class thermoplot:
         self.ax.set_ylim([min(self.y)-fd,max(self.y)+2*fd])
         v,xx,t,o,f = self.reflin
         for i,T in enumerate(t):
+            #self.ax.plot(v, o[i], fillstyle='none', marker='+', mew=2, markersize=12, color='b', linestyle='None')
             self.ax.plot(v, o[i], fillstyle='none', marker='+', markersize=12, color='b', linestyle='None')
             self.ax.plot(xx, f[i], color='b', linestyle='-')
         for i, l1 in enumerate(plt.gca().get_lines()):
@@ -594,6 +597,33 @@ class thermoplot:
             else:
                 ii = (i-2)//4
                 if (ii*4+2!=i): continue
+                x0 = 0.90*0.95*min(self.x)+0.10*1.05*max(self.x)
+                labelLine(l1,x0,label=r'${} K$'.format(int(t[ii*2])),align = True)
+    
+
+    def plot_Helmholtz_energy_v1(self):
+        self.fig.set_size_inches(12,11)
+        self._xlabel = "Atomic volume ($\AA^3$)"
+        plt.ylabel("Helmholtz energy (eV/atom)")
+        self.ax.plot(self.x, self.y, marker='o', markersize=4, color='k', linestyle=':')
+        self.ax.set_xlim([min(self.x)*0.95,max(self.x)*1.05])
+        fd = 0.05*(max(self.y)-min(self.y))
+        self.ax.set_ylim([min(self.y)-fd,max(self.y)+2*fd])
+        v,xx,t,o,f = self.reflin
+        for i,T in enumerate(t):
+            self.ax.plot(v, o[i], fillstyle='none', marker='+', mew=2, markersize=12, color='r', linestyle='None')
+            #spl = make_interp_spline(v, o[i], k=3)  # type: BSpline
+            spl = interp1d(v, o[i])
+            power_smooth = spl(xx)
+            self.ax.plot(xx, power_smooth, color='r', linestyle=':')
+            self.ax.plot(xx, f[i], color='b', linestyle='-')
+        for i, l1 in enumerate(plt.gca().get_lines()):
+            if i==0:
+                x0 = 0.5*(min(self.x)+max(self.x))
+                labelLine(l1,x0,label=r'$V_{eq}$',align = True)
+            else:
+                ii = (i-3)//6
+                if (ii*6+3!=i): continue
                 x0 = 0.90*0.95*min(self.x)+0.10*1.05*max(self.x)
                 labelLine(l1,x0,label=r'${} K$'.format(int(t[ii*2])),align = True)
     
@@ -895,50 +925,6 @@ def isfloat(value):
   except ValueError:
     return False
 
-def formula2composition(formula):
-  formula = formula.replace(" ",'').replace("-",'').replace(",",'')
-  newc = ""
-  """Follow the convention, elemental symbol must start from capital letter"""
-  for c in formula:
-    if c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
-      newc = newc + '|'
-    newc = newc + c
-  els = newc.split('|')
-  els = [k for k in els if k != '']
-
-  """now get the composition for each element"""
-  ele = []
-  com = []
-  for el in els:
-    newel = ""
-    newcc = ""
-    for c in el:
-      if c.isalpha():
-        newel = newel + c
-      else:
-        newcc = newcc + c
-
-    if (newel not in periodictable):
-      raise ValueError('"'+newel+'" is not an element! your formula is wrong!')
-      #sys.exit(1)
-    ele.append(newel)
-
-    if (len(newcc)!=0):
-      if (isfloat(newcc)):
-        com.append(int(newcc))
-      else:
-        raise ValueError('"'+newcc+'" is not an int number! your formula is wrong!')
-    else:
-      com.append(1.0)
-  com = np.array(list(map(int,com)))
-
-  #sorted the sequence and merge the duplicate
-  elist = sorted(set(ele))
-  clist = np.zeros(len(elist), dtype=int)
-  for j,el in enumerate(ele):
-    ix = elist.index(el)
-    clist[ix] += com[j]
-  return elist,clist
 
 def formula2elist(formula):
   formula = formula.replace(" ",'').replace("-",'').replace(",",'')
@@ -1790,6 +1776,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
 
   if vtof is not None:
     thermoplot(folder,"Helmholtz energy (eV/atom)",list(thermo[:,1]),list(thermo[:,2]), reflin=vtof,plottitle=plottitle)
+    thermoplot(folder,"Helmholtz energy analysis (eV/atom)",list(thermo[:,1]),list(thermo[:,2]), reflin=vtof,plottitle=plottitle)
     return
   
            

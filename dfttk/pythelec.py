@@ -51,18 +51,6 @@ def isint(value):
     return False
 
 
-def VBMinterpolate(v,e,dos,mode='linear'):
-  # obselete, not used
-  x = np.zeros(9)
-  y = np.zeros(9)
-  x[0:8]=e
-  x[8] = 0.0
-  y[0:8]=dos
-  y[8] = 0.0
-  f = interp1d(x,y,kind=mode)
-  print(v,f(v))
-  return(f(v))
-  
 # this is a FORTRAN function (e.g. 1 return value)
 def pregetdos(f): # Line 186
     """
@@ -289,7 +277,6 @@ def refdos(eBoF, dF, vde, edn, e, ve, tdos):
           else:
             dos[i] = tdos[kx]*tx/ve[kx]
             #dos[i] = tdos[kx]*(tx/ve[kx])**2
-            #dos[i] = VBMinterpolate(tx,ve[kx-8:kx],tdos[kx-8:kx],mode='quadratic')
         elif eBoF > 0.0 and tdos[kx]==0.0 and ve[kx+1]-eBoF<vde and ve[kx+1]-eBoF>0.0:
           # handling near the bottom of conduction band
             if tx <= eBoF:
@@ -820,77 +807,9 @@ def BMDifB(vol, F, BMfunc, N=7, _T=0):
     if idx <N//2 or idx>=len(xx)-N//2-2:
         return -1.0, -1.0, 0.,0.
     v = brentq(BMfitP, xx[idx-1], xx[idx+1], args=(vol, F, BMfunc), maxiter=10000)
-
-    if 1==0:
-        with open ("debug", "a") as fp:
-            fp.write('#v={}\n'.format(v))
-            for i,x in enumerate(vol):
-                fp.write('{} {}\n'.format(x, F[i]))
-            fp.write('\n\n')
-
-            fp.write('#T= {} v= {}\n'.format(_T, v))
-            for i,x in enumerate(xx):
-                fp.write('{} {}\n'.format(x, yy[i]))
-            fp.write('\n\n')
-    
     ff = BMfitF(v, vol, F, BMfunc)
     bb, pp = BMfitB(v, vol, F, BMfunc)
     return bb, v, ff, pp
-
-    """
-        t0 = xx[idx-1]
-        d0 = BMfitP(t0, vol, F, BMfunc)
-        if d0==0.0:
-            v=t0
-        else:
-            t1 = xx[idx+1]
-            d1 = BMfitP(t1, vol, F, BMfunc)
-            if d1==0.0:
-                v=t1
-            else:
-                for i in range(99):
-                    v = (t0 + t1)*0.5
-                    d2 = BMfitP(v, vol, F, BMfunc)
-                    if d2 == 0.0: break
-                    elif d2*d0 < 0.0:
-                        t1 = v
-                        d1 = d2
-                    else:
-                        t0 = v
-                        d0 = d2
-                    if abs(t1-t0) <1.e-14: break
-    """
-    """
-    from scipy.optimize import minimize
-    args, pcov = alt_curve_fit(BMfunc, vol, F)
-    print("eeeeeee",BMfunc(v,*args))
-    print("eeeeeee",F)
-    print("eeeeeee",BMfunc(vol,*args))
-    print (args)
-    res = minimize(BMfunc, v, *args, method='L-BFGS-B')
-    print(v, res.x, v-res.x)
-    """
-
-
-
-def SymDif(v, vol, F, N=7,kind='cubic'):
-    dV = 0.001*(max(vol) - min(vol))
-    if kind=='cubic':
-        f2 = interp1d(vol, F, kind='cubic')
-    else:
-        f2 = UnivariateSpline(vol, F)
-    result = 0.0
-    for i in range(0, N+1):
-        result += (f2(v+dV*(i)) - f2(v-dV*(i+N)))/(N*dV)
-    return result/(N+1)
-
-
-def SymDifB(v, vol, F, N=7,kind='cubic'):
-    dV = 0.001*(max(vol) - min(vol))
-    result = 0.0
-    for i in range(0, N+1):
-        result += (SymDif(v+dV*(i), vol, F, kind=kind) - SymDif(v-dV*(i+N), vol, F, kind=kind))/(N*dV)
-    return result*v/(N+1)
 
 
 def debye_heat_capacity(temperature, debye_T, natoms):
@@ -913,8 +832,10 @@ def debye_heat_capacity(temperature, debye_T, natoms):
     else:
         return k_B * natoms * 4./5.*math.pi**4 * factor
 
+
 def debye_phonon(x, temperature, natoms, clat):
     return debye_heat_capacity(temperature, x, natoms) - clat
+
 
 def get_debye_T_from_phonon_Cv(temperature, clat, dlat, natoms, _td=50):
     if temperature <=0: return dlat
@@ -934,22 +855,6 @@ def get_debye_T_from_phonon_Cv(temperature, clat, dlat, natoms, _td=50):
         td = td + td
     return brentq(debye_phonon, t0, t1, args=(temperature, natoms, clat), maxiter=10000)
         
-    """
-    for i in range(20):
-        if abs(t1-t0) < 0.0001: break
-        t2 = 0.5*(t0 + t1)
-        d2 = debye_phonon(t2, temperature, natoms, clat)
-        if d2*d0 < 0.0:
-            t1 = t2
-            d1 = d2
-        elif d2*d0 > 0.0:
-            t0 = t2
-            d0 = d2
-        else:
-            return t2
-
-    return 0.5*(t0 + t1)
-    """
 
 def vol_within(vol, volumes, thr=0.001):
     for i,v in enumerate(volumes):
@@ -1062,7 +967,9 @@ class thelecMDB():
             os.mkdir(phdir)
         for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
             if i['volume'] not in self.volumes: continue
-            if vol_within(float(i['volume']), self.Vlat): continue
+            if vol_within(float(i['volume']), self.Vlat):
+                print("\nit seems a repeated phonon calculation honon for", i['volume'],"so it is discared\n")
+                continue
             try:
                 structure = Structure.from_dict(i['unitcell'])
             except:
@@ -1501,15 +1408,6 @@ class thelecMDB():
                     self.beta = np.zeros((len(self.T)), dtype=float)
                     nT = len(self.T)
                     for i in range(len(self.T)):
-                        """
-                        if self.debug:
-                            fvol.write('#T= {}\n'.format(self.T[i]))
-                            for j,v in enumerate(self.volumes):
-                                fvol.write('{} {} {} {} {}\n'.format(v, self.Flat[j,i], self.theall[0,i,j],
-                                    self.Slat[j,i], self.theall[1,i,j]))
-                            fvol.write('\n\n')
-                        """
-
                         if self.elmode>=1: 
                             self.blat[i], self.beta[i] = self.calc_TE_V_general(i, kind='UnivariateSpline')
                         else:
@@ -1578,16 +1476,9 @@ class thelecMDB():
                         print ("\nPerhaps it has reached the upvolume limit at T =", self.T[i], "\n")
                         break
 
-                #print (self.theall.shape)
                 prp_T = np.zeros((self.theall.shape[0]))
                 for j in range(len(prp_T)):
                     prp_T[j] = interp1d(self.volumes, self.theall[j,i,:], kind='cubic')(self.volT[i])
-                    """
-                    if self.elmode==0: 
-                        prp_T[j] = interp1d(self.volumes, self.theall[j,i,:], kind='cubic')(self.volT[i])
-                    else:
-                        prp_T[j] = UnivariateSpline(self.volumes, self.theall[j,i,:])(self.volT[i])
-                    """
     
                 # 0 K limit for the Lorenz number
                 L = 2.443004551768e-08 #(1.380649e-23/1.60217662e-19*3.14159265359)**2/3
@@ -1612,7 +1503,6 @@ class thelecMDB():
                     format(self.T[i], prp_T[0], prp_T[1], prp_T[2], prp_T[3], prp_T[4], L, 
                     prp_T[5], prp_T[6], prp_T[7], prp_T[8], prp_T[10], prp_T[11], prp_T[12], prp_T[13], 
                     self.volT[i], self.GibT[i]))
-        #return np.array(self.volumes)/self.natoms, np.array(self.energies)/self.natoms, thermofile
         return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
 
 
@@ -1625,8 +1515,7 @@ class thelecMDB():
                 nT = i
                 break
         if nT < 3: 
-            self.key_comments['ERROR'] = "Fatal ERROR! Calculation corrupted due to some reason! Perhaps very bad E-V curve!"
-            #raise ValueError('Fatal ERROR! Calculation corrupted due to some reason! Perhaps very bad E-V curve!')
+            self.key_comments['ERROR'] = "Fetal ERROR! Calculation corrupted due to certain reason! Perhaps very bad E-V curve!"
             return False
 
         vn = min(self.volT[0:nT])
@@ -1738,7 +1627,7 @@ class thelecMDB():
                 f, pcov = alt_curve_fit(self.BMfunc, self.volumes, FF)
                 return BMvol(xx,f)
             else:
-                f2 = interp1d(self.volumes, E0+FF, kind=kind)
+                f2 = interp1d(self.volumes, FF, kind=kind)
                 return f2(xx)
 
 
