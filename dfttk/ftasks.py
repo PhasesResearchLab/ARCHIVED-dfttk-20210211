@@ -1139,7 +1139,7 @@ class  PhononStable(FiretaskBase):
         qpoint_mesh = self.get('qpoint_mesh', (50, 50, 50))
         stable_tor = self.get('stable_tor', 0.01)
 
-        vasprun = PhonopyVasprun(vasprun_path='vasprun.xml')
+        vasprun = PhonopyVasprun('vasprun.xml')
         force_constants, elements = vasprun.read_force_constants()
 
         phonon_stability = phonon_stable(unitcell, supercell_matrix, force_constants, 
