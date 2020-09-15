@@ -224,6 +224,9 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-pn", "-phasename", dest="phasename", nargs="?", type=str, default=None,
                       help="assigan phase name. \n"
                            "Default: None")
+    pthelec.add_argument("-jp", "-jobpath", dest="jobpath", nargs="?", type=str, default=None,
+                      help="For debug/development purpoase. Parent path where jobs were submitted. \n"
+                           "Default: None")
     pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=4,
                       help="Mode to calculate equilibrium volume and LTC.\n"
                            "    0: Symmetrical Central differential if the data is excellent; \n"

@@ -23,6 +23,27 @@ from fireworks.fw_config import config_to_dict
 from atomate.vasp.database import VaspCalcDb
 from dfttk.analysis.ywutils import formula2composition, reduced_formula
 
+def findjobdir(jobpath, metatag):
+    try:
+        if not os.path.isdir(jobpath): return None
+    except:
+        return None
+
+    for dir in os.listdir(jobpath):
+        dirpath = jobpath+dir
+        if os.path.isdir(dirpath):
+            for file in os.listdir(dirpath):
+                if file.startswith("METADATA"):
+                    with open(os.path.join(dirpath, file),'r') as fp:
+                        lines = fp.readlines()
+                        for line in lines:
+                            try:
+                                line.index(metatag)
+                                return dir
+                            except:
+                                pass
+    return None
+
 class thfindMDB ():
     """
     find the metadata tag that has finished.
@@ -66,6 +87,7 @@ class thfindMDB ():
         self.t0 = args.t0
         self.t1 = args.t1
         self.td = args.td
+        self.jobpath = args.jobpath
         self.findbandgap = args.findbandgap
         if args.within is not None: self.within, tmp = formula2composition(args.within)
         if args.containall is not None: self.containall, tmp = formula2composition(args.containall)
@@ -199,8 +221,13 @@ class thfindMDB ():
             else:
                 if count[i] < self.nV: continue
                 if self.supercellsize[i] < self.supercellN: continue
-                sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, SN: {:>3}, qha_phonon: {:<1.1s}, {}\n'\
-                    .format(m, count[i], nS, self.supercellsize[i], str(qha_phonon_success), phases[i]))
+                jobpath = findjobdir(self.jobpath, m['tag'])
+                if jobpath==None:
+                    sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, SN: {:>3}, qha_phonon: {:<1.1s}, {}\n'\
+                        .format(m, count[i], nS, self.supercellsize[i], str(qha_phonon_success), phases[i]))
+                else:
+                    sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, SN: {:>3}, qha_phonon: {:<1.1s}, {},{}\n'\
+                        .format(m, count[i], nS, self.supercellsize[i], str(qha_phonon_success), phases[i],jobpath))
                 #if count[i]>=5: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
                 if count[i]>=self.nV: self.tags.append({'tag':m['tag'],'phasename':phases[i]})
         sys.stdout.write ('\n{}/{} qha_phonon successful under the given searching conditions.\n'\
@@ -307,6 +334,10 @@ class thfindMDB ():
                     supercell_matrix = calc['supercell_matrix']
                     supercellsize[i]= (natoms*int(np.linalg.det(np.array(supercell_matrix))+.5))
                     formula_pretty = structure.composition.reduced_formula
+                    try:
+                        formula2composition(formula_pretty)
+                    except:
+                        formula_pretty = reduced_formula(structure.composition.alphabetical_formula)
                     sa = SpacegroupAnalyzer(structure)
                     phasename = formula_pretty+'_'\
                         + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
