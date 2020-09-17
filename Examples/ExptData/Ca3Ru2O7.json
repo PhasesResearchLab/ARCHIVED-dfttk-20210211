@@ -363,6 +363,7 @@
     },
     
     {
+        "Compound": "Ca3Ru2O7",
         "property" : "electronic heat capacity",
         "Author" : "Yuan, PRB 99, 155111 (2019)",
         "Unit" : "mJ/K",

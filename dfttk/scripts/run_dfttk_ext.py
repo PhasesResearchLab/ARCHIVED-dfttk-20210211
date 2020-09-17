@@ -92,7 +92,7 @@ def ext_thelec(args):
             return
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
-        #print(args.plot, "eeeeeeeee", volumes)
+        #print(args.plot, "eeeeeeeee", volumes, energies, thermofile, comments)
         if args.plot!=None: 
             #print("eeeeeeeee", volumes)
             from dfttk.analysis.ywplot import plotAPI
@@ -195,8 +195,11 @@ def shared_aguments(pthelec):
                            "Default: 0, change it to -1e-5 can speed up the calculation while \n"
                            "it may destropy the numerical stability")
     pthelec.add_argument("-ne", "--ndosmx", dest="ndosmx", nargs="?", type=int, default=10001,
-                      help="new DOS mesh. It recommend increase it 100001 if numberical instability seen. \n"
+                      help="new eDOS mesh. It recommend increase it 100001 if numberical instability seen. \n"
                            "Default: 10001 if dope >5.e-9 or 100001")
+    pthelec.add_argument("-gauss", "--gauss", dest="gaussian", nargs="?", type=float, default=1000.,
+                      help="densing factor for eDOS mesh near the Fermi energy. \n"
+                           "Default: 1000")
     pthelec.add_argument("-natom", "--natom", dest="natom", nargs="?", type=int, default=1,
                       help="number of atoms in the DOSCAR. \n"
                            "Default: 1")
@@ -204,11 +207,8 @@ def shared_aguments(pthelec):
                       help="number of temperatures, used together with -td -50. \n"
                            "Default: 257")
     pthelec.add_argument("-e", "--everyT", dest="everyT", nargs="?", type=int, default=1,
-                      help="number of temperature points skipped from QHA analysis. \n"
+                      help="number of temperature points skipped from QHA analysis from the qha/qha_phonon collection. \n"
                            "Default: 1")
-    pthelec.add_argument("-gauss", "--gauss", dest="gaussian", nargs="?", type=float, default=1000.,
-                      help="densing number near the Fermi energy. \n"
-                           "Default: 1000")
     pthelec.add_argument("-o", "-outf", dest="outf", nargs="?", type=str, default="fvib_ele",
                       help="output filename for calculated thermoelectric properties. \n"
                            "Default: fvib_ele")
@@ -225,7 +225,7 @@ def shared_aguments(pthelec):
                       help="assigan phase name. \n"
                            "Default: None")
     pthelec.add_argument("-jp", "-jobpath", dest="jobpath", nargs="?", type=str, default=None,
-                      help="For debug/development purpoase. Parent path where jobs were submitted. \n"
+                      help="For debug/development purpoase. Parent path where jobs were submittedi to check settings. \n"
                            "Default: None")
     pthelec.add_argument("-eq", "--eqmode", dest="eqmode", nargs="?", type=int, default=4,
                       help="Mode to calculate equilibrium volume and LTC.\n"
@@ -241,16 +241,11 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-s", "-smooth", dest="smooth", action='store_true', default=False,
                       help="smooth the LTC. \n"
                            "Default: False")
-    """
-    pthelec.add_argument("-plot", "-plot", dest="plot", action='store_true', default=False,
-                      help="plot the figure. \n"
-                           "Default: False")
-    """
     pthelec.add_argument("-plot", "-plot", dest="plot", nargs="?", type=str, default=None,
                       help="plot the figures and mark the theoretial line with the given label. \n"
                            "Default: None")
     pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
-                      help="renew/plot the figure. \n"
+                      help="renew/plot the figure. Otherwise, calculation will be skipped if the file 'fvib_ele' is seen.\n"
                            "Default: False")
     pthelec.add_argument("-fitCp", "--SGTEfitCp", dest="SGTEfitCp", action='store_true', default=False,
                       help="report SGTE fitting through the order of Cp, S, and H. \n"
@@ -266,8 +261,8 @@ def shared_aguments(pthelec):
                       help="turn on debug mode by reducing the mesh. \n"
                            "Default: False")
     pthelec.add_argument("-expt", "-expt", dest="expt", nargs="?", type=str, default=None,
-                      help="json file path for experimental thermodynamic properties for plot. \n"
-                           "Default: None")
+                      help="file path (json format, list of dictionary) for experimental thermodynamic properties to \n"
+                           "be compared with. Default: None")
     pthelec.add_argument("-xlim", "-xlim", dest="xlim", nargs="?", type=float, default=None,
                       help="Up temperature limit for plot. \n"
                            "Default: None")
@@ -285,7 +280,7 @@ def shared_aguments(pthelec):
 def run_ext_thelec(subparsers):
     # begin process by Yi Wang, July 23, 2020
     #SUB-PROCESS: thelec
-    pthelec = subparsers.add_parser("thelec", help="Calculate Seebeck and Lorenz number.")
+    pthelec = subparsers.add_parser("thelec", help="Postprocess DFTTK results after DFT job completed.")
     shared_aguments(pthelec)
     pthelec.set_defaults(func=ext_thelec)
     # end process by Yi Wang, July 23, 2020
@@ -297,7 +292,7 @@ def run_ext_thelec(subparsers):
 
 def run_ext_thfind(subparsers):
     #SUB-PROCESS: thfind
-    pthfind = subparsers.add_parser("thfind", help="find the metadata tag that with finite T calculation finished.")
+    pthfind = subparsers.add_parser("thfind", help="Check the dfttk DFT calculation results followed by calling the module to get thermodynamic properties when the option '-get' is given.")
     pthfind.add_argument("-w", "--within", dest="within", nargs="?", type=str, default=None,
                       help="find calculations within element list\n"
                            "Default: None")
@@ -323,13 +318,13 @@ def run_ext_thfind(subparsers):
                       help="report the entries with band gap. \n"
                            "Default: False")
     pthfind.add_argument("-get", "--get", dest="get", action='store_true', default=False,
-                      help="get the thermodyamic data for all found entries. \n"
+                      help="call thelec module to get the thermodyamic data for all found entries. \n"
                            "Default: False")
     pthfind.add_argument("-check", "--check", dest="check", action='store_true', default=False,
                       help="check database. \n"
                            "Default: False")
     pthfind.add_argument("-remove", "--remove", dest="remove", action='store_true', default=False,
-                      help="remove database. \n"
+                      help="remove database document entries under given conditions (under development). \n"
                            "Default: False")
     shared_aguments(pthfind)
     pthfind.set_defaults(func=ext_thfind)
@@ -366,7 +361,7 @@ def ext_thfind(args):
 
 def run_ext_EVfind(subparsers):
     #SUB-PROCESS: EVfind
-    pEVfind = subparsers.add_parser("EVfind", help="find the metadata tag that has 0 K static calculaton finished.")
+    pEVfind = subparsers.add_parser("EVfind", help="Find the metadata tags that have 0 K static calculaton finished.")
     pEVfind.add_argument("-w", "--within", dest="within", nargs="?", type=str, default=None,
                       help="find calculations within element list\n"
                            "Default: None")

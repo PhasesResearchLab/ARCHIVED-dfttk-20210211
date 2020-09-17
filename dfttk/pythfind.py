@@ -30,7 +30,7 @@ def findjobdir(jobpath, metatag):
         return None
 
     for dir in os.listdir(jobpath):
-        dirpath = jobpath+dir
+        dirpath = jobpath+'/'+dir
         if os.path.isdir(dirpath):
             for file in os.listdir(dirpath):
                 if file.startswith("METADATA"):
@@ -186,7 +186,12 @@ class thfindMDB ():
                 T = qha_phonon_calculations[0]['phonon']['temperatures']
                 total_qha_phonon += 1
             except:
-                qha_phonon_success = False
+                try:
+                    qha_phonon_calculations = self.vasp_db.db['qha'].find({'metadata.tag': m['tag']})
+                    T = qha_phonon_calculations[0]['phonon']['temperatures']
+                    total_qha_phonon += 1
+                except:
+                    qha_phonon_success = False
 
             nS = 0
             gapfound = False
@@ -372,10 +377,17 @@ class thfindMDB ():
 
         qha_phonon_count = [0] * len(hit)
         for i,mm in enumerate(hit):
-            qha_phonon_calc = (self.vasp_db).db['qha_phonon'].\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
-            for calc in qha_phonon_calc:
+            try:
+                qha_phonon_calculations = self.vasp_db.db['qha_phonon'].find({'metadata.tag': m['tag']})
+                T = qha_phonon_calculations[0]['phonon']['temperatures']
                 qha_phonon_count[i] += 1
+            except:
+                try:
+                    qha_phonon_calculations = self.vasp_db.db['qha'].find({'metadata.tag': m['tag']})
+                    T = qha_phonon_calculations[0]['phonon']['temperatures']
+                    qha_phonon_count[i] += 1
+                except:
+                    pass
 
         print("\nfinding complete calculations in the relaxations collection\n")
 

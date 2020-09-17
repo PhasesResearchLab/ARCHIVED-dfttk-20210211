@@ -140,6 +140,7 @@ def get_expt(expt, formula):
     #print ("eeeeeee f0=", f0, formula)
     data = []
     for ee in _expt:
+        #print ("eeeeeee", ee, f0)
         if reduced_formula(ee['Compound'])!=f0: continue
         #print ("eeeeeee ee['Compound']", ee['Compound'])
         data.append(ee)

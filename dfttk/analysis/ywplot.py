@@ -1745,16 +1745,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
               plotlabel = plotlabel.replace("find_or_", "")
   else:
       plotlabel = 'DFT'
-
-  if expt!=None:
-      expt =get_expt(expt, formula)
-      """
-      for d in expt:
-          if d['Author'].split(',')[0]=='JANAF':
-              if 'heat capacity'==d['property']:
-                  xlim = max(d['data'][0::2])
-                  break
-      """
+  if expt!=None: expt =get_expt(expt, formula)
 
   global fitCp
   fitCp = _fitCp
