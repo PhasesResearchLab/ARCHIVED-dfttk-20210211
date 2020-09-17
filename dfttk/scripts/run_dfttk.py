@@ -6,6 +6,7 @@ from pymatgen.io.vasp.inputs import Potcar
 from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
+from dfttk.scripts.querydb import get_eq_structure_by_metadata
 from monty.serialization import loadfn, dumpfn
 import warnings
 import copy
@@ -264,61 +265,96 @@ def run(args):
     MAX_JOB = args.MAX_JOB              # Max job to submit
     SETTINGS = args.SETTINGS            # Settings file    
     WRITE_OUT_WF = args.WRITE_OUT_WF    # Write out wf file or not
+    TAG = args.TAG                      # Metadata from the command line
+    APPEND = args.APPEND                # Append calculations, e.g. appending volumes or phonon or born
 
-    ## Get the file names of files
-    STR_FILES = get_structure_file(STR_FOLDER=STR_FOLDER, RECURSIVE=RECURSIVE, MATCH_PATTERN=MATCH_PATTERN)
+    if os.path.exists('db.json'):
+        db_file = 'db.json'
+    else:
+        db_file = None
 
     ## Initial wfs and metadatas
     wfs = []
     metadatas = {}
 
-    if os.path.exists('METADATAS.yaml'):
-        metadatas = loadfn('METADATAS.yaml')
-
-    ## generat the wf
-    for STR_FILE in STR_FILES:
-        (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(STR_FILE)
-        (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
-        str_filename = STR_FILENAME.lower()
-        if (str_filename.endswith("-" + SETTINGS.lower()) or 
-           str_filename.startswith( SETTINGS.lower() + "-") or 
-           (str_filename == SETTINGS.lower())):
-            print(STR_FILE + " is a setting file, not structure file, and skipped when reading the structure.")
-        elif STR_FILE == os.path.abspath(__file__):
-            #This is current file
-            pass
+    if APPEND:
+        if TAG:
+            metadatas = {os.path.join(os.path.abspath('./'), 'POSCAR'): TAG}
+        elif os.path.exists('METADATAS.yaml'):
+            metadatas = loadfn('METADATAS.yaml')
         else:
-            flag_run = False
-            try:
-                structure = Structure.from_file(STR_FILE)
-                flag_run = True
-            except Exception as e:
-                warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
-                    "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
+            raise ValueError('For APPEND model, please provide TAG with -tag or provide METADATAS.yaml file')
+        for keyi in metadatas:
+            (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(keyi)
+            (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
+            user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+            metadata = user_settings.get('metadata', {})
+            metadata.update({'tag': metadatas[keyi]})
+            user_settings.update({'metadata': metadata})
+            structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file)
+            if structure is None:
+                raise FileNotFoundError('There is no static results under current metadata tag({})'.format(metadata['tag']))
+            if PHONON:
+                user_settings.update({'phonon': True})
+            phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+            if phonon_supercell_matrix is None:
+                user_settings.update({"phonon_supercell_matrix": "atoms"})
 
-            if flag_run:
-                user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+            wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+            wfs.append(wf)
 
-                metadatai = metadatas.get(STR_FILE, None)
-                if metadatai:
-                    user_settings.update({'metadata': metadatai})
-                if PHONON:
-                    user_settings.update({'phonon': True})
-                phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
-                if phonon_supercell_matrix is None:
-                    user_settings.update({"phonon_supercell_matrix": "atoms"})
+            if WRITE_OUT_WF:
+                dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                dumpfn(wf.to_dict(), dfttk_wf_filename)
+    else:
+        if os.path.exists('METADATAS.yaml'):
+            metadatas = loadfn('METADATAS.yaml')
+        ## Get the file names of files
+        STR_FILES = get_structure_file(STR_FOLDER=STR_FOLDER, RECURSIVE=RECURSIVE, MATCH_PATTERN=MATCH_PATTERN)
+        ## generat the wf
+        for STR_FILE in STR_FILES:
+            (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(STR_FILE)
+            (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
+            str_filename = STR_FILENAME.lower()
+            if (str_filename.endswith("-" + SETTINGS.lower()) or 
+               str_filename.startswith( SETTINGS.lower() + "-") or 
+               (str_filename == SETTINGS.lower())):
+                print(STR_FILE + " is a setting file, not structure file, and skipped when reading the structure.")
+            elif STR_FILE == os.path.abspath(__file__):
+                #This is current file
+                pass
+            else:
+                flag_run = False
+                try:
+                    structure = Structure.from_file(STR_FILE)
+                    flag_run = True
+                except Exception as e:
+                    warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
+                        "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
 
-                wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+                if flag_run:
+                    user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
-                metadatas[STR_FILE] = wf.as_dict()["metadata"]
-                wfs.append(wf)
+                    metadatai = metadatas.get(STR_FILE, None)
+                    if metadatai:
+                        user_settings.update({'metadata': metadatai})
+                    if PHONON:
+                        user_settings.update({'phonon': True})
+                    phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+                    if phonon_supercell_matrix is None:
+                        user_settings.update({"phonon_supercell_matrix": "atoms"})
 
-                if WRITE_OUT_WF:
-                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
-                    dumpfn(wf.to_dict(), dfttk_wf_filename)
+                    wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+
+                    metadatas[STR_FILE] = wf.as_dict()["metadata"]
+                    wfs.append(wf)
+
+                    if WRITE_OUT_WF:
+                        dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                        dumpfn(wf.to_dict(), dfttk_wf_filename)
             
-    #Write Out the metadata for POST and continue purpose
-    dumpfn(metadatas, "METADATAS.yaml")
+        #Write Out the metadata for POST and continue purpose
+        dumpfn(metadatas, "METADATAS.yaml")
 
     if LAUNCH:
         from fireworks import LaunchPad
@@ -416,6 +452,10 @@ def run_dfttk():
                            (NOTE: currently, only robust and born are supported.)""")
     prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
                       help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
+    prun.add_argument("-tag", "--tag", dest="TAG", type=str,
+                      help="Specify the tag for continue mode")
+    prun.add_argument("-a", "--append", dest="APPEND", action="store_true",
+                      help="Append calculation according to metadata, e.g. appending volumes or phonon")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",
                       help="Launch the wf to launchpad")
     prun.add_argument("-m", "--max_job", dest="MAX_JOB", nargs="?", type=int, default=0,
