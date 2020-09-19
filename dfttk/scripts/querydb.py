@@ -109,45 +109,59 @@ def remove_data_by_metadata(tag, db_file=None, rem_mode='vol', forcedelete=False
     VOL_COLLECTION = VOL1_COLLECTION + VOL2_COLLECTION
     OTHER_COLLECTION = ['borncharge', 'phonon', 'qha', 'qha_phonon', 'relax',
                         'relax_scheme', 'relaxations', 'tasks']
+    if isinstance(rem_mode, str):
+        rem_mode = rem_mode.lower()
+        if rem_mode == 'all':
+            collections = VOL_COLLECTION + OTHER_COLLECTION
+        elif rem_mode == 'allvol':
+            collections = VOL_COLLECTION
+        elif rem_mode == 'vol':
+            collections = VOL1_COLLECTION
+        elif rem_mode == 'property':
+            collections = OTHER_COLLECTION
+        elif rem_mode == 'aeccar':
+            collections = ['aeccar0', 'aeccar1', 'aeccar2']
+        else:
+            collections = [rem_mode]
+    elif isinstance(rem_mode, list):
+        collections = rem_mode
+    else:
+        raise ValueError('Unsupported remove mode, please provide a str or list')
+
     flag_remove = False
     if forcedelete:
         flag_remove = True
     else:
-        if input('Are you sure? This will delete all data related with metadata.tag={}. (Y/N)'.format(tag))[0].upper() == 'Y':
-            flag_remove = True
-    if flag_remove:
-        if isinstance(rem_mode, str):
-            rem_mode = rem_mode.lower()
-            if rem_mode == 'all':
-                collections = VOL_COLLECTION + OTHER_COLLECTION
-            elif rem_mode == 'allvol':
-                collections = VOL_COLLECTION
-            elif rem_mode == 'vol':
-                collections = VOL1_COLLECTION
-            elif rem_mode == 'property':
-                collections = OTHER_COLLECTION
-            elif rem_mode == 'aeccar':
-                collections = ['aeccar0', 'aeccar1', 'aeccar2']
-            else:
-                collections = [rem_mode]
-        elif isinstance(rem_mode, list):
-            collections = rem_mode
+        if tag:
+            if input('Are you sure? This will remove all data in {} collection with metadata.tag={}. (Y/N)'.format(collections, tag))[0].upper() == 'Y':
+                flag_remove = True
         else:
-            raise ValueError('Unsupported remove mode, please provide a str or list')
-
+            #tag is None, which means remove the collection
+            if input('Are you sure? This will remove the {} collections. (Y/N)'.format(collections))[0].upper() == 'Y':
+                flag_remove = True
+    if flag_remove:
         for collectioni in collections:
             if collectioni in VOL_COLLECTION:
                 collectioni_file = collectioni + '_fs.files'
                 collectioni_chunk = collectioni + '_fs.chunks'
                 #It has files and chunks
-                static_items = list(vasp_db.db['tasks'].find({'metadata': metadata}))
-                for itemi in static_items:
-                    task_id = itemi['task_id']
-                    files_id = list(vasp_db.db[collectioni_file].find({'metadata.task_id': task_id}))
-                    if files_id:
-                        vasp_db.db[collectioni_chunk].remove({'files_id': files_id[0]['_id']})
-                        vasp_db.db[collectioni_file].remove({'metadata.task_id': task_id})
-                        print('The volume data with metadata.tag={} in {} collection is removed'.format(tag, collectioni))
+                if tag:
+                    static_items = list(vasp_db.db['tasks'].find({'metadata.tag': tag}))
+                    for itemi in static_items:
+                        task_id = itemi['task_id']
+                        files_id = list(vasp_db.db[collectioni_file].find({'metadata.task_id': task_id}))
+                        if files_id:
+                            vasp_db.db[collectioni_chunk].remove({'files_id': files_id[0]['_id']})
+                            vasp_db.db[collectioni_file].remove({'metadata.task_id': task_id})
+                            print('The volume data with metadata.tag={} in {} collection is removed'.format(tag, collectioni))
+                else:
+                    vasp_db.db[collectioni_chunk].remove()
+                    vasp_db.db[collectioni_file].remove()
+                    print('The data in {} collection is removed'.format(collectioni))
             else:
-                vasp_db.db[collectioni].remove({'metadata': metadata})
-                print('The data with metadata.tag={} in {} collection is removed'.format(tag, collectioni))
+                if tag:
+                    vasp_db.db[collectioni].remove({'metadata.tag': tag})
+                    print('The data with metadata.tag={} in {} collection is removed'.format(tag, collectioni))
+                else:
+                    vasp_db.db[collectioni].remove()
+                    print('The data in {} collection is removed'.format(collectioni))
