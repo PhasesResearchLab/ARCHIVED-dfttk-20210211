@@ -16,6 +16,7 @@ import warnings
 import copy
 import os
 import sys
+import json
 import subprocess
 import shutil
 import numpy as np
@@ -65,14 +66,22 @@ class thfindMDB ():
             self.qhamode = 'phonon'
         if args.qhamode == 'debye' : self.qhamode = 'qha'
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-        self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        try:
+            self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+            self.items = (self.vasp_db).db[self.qhamode].find({})
+        except:
+            self.vasp_db = None
+            print("\n*********WARNING: CANNOT get MongoDB service, so I will only plot the local results") 
+            print("*********WARNING: CANNOT get MongoDB service, so I will only plot the local results") 
+            print("*********WARNING: CANNOT get MongoDB service, so I will only plot the local results\n\n") 
+
         #items = vasp_db.db['phonon'].find(properties=['metadata.tag','F_vib', 'CV_vib', 'S_vib'])
         #items = vasp_db.db['phonon'].find({F_vib: {$gt: 0}})
         #items = vasp_db.db['phonon'].find({'metadata.tag': "djdjd"})
         #items = vasp_db.db['phonon'].find({})
         self.check = args.check
         self.remove = args.remove
-        self.items = (self.vasp_db).db[self.qhamode].find({})
+
         self.tags = []
         self._Yphon = []
         self.within = []
@@ -98,7 +107,10 @@ class thfindMDB ():
         if self.metatag!=None:
             if self.metatag!=metatag: return True
         #print("eeeeeeee",phase)
-        els,tmp = formula2composition(phase.split('_')[0])
+        try:
+            els,tmp = formula2composition(phase.split('_')[0])
+        except:
+            return True
         if len (self.within) != 0:
             for e in els:
                 if e not in self.within: return True
@@ -119,9 +131,40 @@ class thfindMDB ():
                 if e in els: return False
             return True
         return False
+
+
+    def find_plotfiles(self):
+        if self.jobpath!=None:
+            jobpath = os.listdir(self.jobpath) 
+        else:
+            jobpath = os.listdir('./')
+
+        for dir in jobpath:
+            thermofile = dir+"/fvib_ele"
+            if not os.path.exists(thermofile): continue
+            volumes = None
+            energies = None
+            formula = dir.split('_')[0]
+            metatag = None
+            readme = dir+"/readme"
+            if os.path.exists(readme):
+                with open(readme, "r") as fp:
+                    info = json.load(fp)
+                    try:
+                        metatag = info['METADATA']['tag']
+                        volumes = info['E-V']['volumes']
+                        energies = info['E-V']['energies']
+                    except:
+                        #print (readme, "FILED")
+                        pass
+            if self.skipby(formula, metatag): continue
+            #print (self.metatag,metatag)
+            self.tags.append([thermofile, volumes, energies, formula])
+
     
     def run_console(self):
-        if self.check: self.check_find()
+        if self.vasp_db==None: self.find_plotfiles()
+        elif self.check: self.check_find()
         elif self.qhamode=='phonon': self.phonon_find()
         else: self.debye_find()
         return self.tags

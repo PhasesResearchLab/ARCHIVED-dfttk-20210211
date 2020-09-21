@@ -260,7 +260,7 @@
     {
         "Compound": "Ca3Ru2O7",
         "property" : "heat capacity",
-        "Author" : "Yuan, PRB 99, 155111 (2019)",
+        "Author" : "Ke(calorimetry), X. Ke, J. Peng,W. Tian, T. Hong, M. Zhu, and Z. Q.Mao, Phys. Rev. B 89, 220407(R) (2014).",
         "Unit" : "J/K",
         "natom" : 6,
         "T" : [

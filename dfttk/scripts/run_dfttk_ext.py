@@ -21,7 +21,7 @@ from datetime import datetime
 from dfttk.analysis.ywplot import myjsonout, thermoplot
 from dfttk.analysis.ywutils import get_melting_temperature_from_JANAF
 
-def ext_thelec(args):
+def ext_thelec(args, plotfiles=None):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
     """
     Postprocess for thermodynamic properties, Seebeck, Lorenz number etc
@@ -69,10 +69,20 @@ def ext_thelec(args):
         gaussian = max(10000., float(gaussian))
         
     #call API
-    if metatag != None:
+    if plotfiles!=None:
+        thermofile, volumes, energies, formula = plotfiles
+        #print(thermofile, volumes, energies, formula)
+        readme={}
+        from dfttk.analysis.ywplot import plotAPI
+        plotAPI(readme, thermofile, None, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+            formula = formula, vtof=None, plotlabel=args.plot)
+
+    elif metatag != None:
         from fireworks.fw_config import config_to_dict
         from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
+
+
         if expt!=None: 
             _t1 = get_melting_temperature_from_JANAF(metatag, expt, db_file, args)
             if _t1!=None: t1 = _t1
@@ -352,11 +362,13 @@ def ext_thfind(args):
             fp.write ('\nPostprocessing run at {}\n\n'.format(datetime.now()))
         #print ("eeeeeeee 0", tags)
         for t in tags:
-            #print ("eeeeeeee 1")
-            print("\nDownloading data by metadata tag:", t['tag'], "\n")
-            args.metatag = t['tag'] 
-            args.phasename = t['phasename'] 
-            ext_thelec(args)
+            if isinstance(t,dict):
+                print("\nDownloading data by metadata tag:", t['tag'], "\n")
+                args.metatag = t['tag'] 
+                args.phasename = t['phasename'] 
+                ext_thelec(args)
+            else:
+                ext_thelec(args,plotfiles=t)
 
 
 def run_ext_EVfind(subparsers):

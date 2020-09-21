@@ -532,6 +532,7 @@ class thermoplot:
         self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
 
         self.ax.set_xlim([0,np.array(list(map(float,x))).max()])
+        self.plot_xlim = np.array(list(map(float,x))).max()
         self.xlim = xlim
         if xlim!=None:
             try: self.ax.set_xlim([0,xlim])
@@ -687,11 +688,11 @@ class thermoplot:
             self.ax.set_ylim([0.98*min(self.y),1.02*max(self.y)])
             self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+".png"
         if self.thermodynamicproperty=="LTC (1/K)":
-            plot_expt(self.expt, 'linear thermal expansion', self.ax)
+            plot_expt(self.expt, 'linear thermal expansion', self.ax, xlim=self.plot_xlim)
         elif self.thermodynamicproperty=="Entropy (J/mol-atom/K)":
-            plot_expt(self.expt, 'entropy', self.ax)
+            plot_expt(self.expt, 'entropy', self.ax, xlim=self.plot_xlim)
         elif self.thermodynamicproperty=="Enthalpy-H298 (J/mol-atom)":
-            plot_expt(self.expt, 'enthalpy', self.ax)
+            plot_expt(self.expt, 'enthalpy', self.ax, xlim=self.plot_xlim)
         elif self.thermodynamicproperty=="Lorenz number ($WΩK^{−2}$)":
             self.ax.set_ylim([min(2.e-8, np.array(self.y).min()),max(3.e-8,np.array(self.y).max())])
 
@@ -746,6 +747,7 @@ class thermoplot:
                         replace(' ','_')+'_'+str(self.xlim)+"_oT2.png"
             elif self.xlim!=None: 
                 self.ax.set_xlim([0.0,self.xlim])
+                if self.xlim==300: self.ax.set_ylim([0.0,25])
                 y0 = y0[x<=self.xlim*1.1]
                 y1 = y1[x<=self.xlim*1.1]
                 y2 = y2[x<=self.xlim*1.1]
@@ -757,9 +759,11 @@ class thermoplot:
                     self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}$")
                     self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
                 plot_expt(self.expt, 'heat capacity', self.ax, xlim=self.xlim)
+                """
                 if y2.max() > 1.e-2:
                     self.ax.plot(x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
                     plot_expt(self.expt, 'electronic heat capacity', self.ax, xlim=self.xlim)
+                """
                 self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+'_'+str(self.xlim)+".png"
             elif self.elonly!=None:
                 self.ax.set_xlim([0.0,self.elonly])
@@ -775,10 +779,12 @@ class thermoplot:
                 else:
                     self.ax.plot(x,y0,'-',linewidth=2,color='b', label=self._label+",$C_{p,lat+el}$")
                     self.ax.plot(x,y1,'--',linewidth=2,color='black', label="$C_{p,lat}$")
-                plot_expt(self.expt, 'heat capacity', self.ax)
+                plot_expt(self.expt, 'heat capacity', self.ax, xlim=self.plot_xlim)
+                """
                 if y2.max() > 1.e-2:
                     self.ax.plot(x,y2,'-.',linewidth=2,color='r', label=self._label+",$C_{el}$")
-                    plot_expt(self.expt, 'electronic heat capacity', self.ax)
+                    plot_expt(self.expt, 'electronic heat capacity', self.ax, xlim=self.plot_xlim)
+                """
                 self.fname = self.thermodynamicproperty.split('(')[0].strip().replace(' ','_')+".png"
 
             plt.gca().set_ylim(bottom=0)
@@ -828,8 +834,24 @@ def plot_expt (expt, prp, ax, CoT=False, xlim=None):
                 xx = xval
 
             if len(xx)>0:
-                ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, 
-                    linestyle='None', label=Author.split(',')[0])
+                if Author.startswith('Andersson(CALPHAD)'):
+                    ax.plot(xx,yy, marker='o', color='b',markersize=10, mew=2,
+                        linestyle='None', fillstyle='none', label=Author.split(',')[0])
+                elif Author.startswith('Andersson(CALPHAD)') or \
+                    Author.startswith('Chase(JANAF)'):
+                    ax.plot(xx,yy, marker='s', color='k',markersize=8, mew=2,
+                        linestyle='None', fillstyle='none', label=Author.split(',')[0])
+                    """
+                    try:
+                        ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8, mew=2,
+                            linestyle='None', fillstyle='none', label=Author.split(',')[0])
+                    except:
+                        ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8,
+                            linestyle='None', label=Author.split(',')[0])
+                    """
+                else:
+                    ax.plot(xx,yy, marker=markers[mindex%len(markers)], markersize=8,
+                        linestyle='None', label=Author.split(',')[0])
                 ymax = max(yy.max(), ymax)
             mindex += 1
     return ymax

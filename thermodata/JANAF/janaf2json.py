@@ -1,6 +1,24 @@
 import sys
 from dfttk.analysis.ywutils import reduced_formula, formula2composition
 
+def endoffile(lines):
+    form = None
+    for l in range(len(lines)):
+        ss = [f for f in lines[l].strip().split('\t') if f!='']
+        if len(ss) < 1: continue
+        formula = ss[-1].split('(')
+        if len(formula) < 2: continue
+        try:
+            els, natom = formula2composition(formula[0], False)
+            form = reduced_formula(formula[0])
+            lines = lines[l+1:]
+            break
+        except:
+            continue
+    if form==None: return True
+    else: return False
+
+
 def endofrec(line0,line1):
     ss = [f for f in line0.strip().replace('\t', ' ').split(' ') if f!='']
     try:
@@ -53,7 +71,8 @@ def gatdata(lines):
     for k in range(kk+1, len(lines)):
         try:
             if lines[k].strip()!='': 
-                sys.stdout.write(',\n')
+                if not endoffile(lines[k:]):
+                    sys.stdout.write(',\n')
                 return k
         except:
             sys.stdout.write('\n]')
@@ -67,6 +86,7 @@ lines = sys.stdin.readlines()
 #while l < len(lines):
 sys.stdout.write('[')
 while True:
+    form = None
     for l in range(len(lines)):
         ss = [f for f in lines[l].strip().split('\t') if f!='']
         if len(ss) < 1: continue
@@ -79,6 +99,8 @@ while True:
             break
         except:
             continue
+    if form==None: break
+    #print("eeeeeeeee", formula)
 
     sys.stdout.write('\n    {\n        "Author":"Chase(JANAF), Malcolm W. Chase, Jr. NIST-JANAF Thermochemical Tables. Washington, DC : New York :American Chemical Society ; American Institute of Physics for the National Institute of Standards and Technology, 1998.",\n')
     sys.stdout.write('        "Compound": "{}",\n'.format(form))
