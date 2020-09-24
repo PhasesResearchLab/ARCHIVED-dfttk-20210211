@@ -61,7 +61,12 @@ def get_static_structure_by_metadata(metadata, db_file=None):
     structure_list = [Structure.from_dict(itemi['output']['structure']) for itemi in static_items]
     volumes = [itemi['output']['structure']['lattice']['volume'] for itemi in static_items]
     energies = [itemi['output']['energy_per_atom'] for itemi in static_items]
-    band_gap = [itemi['output']['direct_gap'] for itemi in static_items]
+    band_gap = []
+    for itemi in static_items:
+        if itemi['output']['is_gap_direct']:
+            band_gap.append(itemi['output']['bandgap'])
+        else:
+            band_gap.append(itemi['output']['direct_gap'])
     structure_list = sort_x_by_y(structure_list, volumes)
     band_gap = sort_x_by_y(band_gap, volumes)
     energies = sort_x_by_y(energies, volumes)
