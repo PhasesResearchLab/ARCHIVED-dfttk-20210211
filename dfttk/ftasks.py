@@ -155,7 +155,7 @@ class CheckSymmetry(FiretaskBase):
     """
     required_params = ['tolerance', 'db_file']
     optional_params = ['vasp_cmd', 'structure', 'metadata', 'name', 'modify_incar_params', 'modify_kpoints_params',
-                       'run_isif2', 'pass_isif4']
+                       'run_isif2', 'pass_isif4', 'store_volume_data']
     def run_task(self, fw_spec):
         # unrelaxed cell
         cell = Structure.from_file('POSCAR')
@@ -178,12 +178,13 @@ class CheckSymmetry(FiretaskBase):
 
             fws = []
             vis = RelaxSet(self.get('structure'), volume_relax=True)
+            store_volume_data = self.get('store_volume_data', False)
             vol_relax_fw = OptimizeFW(self.get('structure'), symmetry_tolerance=None,
                                        job_type='normal', name='Volume relax', #record_path = True,
                                        vasp_input_set=vis, modify_incar = {'ISIF': 7},
                                        vasp_cmd=self.get('vasp_cmd'), db_file=self.get('db_file'),
                                        metadata=self.get('metadata'), run_isif2=self.get('run_isif2'),
-                                       pass_isif4=self.get('pass_isif4')
+                                       pass_isif4=self.get('pass_isif4'), store_volume_data=store_volume_data
                                       )
             fws.append(vol_relax_fw)
 
@@ -747,11 +748,12 @@ class CheckRelaxation(FiretaskBase):
 
     required_params = ["db_file", "tag", "common_kwargs"]
     optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", 'level', 'isif4',  "energy_with_isif",
-                       "static_kwargs", "relax_kwargs"]
+                       "static_kwargs", "relax_kwargs", 'store_volume_data']
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+        store_volume_data = self.get('store_volume_data', False)
 
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
@@ -791,7 +793,8 @@ class CheckRelaxation(FiretaskBase):
                     #prev_isif = None
             next_steps = self.get_next_steps(passed, cur_isif, prev_isif, isif4=isif4, level=level, energy_with_isif=energy_with_isif)
 
-        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], energy_with_isif=energy_with_isif))
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'],
+                                                         store_volume_data=store_volume_data, energy_with_isif=energy_with_isif))
 
     @staticmethod
     def get_next_steps(symmetry_checks_passed, current_isif, prev_isif, isif4=False, level=1, energy_with_isif={}):
@@ -857,7 +860,7 @@ class CheckRelaxation(FiretaskBase):
 
         return next_steps
 
-    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}):
+    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}, store_volume_data=False):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
         # delayed imports to avoid circular import
@@ -884,10 +887,11 @@ class CheckRelaxation(FiretaskBase):
                 md = common_copy.get("metadata", {})
                 md['symmetry_type'] = step["symmetry_type"]
                 common_copy["metadata"] = md
-                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **static_kwargs, **common_copy))
+                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], store_volume_data=store_volume_data,
+                                           **static_kwargs, **common_copy))
             elif job_type == "relax":
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
-                        override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
+                                override_symmetry_tolerances=symmetry_options, store_volume_data=store_volume_data, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws

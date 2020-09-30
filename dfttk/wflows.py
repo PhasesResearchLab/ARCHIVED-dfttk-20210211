@@ -22,7 +22,7 @@ def _get_deformations(def_frac, num_def):
         return np.linspace(1 - def_frac, 1 + def_frac, num_def)
 
 
-def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
+def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volume_data=False,
                   num_deformations=11, override_symmetry_tolerances=None, metadata=None):
     """
     Perform an E-V curve, robustly relaxating all structures on the curve.
@@ -54,7 +54,8 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
     for defo in deformations:
         struct = deepcopy(structure)
         struct.scale_lattice(defo)
-        full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
+        full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE,
+                                         store_volume_data=store_volume_data)
         fws.append(full_relax_fw)
     if metadata is not None and all(x in metadata for x in ('phase_name', 'sublattice_configuration')):
         # create a nicer name for the workflow
@@ -93,6 +94,8 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
     metadata.update({'tag': tag})
+
+    #Born exist or not?
     struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
 
     fws = []
@@ -101,9 +104,10 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
         structures = struct_energy_bandgap[0]
         energies = struct_energy_bandgap[1]
         bandgap = struct_energy_bandgap[2]
-        for i in range(0,len(bandgap)):
-            structure = structures[i]
-            if bandgap[i] > 0:
+        #any bandgap > 0
+        if any(np.array(bandgap) > 0):
+            for i in range(0,len(bandgap)):
+                structure = structures[i]
                 fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
                                   vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
                                   override_default_vasp_params=override_default_vasp_params, tag=tag,
@@ -131,7 +135,8 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
-                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01):
+                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01,
+                        store_volume_data=False):
     """
     E - V
     curve
@@ -212,7 +217,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
 
     fws = []
 
-    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax',
+    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax', store_volume_data=store_volume_data,
                                      **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
     fws.append(robust_opt_fw)
     check_qha_parent = []
@@ -239,7 +244,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
 
     check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, stable_tor=stable_tor,
                                         phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
-                                        override_symmetry_tolerances=override_symmetry_tolerances,
+                                        override_symmetry_tolerances=override_symmetry_tolerances, store_volume_data=store_volume_data,
                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
                             parents=check_qha_parent, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
     fws.append(check_qha_fw)
@@ -257,7 +262,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
                  passinitrun=False, relax_path='', modify_incar_params={},
-                 modify_kpoints_params={}, verbose=False):
+                 modify_kpoints_params={}, verbose=False, store_volume_data=False):
     """
     E - V
     curve
@@ -351,7 +356,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                                    prev_calc_loc=False, vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file,
                                    metadata=metadata, record_path = True, run_isif2=run_isif2, pass_isif4=pass_isif4,
                                    modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params,
-                                   spec={'_preserve_fworker': True})
+                                   store_volume_data=store_volume_data, spec={'_preserve_fworker': True})
         fws.append(full_relax_fw)
     else:
         full_relax_fw = None
@@ -360,7 +365,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                                         tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, 
                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
                                         phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, run_isif2=run_isif2, pass_isif4=pass_isif4,
-                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
+                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params, store_volume_data=store_volume_data),
                             parents=full_relax_fw, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
     fws.append(check_result)
 
@@ -377,7 +382,7 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
                  passinitrun=False, relax_path='', modify_incar_params={},
-                 modify_kpoints_params={}, verbose=False):
+                 modify_kpoints_params={}, verbose=False, store_volume_data=False):
     """
     E - V
     curve
@@ -457,7 +462,7 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
             vis_PreStatic = PreStaticSet(structure1)
             prestatic = StaticFW(structure=structure1, scale_lattice=deformation, name='VR_%.3f-PreStatic' %deformation,
                                prev_calc_loc=False, vasp_input_set=vis_PreStatic, vasp_cmd=vasp_cmd, db_file=db_file,
-                               metadata=metadata, Prestatic=True)
+                               metadata=metadata, Prestatic=True, store_volume_data=store_volume_data)
 
             fws.append(prestatic)
             prestatic_calcs.append(prestatic)

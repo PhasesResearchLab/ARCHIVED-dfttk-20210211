@@ -183,6 +183,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     modify_kpoints_params = settings.get('modify_kpoints_params', {})
     #bool, print(True) or not(False) some informations, used for debug
     verbose = settings.get('verbose', False)
+    #Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
+    store_volume_data = False
 
     #Set the default value for phonon_supercell_matrix_min/max
     if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
@@ -212,9 +214,9 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                     db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
                     run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
-                    verbose=verbose)
+                    verbose=verbose, store_volume_data=store_volume_data)
     elif WORKFLOW == "eos":
-        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
+        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction, store_volume_data=store_volume_data,
                   num_deformations=num_deformations, override_symmetry_tolerances=override_default_vasp_params, metadata=metadata)
     elif WORKFLOW == "robust":
         wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
@@ -224,7 +226,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
                  phonon_supercell_matrix_max=phonon_supercell_matrix_max, optimize_sc=optimize_sc, level=level,
-                 force_phonon=force_phonon, stable_tor=stable_tor)
+                 force_phonon=force_phonon, stable_tor=stable_tor, store_volume_data=store_volume_data)
     elif WORKFLOW == "born":
         wf = get_wf_borncharge(structure=structure, metadata=metadata, db_file=db_file, isif=2, name="born charge", 
                       vasp_cmd=vasp_cmd, override_default_vasp_params=override_default_vasp_params, 
@@ -501,6 +503,11 @@ def run_dfttk():
                          choices=["all", "pymatgen", "atomate"],
                          help="Test for configurations. Note: currently only support for pymatgen.")
     pconfig.set_defaults(func=config)
+
+    #SUB-PROCESS: db
+    pdb = subparsers.add_parser("db", help="Database management.")
+    pdb.add_argument('-rm', '--remove', dest='REMOVE',)
+    pdb.set_defaults(func=config)
 
 
     args = parser.parse_args()
