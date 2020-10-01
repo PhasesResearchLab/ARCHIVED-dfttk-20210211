@@ -124,7 +124,7 @@ class RobustOptimizeFW(Firework):
                  override_symmetry_tolerances=None, job_type="normal", vasp_input_set=None,
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
                  prev_calc_loc=True, parents=None, db_insert=False, tag=None, modify_incar_params={},
-                 modify_kpoints_params={}, energy_with_isif={}, store_volume_data=False, **kwargs):
+                 modify_kpoints_params={}, energy_with_isif={}, store_volumetric_data=False, **kwargs):
 
         metadata = metadata or {}
         tag = tag or metadata.get('tag')
@@ -133,15 +133,15 @@ class RobustOptimizeFW(Firework):
             tag = str(uuid4())
             metadata['tag'] = tag
 
-        if isinstance(store_volume_data, (list, tuple)):
-            store_volume_data = store_volume_data
-        elif isinstance(store_volume_data, bool):
-            if store_volume_data:
-                store_volume_data = STORE_VOLUMETRIC_DATA
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
             else:
-                store_volume_data = ()
+                store_volumetric_data = ()
         else:
-            raise ValueError('The store_volume_data should be list or bool')
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         override_symmetry_tolerances = override_symmetry_tolerances or {}
@@ -159,7 +159,7 @@ class RobustOptimizeFW(Firework):
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         if db_insert:
-            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volume_data=store_volume_data))
+            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
         t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
 
         common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
@@ -168,7 +168,7 @@ class RobustOptimizeFW(Firework):
         relax_kwargs = {}
         t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, isif4=isif4, level=level, energy_with_isif=energy_with_isif,
                                  common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, site_properties=site_properties,
-                                 store_volume_data=store_volume_data, **override_symmetry_tolerances))
+                                 store_volumetric_data=store_volumetric_data, **override_symmetry_tolerances))
         super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
@@ -202,7 +202,7 @@ class StaticFW(Firework):
     def __init__(self, structure, isif=2, scale_lattice=None, name="static", vasp_input_set=None, 
                  vasp_cmd="vasp", metadata=None, prev_calc_loc=True, Prestatic=False, modify_incar=None, 
                  db_file=None, parents=None, tag=None, override_default_vasp_params=None,
-                 store_volume_data=False, **kwargs):
+                 store_volumetric_data=False, **kwargs):
 
         # TODO: @computron - I really don't like how you need to set the structure even for
         # prev_calc_loc jobs. Sometimes it makes appending new FWs to an existing workflow
@@ -214,15 +214,15 @@ class StaticFW(Firework):
             tag = str(uuid4())
             metadata['tag'] = tag
 
-        if isinstance(store_volume_data, (list, tuple)):
-            store_volume_data = store_volume_data
-        elif isinstance(store_volume_data, bool):
-            if store_volume_data:
-                store_volume_data = STORE_VOLUMETRIC_DATA
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
             else:
-                store_volume_data = ()
+                store_volumetric_data = ()
         else:
-            raise ValueError('The store_volume_data should be list or bool')
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         vasp_input_set = vasp_input_set or StaticSet(structure, isif=isif, **override_default_vasp_params)
@@ -251,7 +251,7 @@ class StaticFW(Firework):
         else:
             t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata,
                                 "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True, "tag": tag},
-                                store_volume_data=store_volume_data))
+                                store_volumetric_data=store_volumetric_data))
         t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
