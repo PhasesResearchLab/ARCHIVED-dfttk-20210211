@@ -140,14 +140,14 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
 
     borncharge = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='borncharge')
 
-    if borncharge:
+    if borncharge[0]:
         #Born charge has been calculated
         wf = []
     else:
         fws = []
         struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
         
-        if struct_energy_bandgap:
+        if struct_energy_bandgap[0]:
             #not False
             structures = struct_energy_bandgap[0]
             energies = struct_energy_bandgap[1]
