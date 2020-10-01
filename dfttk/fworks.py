@@ -43,7 +43,7 @@ class OptimizeFW(Firework):
                  name="structure optimization", vasp_input_set=None, job_type="normal", vasp_cmd="vasp", 
                  metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, 
                  prev_calc_loc=True, parents=None, db_insert=False, tag=None,
-                 run_isif2=False, pass_isif4=False, force_gamma=True, store_volume_data=False,
+                 run_isif2=False, pass_isif4=False, force_gamma=True, store_volumetric_data=False,
                  modify_incar=None, modify_incar_params={}, modify_kpoints_params={}, **kwargs):
 
         metadata = metadata or {}
@@ -54,15 +54,15 @@ class OptimizeFW(Firework):
             metadata['tag'] = tag
         metadata.update({'tag': tag})
 
-        if isinstance(store_volume_data, (list, tuple)):
-            store_volume_data = store_volume_data
-        elif isinstance(store_volume_data, bool):
-            if store_volume_data:
-                store_volume_data = STORE_VOLUMETRIC_DATA
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
             else:
-                store_volume_data = ()
+                store_volumetric_data = ()
         else:
-            raise ValueError('The store_volume_data should be list or bool')
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         override_symmetry_tolerances = override_symmetry_tolerances or {}
@@ -92,7 +92,7 @@ class OptimizeFW(Firework):
         if record_path:
             t.append(Record_relax_running_path(db_file = db_file, metadata = metadata, run_isif2=run_isif2, pass_isif4=pass_isif4))
         if db_insert:
-            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volume_data=store_volume_data))
+            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
         t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, override_symmetry_tolerances=override_symmetry_tolerances))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
