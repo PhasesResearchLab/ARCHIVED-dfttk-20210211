@@ -343,7 +343,7 @@ class EVcheck_QHA(FiretaskBase):
                                                  parents=static_fw, **t_kwargs, **common_kwargs)
                             fws.append(phonon_fw)
                             calcs.append(phonon_fw)
-                    check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, store_volume_data=store_volume_data
+                    check_result = Firework(EVcheck_QHA(structure=relax_structure, relax_scheme=relax_scheme, store_volume_data=store_volume_data,
                                                         run_num=run_num, verbose=verbose, site_properties=site_properties, stable_tor=stable_tor,
                                                         phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
                                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs), 

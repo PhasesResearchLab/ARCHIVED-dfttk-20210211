@@ -510,14 +510,11 @@ def run_dfttk():
 
     #SUB-PROCESS: db_romove
     pdbrm = subparsers.add_parser("db_remove", help="Remove data in MongoDb.")
-    pdbrm.add_argument('-tag', '--tag', dest='TAG', help='Specify the tag.')
-    pdbrm.add_argument('-m', '--mode', dest='MODE', default='vol', help='Specify the remove mode. Default: vol\n'
-        'vol: all volume except dos and bandstructure.\n'
-        'allvol: all volume.\n'
-        'all: all data.\n'
-        'property: all data except volume data.\n'
-        'any single properties or volume data, e.g. chgcar, or dos')
-    pdbrm.add_argument('-f', '--force', dest='FORCE', action="store_true", help='Force remove (no inquiry)')
+    pdbrm.add_argument('-tag', '--tag', dest='TAG', help='Specify the tag. If the tag is not specified (None), then remove collection. Default: None')
+    pdbrm.add_argument('-m', '--mode', dest='MODE', default='vol', help='Specify the remove mode. Default: vol. '
+        '1. vol: all volume except dos and bandstructure. 2. allvol: all volume. 3. all: all data.'
+        '4. property: all data except volume data. 5. any single properties or volume data, e.g. chgcar, or dos')
+    pdbrm.add_argument('-f', '--force', dest='FORCE', action="store_true", help='Force remove (no query). Default: False.')
     pdbrm.set_defaults(func=db_remove)
 
 

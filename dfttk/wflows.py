@@ -68,7 +68,7 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volume_da
     return wf
 
 def get_wf_elastic(structure, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
-                   vasp_input_set=None, override_default_vasp_params=None, override_symmetry_tolerances,
+                   vasp_input_set=None, override_default_vasp_params=None, override_symmetry_tolerances=None,
                    modify_incar=None, store_volume_data=False, isif4=False, level=1, **kwargs):
     '''
     '''
