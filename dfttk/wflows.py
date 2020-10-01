@@ -95,38 +95,43 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
     metadata.update({'tag': tag})
 
-    #Born exist or not?
-    struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+    borncharge = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='borncharge')
 
-    fws = []
-    if struct_energy_bandgap:
-        #not False
-        structures = struct_energy_bandgap[0]
-        energies = struct_energy_bandgap[1]
-        bandgap = struct_energy_bandgap[2]
-        #any bandgap > 0
-        if any(np.array(bandgap) > 0):
-            for i in range(0,len(bandgap)):
-                structure = structures[i]
+    if borncharge:
+        #Born charge has been calculated
+        wf = []
+    else:
+        fws = []
+        struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+        
+        if struct_energy_bandgap:
+            #not False
+            structures = struct_energy_bandgap[0]
+            energies = struct_energy_bandgap[1]
+            bandgap = struct_energy_bandgap[2]
+            #any bandgap > 0
+            if any(np.array(bandgap) > 0):
+                for i in range(0,len(bandgap)):
+                    structure = structures[i]
+                    fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                                      vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                                      override_default_vasp_params=override_default_vasp_params, tag=tag,
+                                      prev_calc_loc=False, db_file=db_file, **kwargs)
+                    fws.append(fw)
+        else:
+            if structure is None:
+                raise ValueError('You must provide metadata existed in mongodb or structure')
+            else:
                 fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
                                   vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
                                   override_default_vasp_params=override_default_vasp_params, tag=tag,
                                   prev_calc_loc=False, db_file=db_file, **kwargs)
                 fws.append(fw)
-    else:
-        if structure is None:
-            raise ValueError('You must provide metadata existed in mongodb or structure')
-        else:
-            fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
-                              vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
-                              override_default_vasp_params=override_default_vasp_params, tag=tag,
-                              prev_calc_loc=False, db_file=db_file, **kwargs)
-            fws.append(fw)
-    if not fws:
-        raise ValueError('The system is metal or no static result under given metadata in the mongodb')
+        if not fws:
+            raise ValueError('The system is metal or no static result under given metadata in the mongodb')
 
-    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
-    wf = Workflow(fws, name=wfname, metadata=metadata)
+        wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+        wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
 

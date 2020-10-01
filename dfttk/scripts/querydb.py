@@ -109,7 +109,7 @@ def remove_data_by_metadata(tag, db_file=None, rem_mode='vol', forcedelete=False
     vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
     metadata = {'tag': tag}
 
-    VOL1_COLLECTION = ['aeccar0', 'aeccar1', 'aeccar2', 'chgcar', 'locpot']
+    VOL1_COLLECTION = ['aeccar0', 'aeccar1', 'aeccar2', 'chgcar', 'locpot', 'elfcar']
     VOL2_COLLECTION = ['bandstructure', 'dos']
     VOL_COLLECTION = VOL1_COLLECTION + VOL2_COLLECTION
     OTHER_COLLECTION = ['borncharge', 'phonon', 'qha', 'qha_phonon', 'relax',

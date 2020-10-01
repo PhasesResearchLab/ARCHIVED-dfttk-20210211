@@ -167,8 +167,8 @@ class RobustOptimizeFW(Firework):
         static_kwargs = {}
         relax_kwargs = {}
         t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, isif4=isif4, level=level, energy_with_isif=energy_with_isif,
-                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, store_volume_data=store_volume_data,
-                                 **override_symmetry_tolerances))
+                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, site_properties=site_properties,
+                                 store_volume_data=store_volume_data, **override_symmetry_tolerances))
         super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 

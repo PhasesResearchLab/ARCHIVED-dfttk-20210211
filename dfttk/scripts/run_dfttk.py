@@ -7,6 +7,7 @@ from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_w
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from dfttk.scripts.querydb import get_eq_structure_by_metadata
+import dfttk.scripts.querydb as dfttkdb
 from monty.serialization import loadfn, dumpfn
 import warnings
 import copy
@@ -419,6 +420,9 @@ def config(args):
             mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"), aci=ACI, 
             vasp_cmd=VASP_CMD_FLAG, template=QUEUE_SCRIPT, queue_type=QUEUE_TYPE)
 
+def db_remove(args):
+    dfttkdb.remove_data_by_metadata(tag=args.TAG, rem_mode=args.MODE, forcedelete=args.FORCE)
+
 def run_dfttk():
     """
     dfttk command
@@ -504,10 +508,17 @@ def run_dfttk():
                          help="Test for configurations. Note: currently only support for pymatgen.")
     pconfig.set_defaults(func=config)
 
-    #SUB-PROCESS: db
-    pdb = subparsers.add_parser("db", help="Database management.")
-    pdb.add_argument('-rm', '--remove', dest='REMOVE',)
-    pdb.set_defaults(func=config)
+    #SUB-PROCESS: db_romove
+    pdbrm = subparsers.add_parser("db_remove", help="Remove data in MongoDb.")
+    pdbrm.add_argument('-tag', '--tag', dest='TAG', help='Specify the tag.')
+    pdbrm.add_argument('-m', '--mode', dest='MODE', default='vol', help='Specify the remove mode. Default: vol\n'
+        'vol: all volume except dos and bandstructure.\n'
+        'allvol: all volume.\n'
+        'all: all data.\n'
+        'property: all data except volume data.\n'
+        'any single properties or volume data, e.g. chgcar, or dos')
+    pdbrm.add_argument('-f', '--force', dest='FORCE', action="store_true", help='Force remove (no inquiry)')
+    pdbrm.set_defaults(func=db_remove)
 
 
     args = parser.parse_args()

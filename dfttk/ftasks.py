@@ -748,12 +748,14 @@ class CheckRelaxation(FiretaskBase):
 
     required_params = ["db_file", "tag", "common_kwargs"]
     optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", 'level', 'isif4',  "energy_with_isif",
-                       "static_kwargs", "relax_kwargs", 'store_volume_data']
+                       "static_kwargs", "relax_kwargs", 'store_volume_data', 'site_properties']
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+
         store_volume_data = self.get('store_volume_data', False)
+        site_properties = self.get('site_properties', None)
 
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
@@ -793,7 +795,7 @@ class CheckRelaxation(FiretaskBase):
                     #prev_isif = None
             next_steps = self.get_next_steps(passed, cur_isif, prev_isif, isif4=isif4, level=level, energy_with_isif=energy_with_isif)
 
-        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'],
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], site_properties=site_properties,
                                                          store_volume_data=store_volume_data, energy_with_isif=energy_with_isif))
 
     @staticmethod
@@ -860,7 +862,7 @@ class CheckRelaxation(FiretaskBase):
 
         return next_steps
 
-    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}, store_volume_data=False):
+    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}, store_volume_data=False, site_properties=None):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
         # delayed imports to avoid circular import
