@@ -13,6 +13,7 @@ from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
 from dfttk.scripts.querydb import is_property_exist_in_db
+from atomate.vasp.workflows.base.elastic import get_wf_elastic_constant
 
 
 def _get_deformations(def_frac, num_def):
@@ -65,6 +66,48 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volume_da
         wfname = f"unknown:{structure.composition.reduced_formula}:unknown"
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
+
+def get_wf_elastic(structure, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
+                   vasp_input_set=None, override_default_vasp_params=None, override_symmetry_tolerances,
+                   modify_incar=None, store_volume_data=False, isif4=False, level=1, **kwargs):
+    '''
+    '''
+    vasp_cmd = vasp_cmd or VASP_CMD
+    db_file = db_file or DB_FILE
+
+    override_symmetry_tolerances = override_symmetry_tolerances or {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.10}
+    override_default_vasp_params = override_default_vasp_params or {}
+
+    site_properties = deepcopy(structure).site_properties
+
+    metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
+    metadata.update({'tag': tag})
+
+
+    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
+                     'override_default_vasp_params': override_default_vasp_params}
+    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'level': level, 'override_symmetry_tolerances': override_symmetry_tolerances}
+    #vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
+
+    fws = []
+
+    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax', store_volume_data=store_volume_data,
+                                     **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
+    fws.append(robust_opt_fw)
+    check_qha_parent = []
+
+    check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=robust_opt_fw,
+                              name="{}-CheckRelaxScheme".format(structure.composition.reduced_formula))
+    fws.append(check_relax_fw)
+    check_qha_parent.append(check_relax_fw)
+
+    wf_elastic = get_wf_elastic_constant(structure, strain_states=None, stencils=None,
+                            db_file=None,
+                            conventional=False, order=2, vasp_input_set=None,
+                            analysis=True,
+                            sym_reduce=False, tag='elastic',
+                            copy_vasp_outputs=False, **kwargs)
 
 
 def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 

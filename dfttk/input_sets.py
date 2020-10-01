@@ -391,4 +391,57 @@ class BornChargeSet(DictSet):
 
         super(BornChargeSet, self).__init__(structure, BornChargeSet.CONFIG, sort_structure=False, **kwargs)
 
+class ElasticSet(DictSet):
+    """Set tuned for metal relaxations (correct smearing).
+    Add `isif` parameter to the set to easily allow for overriding ISIF setting.
+    Kpoints have a 6000 reciprocal density default.
+    """
+    CONFIG = _load_yaml_config("MPRelaxSet")
+    CONFIG['KPOINTS'].update({
+        'grid_density': 8000,
+    })
+    CONFIG['KPOINTS'].pop('reciprocal_density')  # to be explicit
+    CONFIG['INCAR'].update({
+        'EDIFF_PER_ATOM': 1e-6,
+        'ENCUT': 520,  # MP compatibility
+        'ISMEAR': -5,
+        "NSW": 0,
+        "IBRION": 2,
+        'LREAL': False,
+        'ALGO': 'NORMAL',
+        # other settings from MPStaticSet
+        "LAECHG": True,
+        "LCHARG": True,
+        "LWAVE": False,
+        "LORBIT": 11,
+        "LVHAR": True,
+        "ICHARG": 0,
+        "NEDOS": 5001,
+        "NSW": 99,
+        "ISIF": 2,
+        "PREC": "High"
+    })
+    # now we reset the potentials
+    CONFIG['POTCAR_FUNCTIONAL'] = 'PBE'
+    CONFIG['POTCAR'].update(POTCAR_UPDATES)
+
+    def __init__(self, structure, **kwargs):
+        # pop the old kwargs, backwards compatibility from the complex StaticSet
+        
+        old_kwargs = ['prev_incar', 'prev_kpoints', 'grid_density', 'lepsilon', 'lcalcpol']
+        for k in old_kwargs:
+            try:
+                kwargs.pop(k)
+            except KeyError:
+                pass
+        self.kwargs = kwargs
+        uis = copy.deepcopy(kwargs.get('user_incar_settings', {}))
+
+        if 'ISPIN' not in uis:
+            if magnetic_check(structure):
+                uis.update({'ISPIN': 2})
+            else:
+                uis.update({'ISPIN': 1})
+        StaticSet.CONFIG['INCAR'].update(uis)
+        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
 
