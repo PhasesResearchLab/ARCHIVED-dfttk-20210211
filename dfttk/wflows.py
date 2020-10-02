@@ -140,9 +140,9 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
 
     borncharge = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='borncharge')
 
-    if borncharge[0]:
+    if borncharge:
         #Born charge has been calculated
-        wf = []
+        raise ValueError('The borncharge with tag={} has been calculated.'.format(tag))
     else:
         fws = []
         struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)

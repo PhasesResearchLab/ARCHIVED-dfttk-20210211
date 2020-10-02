@@ -85,7 +85,7 @@ def is_property_exist_in_db(metadata, db_file=None, property='static'):
     else:
         vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
         collection = PRO_COLLECTION_MAP[property]
-        search_items = vasp_db.db[collection].find({'metadata': metadata})
+        search_items = list(vasp_db.db[collection].find({'metadata': metadata}))
         if search_items:
             #Not empty
             return get_static_structure_by_metadata(metadata=metadata, db_file=db_file)
