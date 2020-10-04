@@ -2,7 +2,7 @@
 # The template for batch run of DFTTK
 import argparse
 from pymatgen import MPRester, Structure
-from pymatgen.io.vasp.inputs import Potcar
+from pymatgen.io.vasp.inputs import Potcar, Incar
 from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
@@ -187,6 +187,8 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
     store_volumetric_data = False
 
+    uis = override_default_vasp_params['user_incar_settings']
+
     #Set the default value for phonon_supercell_matrix_min/max
     if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
         if phonon_supercell_matrix.lower().startswith('a'):
@@ -202,6 +204,11 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
             raise ValueError("Unknown parameters for phonon_supercell_matrix({}), support 'atoms', 'lattice' or 'volume' or 3x3 list.".format(phonon_supercell_matrix))
 
     if magmom:
+        structure.add_site_property('magmom', magmom)
+    elif 'MAGMOM' in uis:
+        magmom = uis['MAGMOM']
+        if isinstance(magmom, str):
+            magmom = Incar.from_string('MAGMOM={}'.format(magmom)).as_dict()['MAGMOM']
         structure.add_site_property('magmom', magmom)
     if not db_file:
         from fireworks.fw_config import config_to_dict
