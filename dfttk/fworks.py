@@ -93,7 +93,7 @@ class OptimizeFW(Firework):
             t.append(Record_relax_running_path(db_file = db_file, metadata = metadata, run_isif2=run_isif2, pass_isif4=pass_isif4))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, override_symmetry_tolerances=override_symmetry_tolerances))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, override_symmetry_tolerances=override_symmetry_tolerances, site_properties=site_properties))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
@@ -160,7 +160,7 @@ class RobustOptimizeFW(Firework):
         t.append(PassCalcLocs(name=name))
         if db_insert:
             t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, site_properties=site_properties))
 
         common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
                          'override_default_vasp_params': override_default_vasp_params}
@@ -252,7 +252,7 @@ class StaticFW(Firework):
             t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata,
                                 "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True, "tag": tag},
                                 store_volumetric_data=store_volumetric_data))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, site_properties=site_properties))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 

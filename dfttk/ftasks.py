@@ -756,6 +756,8 @@ class CheckRelaxation(FiretaskBase):
 
         store_volumetric_data = self.get('store_volumetric_data', False)
         site_properties = self.get('site_properties', None)
+        self.store_volumetric_data = store_volumetric_data
+        self.site_properties = site_properties
 
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
@@ -763,7 +765,7 @@ class CheckRelaxation(FiretaskBase):
         energy_with_isif = self.get('energy_with_isif', {})
         self.symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
 
-        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond, site_properties=site_properties)
         passed = symm_check_data["symmetry_checks_passed"]
         cur_isif = symm_check_data["isif"]
         if passed:
@@ -795,8 +797,7 @@ class CheckRelaxation(FiretaskBase):
                     #prev_isif = None
             next_steps = self.get_next_steps(passed, cur_isif, prev_isif, isif4=isif4, level=level, energy_with_isif=energy_with_isif)
 
-        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], site_properties=site_properties,
-                                                         store_volumetric_data=store_volumetric_data, energy_with_isif=energy_with_isif))
+        return FWAction(detours=self.get_detour_workflow(next_steps, symm_check_data['final_energy_per_atom'], energy_with_isif=energy_with_isif))
 
     @staticmethod
     def get_next_steps(symmetry_checks_passed, current_isif, prev_isif, isif4=False, level=1, energy_with_isif={}):
@@ -862,7 +863,7 @@ class CheckRelaxation(FiretaskBase):
 
         return next_steps
 
-    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}, store_volumetric_data=False, site_properties=None):
+    def get_detour_workflow(self, next_steps, final_energy, energy_with_isif={}):
         # TODO: add all the necessary arguments and keyword arguments for the new Fireworks
         # TODO: add update metadata with the input metadata + the symmetry type for static
         # delayed imports to avoid circular import
@@ -889,11 +890,11 @@ class CheckRelaxation(FiretaskBase):
                 md = common_copy.get("metadata", {})
                 md['symmetry_type'] = step["symmetry_type"]
                 common_copy["metadata"] = md
-                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], store_volumetric_data=store_volumetric_data,
+                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], store_volumetric_data=self.store_volumetric_data,
                                            **static_kwargs, **common_copy))
             elif job_type == "relax":
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
-                                override_symmetry_tolerances=symmetry_options, store_volumetric_data=store_volumetric_data, **self["common_kwargs"]))
+                                override_symmetry_tolerances=symmetry_options, store_volumetric_data=self.store_volumetric_data, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws
@@ -1063,14 +1064,15 @@ class CheckSymmetryToDb(FiretaskBase):
     Store the CheckSymmetry result to MongoDB, the stored collection is named as 'relaxations'
     '''
     required_params = ["db_file", "tag"]
-    optional_params = ['override_symmetry_tolerances', 'metadata']
+    optional_params = ['override_symmetry_tolerances', 'metadata', 'site_properties']
     def run_task(self, fw_spec):
         override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
         tol_energy = override_symmetry_tolerances.get("tol_energy", 0.025)
         tol_strain = override_symmetry_tolerances.get("tol_strain", 0.05)
         tol_bond = override_symmetry_tolerances.get("tol_bond", 0.10)
+        site_properties = self.get('site_properties', None)
 
-        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond, site_properties=site_properties)
 
         symm_check_data.update({
             "tag": self["tag"],

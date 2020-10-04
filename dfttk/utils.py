@@ -820,7 +820,7 @@ def update_pot_by_symbols(InputSet, write_file=True):
         potcar.write_file(filename="POTCAR")
     return potcar
 
-def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
+def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_properties=None):
     '''
     Check symmetry for vasp run. This should be run for each vasp run
 
@@ -843,6 +843,11 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
     vasprun = Vasprun("vasprun.xml")
     inp_struct = Structure.from_file("POSCAR")
     out_struct = Structure.from_file("CONTCAR")
+
+    if not site_properties:
+        for site_property in site_properties:
+            inp_struct.add_site_property(site_property, site_properties[site_property])
+            out_struct.add_site_property(site_property, site_properties[site_property])
 
     current_isif = incar['ISIF']
     initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
