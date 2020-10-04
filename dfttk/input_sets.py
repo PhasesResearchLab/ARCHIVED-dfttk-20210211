@@ -411,7 +411,7 @@ class ElasticSet(DictSet):
         'ALGO': 'NORMAL',
         # other settings from MPStaticSet
         "LAECHG": True,
-        "LCHARG": False,
+        "LCHARG": True,
         "LWAVE": False,
         "LORBIT": 11,
         "LVHAR": True,

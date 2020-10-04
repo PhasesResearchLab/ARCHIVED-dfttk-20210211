@@ -114,7 +114,7 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
         wf_elastic = get_wf_elastic_constant(structure, strain_states=strain_states, stencils=stencils,
                             db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
                             analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
-                            metadata=metadata, **kwargs)
+                            metadata=metadata, vasp_cmd=vasp_cmd, **kwargs)
         return wf_elastic
     else:
         raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
