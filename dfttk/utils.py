@@ -848,8 +848,8 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_proper
     if site_properties:
         if 'magmom' in site_properties:
             in_mag = incar.as_dict()['MAGMOM']
-            inp_struct.add_site_property('magmom', in_mag])
-            out_mag = outcar.magnetization
+            inp_struct.add_site_property('magmom', in_mag)
+            out_mag = [m['tot'] for m in outcar.magnetization]
             out_struct.add_site_property('magmom', out_mag)
             site_properties.pop('magmom')
         for site_property in site_properties:
