@@ -8,7 +8,7 @@ import os
 
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from fireworks import LaunchPad
 from ase.build import get_deviation_from_optimal_cell_shape
@@ -840,11 +840,18 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_proper
     '''
     # Get relevant files as pmg objects
     incar = Incar.from_file("INCAR")
+    outcar = Outcar.from_file('OUTCAR')
     vasprun = Vasprun("vasprun.xml")
     inp_struct = Structure.from_file("POSCAR")
     out_struct = Structure.from_file("CONTCAR")
 
     if site_properties:
+        if 'magmom' in site_properties:
+            in_mag = incar.as_dict()['MAGMOM']
+            inp_struct.add_site_property('magmom', in_mag])
+            out_mag = outcar.magnetization
+            out_struct.add_site_property('magmom', out_mag)
+            site_properties.pop('magmom')
         for site_property in site_properties:
             inp_struct.add_site_property(site_property, site_properties[site_property])
             out_struct.add_site_property(site_property, site_properties[site_property])
