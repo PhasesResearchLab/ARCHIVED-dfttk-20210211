@@ -9,10 +9,10 @@ from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW, BornChargeFW
 from dfttk.ftasks import CheckRelaxScheme
-from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
+from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet, ElasticSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
-from dfttk.scripts.querydb import is_property_exist_in_db
+from dfttk.scripts.querydb import is_property_exist_in_db, get_eq_structure_by_metadata
 from atomate.vasp.workflows.base.elastic import get_wf_elastic_constant
 
 
@@ -67,47 +67,57 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volumetri
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
-def get_wf_elastic(structure, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
-                   vasp_input_set=None, override_default_vasp_params=None, override_symmetry_tolerances=None,
-                   modify_incar=None, store_volumetric_data=False, isif4=False, level=1, **kwargs):
+def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
+                   vasp_input_set=None, override_default_vasp_params=None, strain_states=None, stencils=None,
+                   analysis=True, sym_reduce=False, order=2, conventional=False, **kwargs):
     '''
+    Parameter
+    ---------
+        structure (Structure): the structure to be calculated.
+            if the metedata is exist in db, then get the structure from the databae,
+                else using current provided structure.
+        db_file (str): path to file containing the database settings.
+        vasp_input_set (VaspInputSet): vasp input set to be used.  Defaults to ElasticSet in input_sets
+        override_default_vasp_params (dict): change the vasp settings.
+            e.g. {'user_incar_settings': {}, 'user_kpoints_settings': {}, 'user_potcar_functional': str}
+        tag (str):
+        #########The following parameters is taken from atomate directly#########
+        strain_states (list of Voigt-notation strains): list of ratios of nonzero elements
+            of Voigt-notation strain, e. g. [(1, 0, 0, 0, 0, 0), (0, 1, 0, 0, 0, 0), etc.].
+        stencils (list of floats, or list of list of floats): values of strain to multiply
+            by for each strain state, i. e. stencil for the perturbation along the strain
+            state direction, e. g. [-0.01, -0.005, 0.005, 0.01].  If a list of lists,
+            stencils must correspond to each strain state provided.
+        conventional (bool): flag to convert input structure to conventional structure,
+            defaults to False.
+        order (int): order of the tensor expansion to be determined.  Defaults to 2 and
+            currently supports up to 3.        
+        analysis (bool): flag to indicate whether analysis task should be added
+            and stresses and strains passed to that task
+        sym_reduce (bool): Whether or not to apply symmetry reductions
+        
     '''
     vasp_cmd = vasp_cmd or VASP_CMD
     db_file = db_file or DB_FILE
 
-    override_symmetry_tolerances = override_symmetry_tolerances or {'tol_energy':0.025, 'tol_strain':0.05, 'tol_bond':0.10}
     override_default_vasp_params = override_default_vasp_params or {}
-
-    site_properties = deepcopy(structure).site_properties
 
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
     metadata.update({'tag': tag})
 
+    structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file) or structure
 
-    common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
-                     'override_default_vasp_params': override_default_vasp_params}
-    robust_opt_kwargs = {'isif': 7, 'isif4': isif4, 'level': level, 'override_symmetry_tolerances': override_symmetry_tolerances}
-    #vasp_kwargs = {'modify_incar_params': modify_incar_params, 'modify_kpoints_params': modify_kpoints_params}
-
-    fws = []
-
-    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax', store_volumetric_data=store_volumetric_data,
-                                     **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
-    fws.append(robust_opt_fw)
-    check_qha_parent = []
-
-    check_relax_fw = Firework(CheckRelaxScheme(db_file=db_file, tag=tag), parents=robust_opt_fw,
-                              name="{}-CheckRelaxScheme".format(structure.composition.reduced_formula))
-    fws.append(check_relax_fw)
-    check_qha_parent.append(check_relax_fw)
-
-    wf_elastic = get_wf_elastic_constant(structure, strain_states=None, stencils=None,
-                            db_file=None,
-                            conventional=False, order=2, vasp_input_set=None,
-                            analysis=True,
-                            sym_reduce=False, tag='elastic',
-                            copy_vasp_outputs=False, **kwargs)
+    if structure:
+        site_properties = deepcopy(structure).site_properties
+        vasp_input_set = vasp_input_set or ElasticSet(structure=structure, **override_default_vasp_params)
+        wf_elastic = get_wf_elastic_constant(structure, strain_states=strain_states, stencils=stencils,
+                            db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
+                            analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
+                            metadata=metadata, **kwargs)
+        return wf_elastic
+    else:
+        raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
 
 
 def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 

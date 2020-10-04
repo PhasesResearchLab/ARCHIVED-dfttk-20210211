@@ -187,6 +187,14 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
     store_volumetric_data = False
 
+    ## The following settings only work for elastic constants workflow
+    strain_states = None
+    stencils = None
+    analysis = True
+    sym_reduce = False
+    order = 2
+    conventional = False
+
     uis = override_default_vasp_params['user_incar_settings']
 
     #Set the default value for phonon_supercell_matrix_min/max
@@ -239,6 +247,10 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
         wf = get_wf_borncharge(structure=structure, metadata=metadata, db_file=db_file, isif=2, name="born charge", 
                       vasp_cmd=vasp_cmd, override_default_vasp_params=override_default_vasp_params, 
                       modify_incar=modify_incar_params)
+    elif WORKFLOW == 'elastic':
+            wf = get_wf_elastic(structure=structure, metadata=metadata, vasp_cmd=vasp_cmd, db_file=db_file, name="elastic",
+                       override_default_vasp_params=override_default_vasp_params, strain_states=strain_states,
+                       stencils=stencils, analysis=analysis, sym_reduce=sym_reduce, order=order, conventional=conventional)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
