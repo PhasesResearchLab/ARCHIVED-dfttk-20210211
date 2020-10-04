@@ -441,6 +441,6 @@ class ElasticSet(DictSet):
                 uis.update({'ISPIN': 2})
             else:
                 uis.update({'ISPIN': 1})
-        StaticSet.CONFIG['INCAR'].update(uis)
-        super(StaticSet, self).__init__(structure, StaticSet.CONFIG, sort_structure=False, **kwargs)
+        ElasticSet.CONFIG['INCAR'].update(uis)
+        super(ElasticSet, self).__init__(structure, ElasticSet.CONFIG, sort_structure=False, **kwargs)
 

@@ -3,7 +3,7 @@
 import argparse
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Potcar, Incar
-from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge, get_wf_elastic
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
 from dfttk.scripts.querydb import get_eq_structure_by_metadata
@@ -195,7 +195,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     order = 2
     conventional = False
 
-    uis = override_default_vasp_params['user_incar_settings']
+    uis = override_default_vasp_params.get('user_incar_settings', {})
 
     #Set the default value for phonon_supercell_matrix_min/max
     if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
