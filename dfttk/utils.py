@@ -844,7 +844,7 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_proper
     inp_struct = Structure.from_file("POSCAR")
     out_struct = Structure.from_file("CONTCAR")
 
-    if not site_properties:
+    if site_properties:
         for site_property in site_properties:
             inp_struct.add_site_property(site_property, site_properties[site_property])
             out_struct.add_site_property(site_property, site_properties[site_property])
