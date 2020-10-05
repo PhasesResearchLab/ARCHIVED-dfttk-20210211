@@ -2,10 +2,12 @@
 # The template for batch run of DFTTK
 import argparse
 from pymatgen import MPRester, Structure
-from pymatgen.io.vasp.inputs import Potcar
-from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge
+from pymatgen.io.vasp.inputs import Potcar, Incar
+from dfttk.wflows import get_wf_gibbs, get_wf_EV_bjb, get_wf_gibbs_robust, get_wf_borncharge, get_wf_elastic
 from dfttk.utils import recursive_glob
 from dfttk.structure_builders.parse_anrl_prototype import multi_replace
+from dfttk.scripts.querydb import get_eq_structure_by_metadata
+import dfttk.scripts.querydb as dfttkdb
 from monty.serialization import loadfn, dumpfn
 import warnings
 import copy
@@ -182,6 +184,18 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     modify_kpoints_params = settings.get('modify_kpoints_params', {})
     #bool, print(True) or not(False) some informations, used for debug
     verbose = settings.get('verbose', False)
+    #Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
+    store_volumetric_data = False
+
+    ## The following settings only work for elastic constants workflow
+    strain_states = None
+    stencils = None
+    analysis = True
+    sym_reduce = False
+    order = 2
+    conventional = False
+
+    uis = override_default_vasp_params.get('user_incar_settings', {})
 
     #Set the default value for phonon_supercell_matrix_min/max
     if isinstance(phonon_supercell_matrix, str) and (phonon_supercell_matrix_min is None):
@@ -199,6 +213,11 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
 
     if magmom:
         structure.add_site_property('magmom', magmom)
+    elif 'MAGMOM' in uis:
+        magmom = uis['MAGMOM']
+        if isinstance(magmom, str):
+            magmom = Incar.from_string('MAGMOM={}'.format(magmom)).as_dict()['MAGMOM']
+        structure.add_site_property('magmom', magmom)
     if not db_file:
         from fireworks.fw_config import config_to_dict
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]    
@@ -211,9 +230,9 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                     db_file=db_file, metadata=metadata, name='EV_QHA', symmetry_tolerance=symmetry_tolerance, 
                     run_isif2=run_isif2, pass_isif4=pass_isif4, passinitrun=passinitrun, relax_path=relax_path, 
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
-                    verbose=verbose)
+                    verbose=verbose, store_volumetric_data=store_volumetric_data)
     elif WORKFLOW == "eos":
-        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction,
+        wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction, store_volumetric_data=store_volumetric_data,
                   num_deformations=num_deformations, override_symmetry_tolerances=override_default_vasp_params, metadata=metadata)
     elif WORKFLOW == "robust":
         wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
@@ -223,11 +242,15 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                  override_default_vasp_params=override_default_vasp_params, modify_incar_params=modify_incar_params,
                  modify_kpoints_params=modify_kpoints_params, verbose=verbose, phonon_supercell_matrix_min=phonon_supercell_matrix_min,
                  phonon_supercell_matrix_max=phonon_supercell_matrix_max, optimize_sc=optimize_sc, level=level,
-                 force_phonon=force_phonon, stable_tor=stable_tor)
+                 force_phonon=force_phonon, stable_tor=stable_tor, store_volumetric_data=store_volumetric_data)
     elif WORKFLOW == "born":
         wf = get_wf_borncharge(structure=structure, metadata=metadata, db_file=db_file, isif=2, name="born charge", 
                       vasp_cmd=vasp_cmd, override_default_vasp_params=override_default_vasp_params, 
                       modify_incar=modify_incar_params)
+    elif WORKFLOW == 'elastic':
+            wf = get_wf_elastic(structure=structure, metadata=metadata, vasp_cmd=vasp_cmd, db_file=db_file, name="elastic",
+                       override_default_vasp_params=override_default_vasp_params, strain_states=strain_states,
+                       stencils=stencils, analysis=analysis, sym_reduce=sym_reduce, order=order, conventional=conventional)
     else:
         raise ValueError("Currently, only the gibbs energy workflow is supported.")
     return wf
@@ -264,61 +287,96 @@ def run(args):
     MAX_JOB = args.MAX_JOB              # Max job to submit
     SETTINGS = args.SETTINGS            # Settings file    
     WRITE_OUT_WF = args.WRITE_OUT_WF    # Write out wf file or not
+    TAG = args.TAG                      # Metadata from the command line
+    APPEND = args.APPEND                # Append calculations, e.g. appending volumes or phonon or born
 
-    ## Get the file names of files
-    STR_FILES = get_structure_file(STR_FOLDER=STR_FOLDER, RECURSIVE=RECURSIVE, MATCH_PATTERN=MATCH_PATTERN)
+    if os.path.exists('db.json'):
+        db_file = 'db.json'
+    else:
+        db_file = None
 
     ## Initial wfs and metadatas
     wfs = []
     metadatas = {}
 
-    if os.path.exists('METADATAS.yaml'):
-        metadatas = loadfn('METADATAS.yaml')
-
-    ## generat the wf
-    for STR_FILE in STR_FILES:
-        (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(STR_FILE)
-        (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
-        str_filename = STR_FILENAME.lower()
-        if (str_filename.endswith("-" + SETTINGS.lower()) or 
-           str_filename.startswith( SETTINGS.lower() + "-") or 
-           (str_filename == SETTINGS.lower())):
-            print(STR_FILE + " is a setting file, not structure file, and skipped when reading the structure.")
-        elif STR_FILE == os.path.abspath(__file__):
-            #This is current file
-            pass
+    if APPEND:
+        if TAG:
+            metadatas = {os.path.join(os.path.abspath('./'), 'POSCAR'): TAG}
+        elif os.path.exists('METADATAS.yaml'):
+            metadatas = loadfn('METADATAS.yaml')
         else:
-            flag_run = False
-            try:
-                structure = Structure.from_file(STR_FILE)
-                flag_run = True
-            except Exception as e:
-                warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
-                    "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
+            raise ValueError('For APPEND model, please provide TAG with -tag or provide METADATAS.yaml file')
+        for keyi in metadatas:
+            (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(keyi)
+            (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
+            user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+            metadata = user_settings.get('metadata', {})
+            metadata.update({'tag': metadatas[keyi]})
+            user_settings.update({'metadata': metadata})
+            structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file)
+            if structure is None:
+                raise FileNotFoundError('There is no static results under current metadata tag({})'.format(metadata['tag']))
+            if PHONON:
+                user_settings.update({'phonon': True})
+            phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+            if phonon_supercell_matrix is None:
+                user_settings.update({"phonon_supercell_matrix": "atoms"})
 
-            if flag_run:
-                user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
+            wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+            wfs.append(wf)
 
-                metadatai = metadatas.get(STR_FILE, None)
-                if metadatai:
-                    user_settings.update({'metadata': metadatai})
-                if PHONON:
-                    user_settings.update({'phonon': True})
-                phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
-                if phonon_supercell_matrix is None:
-                    user_settings.update({"phonon_supercell_matrix": "atoms"})
+            if WRITE_OUT_WF:
+                dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                dumpfn(wf.to_dict(), dfttk_wf_filename)
+    else:
+        if os.path.exists('METADATAS.yaml'):
+            metadatas = loadfn('METADATAS.yaml')
+        ## Get the file names of files
+        STR_FILES = get_structure_file(STR_FOLDER=STR_FOLDER, RECURSIVE=RECURSIVE, MATCH_PATTERN=MATCH_PATTERN)
+        ## generat the wf
+        for STR_FILE in STR_FILES:
+            (STR_PATH, STR_FILENAME_WITH_EXT) = os.path.split(STR_FILE)
+            (STR_FILENAME, STR_EXT) = os.path.splitext(STR_FILENAME_WITH_EXT)
+            str_filename = STR_FILENAME.lower()
+            if (str_filename.endswith("-" + SETTINGS.lower()) or 
+               str_filename.startswith( SETTINGS.lower() + "-") or 
+               (str_filename == SETTINGS.lower())):
+                print(STR_FILE + " is a setting file, not structure file, and skipped when reading the structure.")
+            elif STR_FILE == os.path.abspath(__file__):
+                #This is current file
+                pass
+            else:
+                flag_run = False
+                try:
+                    structure = Structure.from_file(STR_FILE)
+                    flag_run = True
+                except Exception as e:
+                    warnings.warn("The name or the contant of " + STR_FILE + " is not supported by dfttk, and skipped. " + \
+                        "Ref. https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file")
 
-                wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+                if flag_run:
+                    user_settings = get_user_settings(STR_FILENAME_WITH_EXT, STR_PATH=STR_PATH, NEW_SETTING=SETTINGS)
 
-                metadatas[STR_FILE] = wf.as_dict()["metadata"]
-                wfs.append(wf)
+                    metadatai = metadatas.get(STR_FILE, None)
+                    if metadatai:
+                        user_settings.update({'metadata': metadatai})
+                    if PHONON:
+                        user_settings.update({'phonon': True})
+                    phonon_supercell_matrix = user_settings.get('phonon_supercell_matrix', None)
+                    if phonon_supercell_matrix is None:
+                        user_settings.update({"phonon_supercell_matrix": "atoms"})
 
-                if WRITE_OUT_WF:
-                    dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
-                    dumpfn(wf.to_dict(), dfttk_wf_filename)
+                    wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
+
+                    metadatas[STR_FILE] = wf.as_dict()["metadata"]
+                    wfs.append(wf)
+
+                    if WRITE_OUT_WF:
+                        dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
+                        dumpfn(wf.to_dict(), dfttk_wf_filename)
             
-    #Write Out the metadata for POST and continue purpose
-    dumpfn(metadatas, "METADATAS.yaml")
+        #Write Out the metadata for POST and continue purpose
+        dumpfn(metadatas, "METADATAS.yaml")
 
     if LAUNCH:
         from fireworks import LaunchPad
@@ -381,6 +439,9 @@ def config(args):
             mapi=MAPI_KEY, path_to_store_psp=os.path.join(PATH_TO_STORE_CONFIG, "vasp_psp"), aci=ACI, 
             vasp_cmd=VASP_CMD_FLAG, template=QUEUE_SCRIPT, queue_type=QUEUE_TYPE)
 
+def db_remove(args):
+    dfttkdb.remove_data_by_metadata(tag=args.TAG, rem_mode=args.MODE, forcedelete=args.FORCE)
+
 def run_dfttk():
     """
     dfttk command
@@ -416,6 +477,10 @@ def run_dfttk():
                            (NOTE: currently, only robust and born are supported.)""")
     prun.add_argument("-ph", "--phonon", dest="PHONON", action="store_true",
                       help="Run phonon. This is equivalent with set phonon=True in SETTINGS file")
+    prun.add_argument("-tag", "--tag", dest="TAG", type=str,
+                      help="Specify the tag for continue mode")
+    prun.add_argument("-a", "--append", dest="APPEND", action="store_true",
+                      help="Append calculation according to metadata, e.g. appending volumes or phonon")
     prun.add_argument("-l", "--launch", dest="LAUNCH", action="store_true",
                       help="Launch the wf to launchpad")
     prun.add_argument("-m", "--max_job", dest="MAX_JOB", nargs="?", type=int, default=0,
@@ -461,6 +526,15 @@ def run_dfttk():
                          choices=["all", "pymatgen", "atomate"],
                          help="Test for configurations. Note: currently only support for pymatgen.")
     pconfig.set_defaults(func=config)
+
+    #SUB-PROCESS: db_romove
+    pdbrm = subparsers.add_parser("db_remove", help="Remove data in MongoDb.")
+    pdbrm.add_argument('-tag', '--tag', dest='TAG', help='Specify the tag. If the tag is not specified (None), then remove collection. Default: None')
+    pdbrm.add_argument('-m', '--mode', dest='MODE', default='vol', help='Specify the remove mode. Default: vol. '
+        '1. vol: all volume except dos and bandstructure. 2. allvol: all volume. 3. all: all data.'
+        '4. property: all data except volume data. 5. any single properties or volume data, e.g. chgcar, or dos')
+    pdbrm.add_argument('-f', '--force', dest='FORCE', action="store_true", help='Force remove (no query). Default: False.')
+    pdbrm.set_defaults(func=db_remove)
 
 
     args = parser.parse_args()

@@ -571,7 +571,8 @@ def config_atomate(path_to_store_config=".", config_folder="config", queue_scrip
                   "db.json": "ConfigDb", "my_launchpad.yaml": "ConfigLaunchFile"}
     files = required_file + option_file
     for file in files:
-        eval(FileModule[file] + "(**param_dict).write_file()")
+        if file in option_file:
+            eval(FileModule[file] + "(**param_dict).write_file()")
         if config_file[file]:
             update_configfile(os.path.join(param_dict["path_to_store_config"], "config/" + file), config_file[file])
     #Add environment var

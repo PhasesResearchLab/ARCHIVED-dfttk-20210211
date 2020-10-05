@@ -9,10 +9,11 @@ from fireworks import Workflow, Firework
 from atomate.vasp.config import VASP_CMD, DB_FILE
 from dfttk.fworks import OptimizeFW, StaticFW, PhononFW, RobustOptimizeFW, BornChargeFW
 from dfttk.ftasks import CheckRelaxScheme
-from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet
+from dfttk.input_sets import PreStaticSet, RelaxSet, ForceConstantsSet, ElasticSet
 from dfttk.EVcheck_QHA import EVcheck_QHA, PreEV_check
 from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify_kpoints_by_FWname, supercell_scaling_by_atom_lat_vol
-from dfttk.scripts.querydb import is_property_exist_in_db
+from dfttk.scripts.querydb import is_property_exist_in_db, get_eq_structure_by_metadata
+from atomate.vasp.workflows.base.elastic import get_wf_elastic_constant
 
 
 def _get_deformations(def_frac, num_def):
@@ -22,7 +23,7 @@ def _get_deformations(def_frac, num_def):
         return np.linspace(1 - def_frac, 1 + def_frac, num_def)
 
 
-def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
+def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volumetric_data=False,
                   num_deformations=11, override_symmetry_tolerances=None, metadata=None):
     """
     Perform an E-V curve, robustly relaxating all structures on the curve.
@@ -54,7 +55,8 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
     for defo in deformations:
         struct = deepcopy(structure)
         struct.scale_lattice(defo)
-        full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE)
+        full_relax_fw = RobustOptimizeFW(struct, isif=5, vasp_cmd=VASP_CMD, db_file=DB_FILE,
+                                         store_volumetric_data=store_volumetric_data)
         fws.append(full_relax_fw)
     if metadata is not None and all(x in metadata for x in ('phase_name', 'sublattice_configuration')):
         # create a nicer name for the workflow
@@ -64,6 +66,58 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12),
         wfname = f"unknown:{structure.composition.reduced_formula}:unknown"
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
+
+def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
+                   vasp_input_set=None, override_default_vasp_params=None, strain_states=None, stencils=None,
+                   analysis=True, sym_reduce=False, order=2, conventional=False, **kwargs):
+    '''
+    Parameter
+    ---------
+        structure (Structure): the structure to be calculated.
+            if the metedata is exist in db, then get the structure from the databae,
+                else using current provided structure.
+        db_file (str): path to file containing the database settings.
+        vasp_input_set (VaspInputSet): vasp input set to be used.  Defaults to ElasticSet in input_sets
+        override_default_vasp_params (dict): change the vasp settings.
+            e.g. {'user_incar_settings': {}, 'user_kpoints_settings': {}, 'user_potcar_functional': str}
+        tag (str):
+        #########The following parameters is taken from atomate directly#########
+        strain_states (list of Voigt-notation strains): list of ratios of nonzero elements
+            of Voigt-notation strain, e. g. [(1, 0, 0, 0, 0, 0), (0, 1, 0, 0, 0, 0), etc.].
+        stencils (list of floats, or list of list of floats): values of strain to multiply
+            by for each strain state, i. e. stencil for the perturbation along the strain
+            state direction, e. g. [-0.01, -0.005, 0.005, 0.01].  If a list of lists,
+            stencils must correspond to each strain state provided.
+        conventional (bool): flag to convert input structure to conventional structure,
+            defaults to False.
+        order (int): order of the tensor expansion to be determined.  Defaults to 2 and
+            currently supports up to 3.        
+        analysis (bool): flag to indicate whether analysis task should be added
+            and stresses and strains passed to that task
+        sym_reduce (bool): Whether or not to apply symmetry reductions
+        
+    '''
+    vasp_cmd = vasp_cmd or VASP_CMD
+    db_file = db_file or DB_FILE
+
+    override_default_vasp_params = override_default_vasp_params or {}
+
+    metadata = metadata or {}
+    tag = metadata.get('tag', '{}'.format(str(uuid4())))
+    metadata.update({'tag': tag})
+
+    structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file) or structure
+
+    if structure:
+        site_properties = deepcopy(structure).site_properties
+        vasp_input_set = vasp_input_set or ElasticSet(structure=structure, **override_default_vasp_params)
+        wf_elastic = get_wf_elastic_constant(structure, strain_states=strain_states, stencils=stencils,
+                            db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
+                            analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
+                            metadata=metadata, vasp_cmd=vasp_cmd, **kwargs)
+        return wf_elastic
+    else:
+        raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
 
 
 def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 
@@ -93,36 +147,44 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
     metadata = metadata or {}
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
     metadata.update({'tag': tag})
-    struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
 
-    fws = []
-    if struct_energy_bandgap:
-        #not False
-        structures = struct_energy_bandgap[0]
-        energies = struct_energy_bandgap[1]
-        bandgap = struct_energy_bandgap[2]
-        for i in range(0,len(bandgap)):
-            structure = structures[i]
-            if bandgap[i] > 0:
+    borncharge = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='borncharge')
+
+    if borncharge:
+        #Born charge has been calculated
+        raise ValueError('The borncharge with tag={} has been calculated.'.format(tag))
+    else:
+        fws = []
+        struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+        
+        if struct_energy_bandgap[0]:
+            #not False
+            structures = struct_energy_bandgap[0]
+            energies = struct_energy_bandgap[1]
+            bandgap = struct_energy_bandgap[2]
+            #any bandgap > 0
+            if any(np.array(bandgap) > 0):
+                for i in range(0,len(bandgap)):
+                    structure = structures[i]
+                    fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
+                                      vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
+                                      override_default_vasp_params=override_default_vasp_params, tag=tag,
+                                      prev_calc_loc=False, db_file=db_file, **kwargs)
+                    fws.append(fw)
+        else:
+            if structure is None:
+                raise ValueError('You must provide metadata existed in mongodb or structure')
+            else:
                 fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
                                   vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
                                   override_default_vasp_params=override_default_vasp_params, tag=tag,
                                   prev_calc_loc=False, db_file=db_file, **kwargs)
                 fws.append(fw)
-    else:
-        if structure is None:
-            raise ValueError('You must provide metadata existed in mongodb or structure')
-        else:
-            fw = BornChargeFW(structure, isif=isif, name="{}-{:.3f}".format(name, structure.volume), 
-                              vasp_cmd=vasp_cmd, metadata=metadata, modify_incar=modify_incar,
-                              override_default_vasp_params=override_default_vasp_params, tag=tag,
-                              prev_calc_loc=False, db_file=db_file, **kwargs)
-            fws.append(fw)
-    if not fws:
-        raise ValueError('The system is metal or no static result under given metadata in the mongodb')
+        if not fws:
+            raise ValueError('The system is metal or no static result under given metadata in the mongodb')
 
-    wfname = "{}:{}".format(structure.composition.reduced_formula, name)
-    wf = Workflow(fws, name=wfname, metadata=metadata)
+        wfname = "{}:{}".format(structure.composition.reduced_formula, name)
+        wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
 
@@ -131,7 +193,8 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
                         t_step=5, eos_tolerance=0.01, volume_spacing_min=0.03, vasp_cmd=None, db_file=None, 
                         metadata=None, name='EV_QHA', override_default_vasp_params=None, modify_incar_params={},
                         modify_kpoints_params={}, verbose=False, level=1, phonon_supercell_matrix_min=60, 
-                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01):
+                        phonon_supercell_matrix_max=120, optimize_sc=False, force_phonon=False, stable_tor=0.01,
+                        store_volumetric_data=False):
     """
     E - V
     curve
@@ -212,7 +275,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
 
     fws = []
 
-    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax',
+    robust_opt_fw = RobustOptimizeFW(structure, prev_calc_loc=False, name='Full relax', store_volumetric_data=store_volumetric_data,
                                      **robust_opt_kwargs, **vasp_kwargs, **common_kwargs)
     fws.append(robust_opt_fw)
     check_qha_parent = []
@@ -239,7 +302,7 @@ def get_wf_gibbs_robust(structure, num_deformations=7, deformation_fraction=(-0.
 
     check_qha_fw = Firework(EVcheck_QHA(site_properties=site_properties,verbose=verbose, stable_tor=stable_tor,
                                         phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, force_phonon=force_phonon,
-                                        override_symmetry_tolerances=override_symmetry_tolerances,
+                                        override_symmetry_tolerances=override_symmetry_tolerances, store_volumetric_data=store_volumetric_data,
                                         **eos_kwargs, **vasp_kwargs, **t_kwargs, **common_kwargs),
                             parents=check_qha_parent, name='{}-EVcheck_QHA'.format(structure.composition.reduced_formula))
     fws.append(check_qha_fw)
@@ -257,7 +320,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
                  passinitrun=False, relax_path='', modify_incar_params={},
-                 modify_kpoints_params={}, verbose=False):
+                 modify_kpoints_params={}, verbose=False, store_volumetric_data=False):
     """
     E - V
     curve
@@ -351,7 +414,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                                    prev_calc_loc=False, vasp_input_set=vis_relax, vasp_cmd=vasp_cmd, db_file=db_file,
                                    metadata=metadata, record_path = True, run_isif2=run_isif2, pass_isif4=pass_isif4,
                                    modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params,
-                                   spec={'_preserve_fworker': True})
+                                   store_volumetric_data=store_volumetric_data, spec={'_preserve_fworker': True})
         fws.append(full_relax_fw)
     else:
         full_relax_fw = None
@@ -360,7 +423,7 @@ def get_wf_gibbs(structure, num_deformations=7, deformation_fraction=(-0.1, 0.1)
                                         tolerance = tolerance, threshold = 14, vol_spacing = vol_spacing, vasp_cmd = vasp_cmd, 
                                         metadata = metadata, t_min=t_min, t_max=t_max, t_step=t_step, phonon = phonon, symmetry_tolerance = symmetry_tolerance,
                                         phonon_supercell_matrix = phonon_supercell_matrix, verbose = verbose, run_isif2=run_isif2, pass_isif4=pass_isif4,
-                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params),
+                                        modify_incar_params=modify_incar_params, modify_kpoints_params = modify_kpoints_params, store_volumetric_data=store_volumetric_data),
                             parents=full_relax_fw, name='%s-EVcheck_QHA' %structure.composition.reduced_formula)
     fws.append(check_result)
 
@@ -377,7 +440,7 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
                  t_min=5, t_max=2000, t_step=5, tolerance = 0.01, volume_spacing_min = 0.03,
                  vasp_cmd=None, db_file=None, metadata=None, name='EV_QHA', symmetry_tolerance = 0.05,
                  passinitrun=False, relax_path='', modify_incar_params={},
-                 modify_kpoints_params={}, verbose=False):
+                 modify_kpoints_params={}, verbose=False, store_volumetric_data=False):
     """
     E - V
     curve
@@ -457,7 +520,7 @@ def get_wf_gibbs_SQS(structure, num_deformations=7, deformation_fraction=(-0.1, 
             vis_PreStatic = PreStaticSet(structure1)
             prestatic = StaticFW(structure=structure1, scale_lattice=deformation, name='VR_%.3f-PreStatic' %deformation,
                                prev_calc_loc=False, vasp_input_set=vis_PreStatic, vasp_cmd=vasp_cmd, db_file=db_file,
-                               metadata=metadata, Prestatic=True)
+                               metadata=metadata, Prestatic=True, store_volumetric_data=store_volumetric_data)
 
             fws.append(prestatic)
             prestatic_calcs.append(prestatic)
