@@ -99,26 +99,3 @@ verbose : False
 #str, the vasp command, e.g. 'vasp_std'
 #By default, it will use the configuration in fireworks 
 #vasp_cmd : 
-
-#Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
-#False or True or list of ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
-store_volumetric_data : False
-
-#The following parameters is for elastic constants
-#Strain modes
-strain_states : None
-
-#The stencils or call the amplitude of the strain modes/states
-stencils : None
-
-#analysis or not
-analysis : True
-
-#reduce the strains according to the symmetry of the structure
-sym_reduce : False
-
-#The order of elastic constants
-order : 2
-
-#Convert the structure into conventional format or not
-conventional : False

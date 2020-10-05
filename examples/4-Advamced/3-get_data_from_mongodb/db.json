@@ -1,0 +1,11 @@
+{
+    "database": "mjl6505-results",
+    "collection": "tasks",
+    "admin_user": "mjl6505",
+    "admin_password": "t6quthrU57Gw",
+    "readonly_user": "mjl6505-ro",
+    "readonly_password": "fkwHLBNpPhgv",
+    "host": "206.189.190.225",
+    "port": 27018,
+    "aliases": {}
+}

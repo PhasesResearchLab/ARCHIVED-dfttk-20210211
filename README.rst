@@ -62,6 +62,10 @@ Anaconda packages of DFTTK are currently not supported. If you are using Anacond
     cd dfttk
     pip install -e .
 
+For more details, ref. Install_link_
+
+.. _Install_link: examples/1-Installation/README.md
+
 Configuration
 =============
 
@@ -102,7 +106,7 @@ After prepared above files, simply run
 
 For more details, ref. Configuration_
 
-.. _Configuration: docs/Configuration.md
+.. _Configuration: examples/2-Configuration/README.md
 
 Use
 ===
@@ -112,7 +116,7 @@ Use
 
 For more details, ref. Get_Started_
 
-.. _Get_Started: docs/Get_started.md
+.. _Get_Started: examples/3-Get_started
 
 Contributing
 ============

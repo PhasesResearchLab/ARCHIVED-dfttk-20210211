@@ -1,0 +1,1 @@
+override_default_vasp_params : {'user_incar_settings': {'LREAL': 'Auto'}, 'user_potcar_functional': 'LDA', 'user_potcar_settings': {'Fe': 'Fe_sv'}}
