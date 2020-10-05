@@ -840,7 +840,7 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_proper
     '''
     # Get relevant files as pmg objects
     incar = Incar.from_file("INCAR")
-    outcar = Outcar.from_file('OUTCAR')
+    outcar = Outcar('OUTCAR')
     vasprun = Vasprun("vasprun.xml")
     inp_struct = Structure.from_file("POSCAR")
     out_struct = Structure.from_file("CONTCAR")
