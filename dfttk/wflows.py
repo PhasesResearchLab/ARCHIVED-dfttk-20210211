@@ -106,18 +106,31 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
     tag = metadata.get('tag', '{}'.format(str(uuid4())))
     metadata.update({'tag': tag})
 
-    structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file) or structure
+    struct_energy_bandgap = is_property_exist_in_db(metadata=metadata, db_file=db_file)
+    #structure = struct_energy_bandgap[0] or structure
 
-    if structure:
-        site_properties = deepcopy(structure).site_properties
-        vasp_input_set = vasp_input_set or ElasticSet(structure=structure, **override_default_vasp_params)
-        wf_elastic = get_wf_elastic_constant(structure, strain_states=strain_states, stencils=stencils,
-                            db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
-                            analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
-                            metadata=metadata, vasp_cmd=vasp_cmd, **kwargs)
-        return wf_elastic
+    #structure = get_eq_structure_by_metadata(metadata=metadata, db_file=db_file) or structure
+
+    if struct_energy_bandgap[0]:
+        structures = struct_energy_bandgap[0]
+        wfs = []
+        for struct in structures:
+            vasp_input_set = vasp_input_set or ElasticSet(structure=struct, **override_default_vasp_params)
+            wf_elastic = get_wf_elastic_constant(struct, strain_states=strain_states, stencils=stencils,
+                                db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
+                                analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
+                                metadata=metadata, vasp_cmd=vasp_cmd, **kwargs)
+            wfs.append(wf_elastic)
     else:
-        raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
+        if structure is None:
+                raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
+        else:
+            wfs = get_wf_elastic_constant(structure, strain_states=strain_states, stencils=stencils,
+                                db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
+                                analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
+                                metadata=metadata, vasp_cmd=vasp_cmd, **kwargs)
+    return wfs
+
 
 
 def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name="born charge", 
