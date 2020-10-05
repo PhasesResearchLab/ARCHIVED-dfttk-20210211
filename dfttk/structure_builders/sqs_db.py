@@ -78,14 +78,14 @@ def lat_in_to_sqs(atat_lattice_in, rename=True):
     # create the lattice
     if len(atat_coord_system) == 3:
         # we have a coordinate system matrix
-        coord_system = Lattice(list(atat_coord_system)).matrix
+        coord_system = Lattice(atat_coord_system.asList()).matrix
     else:
         # we have length and angles
         #coord_system = Lattice.from_lengths_and_angles(list(atat_coord_system[0]), list(atat_coord_system[1])).matrix
         (lat_a, lat_b, lat_c) = list(atat_coord_system[0])
         (lat_alpha, lat_beta, lat_gamma) = list(atat_coord_system[1])
         coord_system = Lattice.from_parameters(lat_a, lat_b, lat_c, lat_alpha, lat_beta, lat_gamma).matrix
-    direct_lattice = Lattice(list(atat_lattice))
+    direct_lattice = Lattice(atat_lattice.asList())
     lattice = coord_system.dot(direct_lattice.matrix)
     # create the list of atoms, converted to the right coordinate system
     species_list = []
