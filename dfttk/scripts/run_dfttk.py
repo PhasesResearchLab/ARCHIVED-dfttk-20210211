@@ -185,15 +185,15 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     #bool, print(True) or not(False) some informations, used for debug
     verbose = settings.get('verbose', False)
     #Save the volume data or not ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
-    store_volumetric_data = False
+    store_volumetric_data = settings.get('store_volumetric_data', False)
 
     ## The following settings only work for elastic constants workflow
-    strain_states = None
-    stencils = None
-    analysis = True
-    sym_reduce = False
-    order = 2
-    conventional = False
+    strain_states = settings.get('strain_states', None)
+    stencils = settings.get('stencils', None)
+    analysis = settings.get('analysis', True)
+    sym_reduce = settings.get('sym_reduce', False)
+    order = settings.get('order', 2)
+    conventional = settings.get('conventional', False)
 
     uis = override_default_vasp_params.get('user_incar_settings', {})
 
@@ -323,7 +323,10 @@ def run(args):
                 user_settings.update({"phonon_supercell_matrix": "atoms"})
 
             wf = get_wf_single(structure, WORKFLOW=WORKFLOW, settings=user_settings)
-            wfs.append(wf)
+            if isinstance(wf, list):
+                wfs = wfs + wf
+            else:
+                wfs.append(wf)
 
             if WRITE_OUT_WF:
                 dfttk_wf_filename = os.path.join(STR_PATH, "dfttk_wf-" + STR_FILENAME_WITH_EXT + ".yaml")
