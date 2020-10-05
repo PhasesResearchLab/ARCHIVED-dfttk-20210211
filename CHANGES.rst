@@ -2,6 +2,20 @@
 Changelog
 =========
 
+0.3 (2020-10)
+=============
+
+New features
+
+(Contributor: `@hitliaomq`_, `@yiwang62`_, `@bocklund`_)
+
+* New relax scheme called as robust relax scheme. (`@hitliaomq`_, `@bocklund`_)
+* Post module for publication. (`@yiwang62`_)
+* BornCharge workflow. (`@hitliaomq`_)
+* Elastic workflow (initial version). (`@hitliaomq`_)
+* Documents. (`@hitliaomq`_, `@yiwang62`_)
+
+
 0.2 (2020-03-30)
 ================
 
@@ -32,3 +46,4 @@ Initial release. Includes
 .. _`@bocklund`: https://github.com/bocklund
 .. _`@mxf469`: https://github.com/mxf469
 .. _`@hitliaomq`: https://github.com/hitliaomq
+.. _`@yiwang62`: https://github.com/yiwang62
