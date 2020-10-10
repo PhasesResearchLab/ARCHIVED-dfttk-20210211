@@ -27,7 +27,7 @@ from scipy.optimize import brentq
 from scipy.integrate import cumtrapz, trapz, simps
 from pymatgen import Structure
 from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
-from dfttk.analysis.ywutils import get_expt, formula2composition
+from dfttk.analysis.ywutils import get_expt, formula2composition, get_melting_temperature
 
 import re
 import json
@@ -43,7 +43,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 
-from elements import elements
+#from elements import elements
 
 MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B': 10.811, 'C': 12.0107, 'N': 14.0067,
               'O': 15.9994, 'F': 18.9984032, 'Ne': 20.1797, 'Na': 22.98976928, 'Mg': 24.305, 'Al': 26.9815386,
@@ -67,8 +67,10 @@ MM_of_Elements = {'H': 1.00794, 'He': 4.002602, 'Li': 6.941, 'Be': 9.012182, 'B'
 
 periodictable = MM_of_Elements.keys() #""" list of all elements from the periodic table"""
 
+
 from math import atan2,degrees
 #Label line with line2D label data
+#get from https://github.com/cphyc/matplotlib-label-lines
 def labelLine(line,x,label=None,align=True,**kwargs):
 
     ax = line.axes
@@ -125,6 +127,8 @@ def labelLine(line,x,label=None,align=True,**kwargs):
 
     ax.text(x,y,label,rotation=trans_angle,**kwargs)
 
+
+#get from https://github.com/cphyc/matplotlib-label-lines
 def labelLines(lines,align=True,xvals=None,**kwargs):
 
     ax = lines[0].axes
@@ -145,6 +149,11 @@ def labelLines(lines,align=True,xvals=None,**kwargs):
     for line,x,label in zip(labLines,xvals,labels):
         labelLine(line,x,label,align,**kwargs)
 
+
+"""SGTE fitting using 
+T - temperature
+a - fitting parameters
+"""
 def SGTE(T,a):
   fval = a[0]+a[1]*T
   if len(a) > 2:
@@ -157,34 +166,53 @@ def SGTE(T,a):
     fval += a[5]/T
   return(fval)
 
+
+"""SGTE fitting with two parameters"""
 def SGTE2(T, a, b):
   return (SGTE(T, [a,b]))
 
+
+"""SGTE fitting with three parameters"""
 def SGTE3(T, a, b, c):
   return (SGTE(T, [a,b,c]))
 
+
+"""SGTE fitting with four parameters"""
 def SGTE4(T, a, b, c, d):
   return (SGTE(T, [a,b,c,d]))
 
+
+"""SGTE fitting with five parameters"""
 def SGTE5(T, a, b, c, d, e):
   return (SGTE(T, [a,b,c,d,e]))
 
+
+"""SGTE fitting with six parameters"""
 def SGTE6(T, a, b, c, d, e, f):
   return (SGTE(T, [a,b,c,d,e,f]))
 
 
+"""SGTE fitting for heat capacity one parameter"""
 def SGTEC1(T,a):
   return C_SGTE(T,[a])
 
+
+"""SGTE fitting for heat capacity two parameters"""
 def SGTEC2(T,a,b):
   return C_SGTE(T,[a,b])
 
+
+"""SGTE fitting for heat capacity three parameters"""
 def SGTEC3(T,a,b,c):
   return C_SGTE(T,[a,b,c])
 
+
+"""SGTE fitting for heat capacity four parameters"""
 def SGTEC4(T,a,b,c,d):
   return C_SGTE(T,[a,b,c,d])
 
+
+"""SGTE fitting for heat capacity"""
 def C_SGTE(T,a):
   fval = 0
   if len(a) > 0:
@@ -248,8 +276,6 @@ def CSGTEfit(f, x, y):
 
 def fitStoichiometricCp(x,y, thr=0.001):
   f,ferror = CSGTEfit(SGTEC2, x, y)
-  #if ferror > thr:
-  #  f,ferror = CSGTEfit(SGTEC2, x, y)
   if ferror > thr:
     f,ferror = CSGTEfit(SGTEC3, x, y)
   if ferror > thr:
@@ -1630,7 +1656,7 @@ def Phonon298(dir0, pvdos=False):
     copyfile(dfile,phdir298+'/'+dfile0)
     cwd = os.getcwd()
     os.chdir( phdir298 )
-    cmd = 'timeout 6 pos2s Symmetry.pos -THR 1.e-4 >&symmetry.out'
+    cmd = 'timeout 6 pos2s Symmetry.pos -THR 3.e-4 >&symmetry.out'
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
 
@@ -1769,6 +1795,7 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
       plotlabel = 'DFT'
   if expt!=None: expt =get_expt(expt, formula)
 
+
   global fitCp
   fitCp = _fitCp
   phasedir = [substr for substr in thermofile.split('/') if substr!=""]
@@ -1783,6 +1810,8 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
 
   thermo = np.loadtxt(thermofile, comments="#", dtype=np.float)
   thermo[np.isnan(thermo)] = 0.0
+  _single = len(set(thermo[:,1])) == 1
+  #print ("eeeeeeeeee", _single)
   if len (thermo) < 1:
       print("\nCorrupted thermofile for", thermofile, "Please check it!")
       return False
@@ -1799,6 +1828,14 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
               thermo = thermo[0:i+1,:]
               xlim = None
               break
+
+  if expt!=None: 
+      meltingT = get_melting_temperature(expt, formula)
+      if meltingT!=None:
+          for i,x in enumerate(thermo[:,0]):
+              if x>=meltingT and x!=thermo[-1,0]:
+                  thermo = thermo[0:i+1,:]
+                  break
 
   for i,cp in enumerate(thermo[:,6]):
     if cp > CpMax: 
@@ -1893,10 +1930,10 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
     thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(thermo[:,5]),yzero=0.0, expt=expt, xlim=xlim, label=plotlabel,plottitle=plottitle)
     #thermoplot(folder,"LTC analysis (1/K)",list(thermo[:,0]),list(thermo[:,5]),reflin=list(thermo[:,22]), yzero=0.0, xlim=xlim, label=plotlabel,plottitle=plottitle)
   ncols = [6,8]
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel, single=vdos!=None,plottitle=plottitle)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel, single=vdos!=None,plottitle=plottitle)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True, label=plotlabel, single=vdos!=None,plottitle=plottitle)
-  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=1000,expt=expt, CoT=True, label=plotlabel, single=vdos!=None,plottitle=plottitle)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel, single=_single,plottitle=plottitle)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel, single=_single,plottitle=plottitle)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True, label=plotlabel, single=_single,plottitle=plottitle)
+  thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=1000,expt=expt, CoT=True, label=plotlabel, single=_single,plottitle=plottitle)
   tmp = 0.0
   for i,v in enumerate(thermo[:,0]):
     if v >300: break
@@ -2273,21 +2310,23 @@ def Plot298(folder, V298, volumes, debug=False, plottitle=None):
   else: cmd = "Yphon -tranI 2 -eps -nqwave "+ str(nqwave)+ " <superfij.out"
   if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
   #cmd = "Yphon -tranI 2 -eps " + " <superfij.out"
-  print(cmd)
-  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+  if not (debug and os.path.exists('vdos.out')):
+      print(cmd)
+      output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
-  cmd = "gnuplot vdos.plt; convert -flatten -rotate 90 -density 120x120 vdos.eps vdos.png"
-  #print(cmd)
-  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+      cmd = "gnuplot vdos.plt; convert -flatten -rotate 90 -density 120x120 vdos.eps vdos.png"
+      #print(cmd)
+      output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
   
-  #copyfile("vdos.png", folder+'/vdos298.15.png')
-  os.rename("vdos.eps", cwd+'/'+folder+'/vdos298.15.eps')
-  os.rename("vdos.png", cwd+'/'+folder+'/vdos298.15.png')
+      #copyfile("vdos.png", folder+'/vdos298.15.png')
+      os.rename("vdos.eps", cwd+'/'+folder+'/vdos298.15.eps')
+      os.rename("vdos.png", cwd+'/'+folder+'/vdos298.15.png')
 
-  cmd = "pos2s Symmetry.pos -THR 0.0001"
-  print(cmd)
-  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+  if not os.path.exists('symmetry.mode'):
+      cmd = "pos2s Symmetry.pos -THR 0.001"
+      print(cmd)
+      output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
   """
   #temp for debug
@@ -2382,9 +2421,10 @@ def PlotVol(folder, vdos):
   os.rename("vdos.eps", cwd+'/'+folder+'/vdos.eps')
   os.rename("vdos.png", cwd+'/'+folder+'/vdos.png')
 
-  cmd = "pos2s Symmetry.pos -THR 0.0001"
-  print(cmd)
-  output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+  if not os.path.exists('symmetry.mode'):
+      cmd = "pos2s Symmetry.pos -THR 0.001"
+      print(cmd)
+      output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
   """
   #temp for debug

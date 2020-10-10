@@ -60,20 +60,30 @@ class thfindMDB ():
             workflow, current only get_wf_gibbs
     """
     def __init__(self, args):
+        self.plotonly = args.plotonly
         if args.qhamode is not None:
             self.qhamode = args.qhamode
         else:
             self.qhamode = 'phonon'
         if args.qhamode == 'debye' : self.qhamode = 'qha'
+        from fireworks.fw_config import config_to_dict
+        from monty.serialization import loadfn
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-        try:
-            self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
-            self.items = (self.vasp_db).db[self.qhamode].find({})
-        except:
-            self.vasp_db = None
-            print("\n*********WARNING: CANNOT get MongoDB service, so I will only plot the local results") 
-            print("*********WARNING: CANNOT get MongoDB service, so I will only plot the local results") 
-            print("*********WARNING: CANNOT get MongoDB service, so I will only plot the local results\n\n") 
+        if not self.plotonly:
+            try:
+                self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+                self.items = (self.vasp_db).db[self.qhamode].find({})
+                if self.qhamode=='phonon':
+                    self.items = list((self.vasp_db).db['phonon'].find({"S_vib": { "$exists": True } },\
+                        {'metadata':1, 'unitcell':1, 'volume':1, 'supercell_matrix':1}))
+                else: 
+                    self.items = list((self.vasp_db).db['qha'].find({"debye": { "$exists": True } },\
+                        {'metadata':1, 'structure':1}))
+            except:
+                self.vasp_db = None
+                print("\n*********WARNING: CANNOT get MongoDB service, so I will proceed using local data")
+                print("*********WARNING: CANNOT get MongoDB service, so I will proceed using local data")
+                print("*********WARNING: CANNOT get MongoDB service, so I will proceed using local data\n")
 
         #items = vasp_db.db['phonon'].find(properties=['metadata.tag','F_vib', 'CV_vib', 'S_vib'])
         #items = vasp_db.db['phonon'].find({F_vib: {$gt: 0}})
@@ -137,14 +147,18 @@ class thfindMDB ():
         if self.jobpath!=None:
             jobpath = os.listdir(self.jobpath) 
         else:
+            self.jobpath='./'
             jobpath = os.listdir('./')
 
-        for dir in jobpath:
+        for _dir in jobpath:
+            dir = self.jobpath+_dir
             thermofile = dir+"/fvib_ele"
             if not os.path.exists(thermofile): continue
             volumes = None
             energies = None
-            formula = dir.split('_')[0]
+            ss = [s for s in dir.split('/') if s!=""]
+            formula = ss[-1].split('_')[0]
+            #print ("eeeeeeee", dir, ss, formula)
             metatag = None
             readme = dir+"/readme"
             if os.path.exists(readme):
@@ -159,11 +173,12 @@ class thfindMDB ():
                         pass
             if self.skipby(formula, metatag): continue
             #print (self.metatag,metatag)
-            self.tags.append([thermofile, volumes, energies, formula])
+            self.tags.append([metatag, thermofile, volumes, energies, dir, formula])
 
     
     def run_console(self):
-        if self.vasp_db==None: self.find_plotfiles()
+        if self.plotonly: self.find_plotfiles()
+        elif self.vasp_db==None: self.find_plotfiles()
         elif self.check: self.check_find()
         elif self.qhamode=='phonon': self.phonon_find()
         else: self.debye_find()
@@ -178,12 +193,15 @@ class thfindMDB ():
         ITEMS = []
         self.supercellsize = []
         for i in self.items:
+            """
             try:
                 ii = len(i['S_vib'])
                 mm = i['metadata']
             except:
                 continue
             if ii <= 0: continue 
+            """
+            mm = i['metadata']
             if mm in hit:
                 if i['volume'] not in volumes[hit.index(mm)]:
                     volumes[hit.index(mm)].append(i['volume'])
@@ -217,24 +235,26 @@ class thfindMDB ():
         print("\nfound complete calculations in the collection:", self.qhamode, "\n")
         total = 0
         total_qha_phonon = 0
+        all_static_calculations = list((self.vasp_db).db['tasks'].\
+            find({'$and':[{'metadata': { "$exists": True }}, {'adopted': True} ]},\
+            {'metadata':1, 'output':1, 'input':1, 'orig_inputs':1}))
+        all_qha_calculations = list((self.vasp_db).db['qha'].\
+            find({'$and':[{'metadata': { "$exists": True }},{'has_phonon':True}]}, {'metadata':1, 'temperatures':1}))
+        all_qha_phonon_calculations = list((self.vasp_db).db['qha_phonon'].\
+            find({'$and':[{'metadata': { "$exists": True }},{'has_phonon':True}]}, {'metadata':1, 'temperatures':1}))
         for i,m in enumerate(hit):
             if self.skipby(phases[i], m['tag']): continue
             total += 1
-            static_calculations = (self.vasp_db).collection.\
-                find({'$and':[ {'metadata.tag': m['tag']}, {'adopted': True} ]})
+            static_calculations = [f for f in all_static_calculations if f['metadata']['tag']==m['tag']]
+            qha_calculations = [f for f in all_qha_calculations if f['metadata']['tag']==m['tag']]
+            qha_phonon_calculations = [f for f in all_qha_phonon_calculations if f['metadata']['tag']==m['tag']]
             qha_phonon_success =True
-            #if True:
-            try:
-                qha_phonon_calculations = self.vasp_db.db['qha_phonon'].find({'metadata.tag': m['tag']})
-                T = qha_phonon_calculations[0]['phonon']['temperatures']
+            if len(qha_calculations) > 0:
                 total_qha_phonon += 1
-            except:
-                try:
-                    qha_phonon_calculations = self.vasp_db.db['qha'].find({'metadata.tag': m['tag']})
-                    T = qha_phonon_calculations[0]['phonon']['temperatures']
-                    total_qha_phonon += 1
-                except:
-                    qha_phonon_success = False
+            elif len(qha_phonon_calculations) > 0:
+                total_qha_phonon += 1
+            else:
+                qha_phonon_success = False
 
             nS = 0
             gapfound = False
@@ -248,7 +268,7 @@ class thfindMDB ():
                         if pot=='Perdew-Zunger81'.upper(): pot="LDA"
 
                     try:
-                        pot += "+"+calc['input']['GGA']
+                        pot += "+"+calc['input']['incar']['GGA']
                     except:
                         pass
 
@@ -263,6 +283,7 @@ class thfindMDB ():
                 nS += 1
                 bandgap = calc['output']['bandgap']
                 if not gapfound: gapfound = float(bandgap) > 0.0
+            #print("eeeeeeee", self.findbandgap)
             if self.findbandgap:
                 #if gapfound: print ("eeeeee", gapfound, bandgap, phases[i])
                 if gapfound: sys.stdout.write('{}, phonon: {:>2}, static: {:>2}, supercellsize: {:>3}, {}\n'.format(m, count[i], nS, self.supercellsize[i], phases[i]))
@@ -287,12 +308,15 @@ class thfindMDB ():
         phases = []
         count = []
         for i in self.items:
+            """
             try:
                 ii = len(i['debye'])
                 mm = i['metadata']
             except:
                 continue
             if ii < 6: continue
+            """
+            mm = i['metadata']
             if mm in hit:
                 count[hit.index(mm)] += 1
             else:
@@ -327,7 +351,7 @@ class thfindMDB ():
         relaxations_collection = (self.vasp_db).db['relaxations'].find({})
         for i in relaxations_collection:
             try:
-                mm = i['metadata']
+                mm = i['metadata']['tag']
                 hit.append(mm)
             except:
                 continue
@@ -335,7 +359,7 @@ class thfindMDB ():
         lastupdated = [None] * len(hit)
         for i,mm in enumerate(hit):
             static_calc = (self.vasp_db).collection.\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+                find({'$and':[ {'metadata.tag': mm} ]})
             for calc in static_calc:
                 lnew = calc['last_updated']
                 if lastupdated[i]!=None:
@@ -345,12 +369,15 @@ class thfindMDB ():
                     lastupdated[i] = lnew
 
         """
+
+
+        print("\nfinding tags for complete calculations in the static collection\n")
         hit = []
         lastupdated = []
         static_collection = (self.vasp_db).collection.find({})
         for i in static_collection:
             try:
-                mm = i['metadata']
+                mm = i['metadata']['tag']
             except:
                 continue
             if mm in hit:
@@ -363,18 +390,21 @@ class thfindMDB ():
                 hit.append(mm)
 
 
+        print("\nfinding complete calculations in the phonon collection\n")
         phases =  [""] * len(hit)
         supercellsize =  [0] * len(hit)
         phonon_count = [0] * len(hit)
+        #phonon_calc = (self.vasp_db).db['phonon'].find({},{'metadata':1})
+        phonon_calc = list((self.vasp_db).db['phonon'].find({"S_vib": { "$exists": True } },\
+            {'metadata':1, 'unitcell':1, 'supercell_matrix':1}))
+
         for i,mm in enumerate(hit):
-            phonon_calc = (self.vasp_db).db['phonon'].\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+            #print ('eeeeeeeeee', mm)
+            #phonon_calc = (self.vasp_db).db['phonon'].\
+            #    find({'$and':[ {'metadata.tag': mm} ]})
             for calc in phonon_calc:
-                try:
-                    ii = len(calc['S_vib'])
-                except:
-                    continue
-                if ii <= 0: continue 
+                if calc['metadata']['tag']!=mm: continue
+                #print (calc['metadata']['tag'])
                 phonon_count[i] += 1
                 if phonon_count[i]==1:
                     structure = Structure.from_dict(calc['unitcell'])
@@ -397,13 +427,13 @@ class thfindMDB ():
                             break
                     phases[i] = phasename
 
-        print("\nfinding complete calculations in the static collection\n")
 
+        print("\nfinding complete calculations in the static collection\n")
         static_count = [0] * len(hit)
         for i,mm in enumerate(hit):
-            if self.skipby(phases[i], mm['tag']): continue
+            if self.skipby(phases[i], mm): continue
             static_calc = (self.vasp_db).collection.\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+                find({'$and':[ {'metadata.tag': mm} ]})
             for calc in static_calc:
                 static_count[i] += 1
 
@@ -412,7 +442,7 @@ class thfindMDB ():
         qha_count = [0] * len(hit)
         for i,mm in enumerate(hit):
             qha_calc = (self.vasp_db).db['qha'].\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+                find({'$and':[ {'metadata.tag': mm} ]})
             for calc in qha_calc:
                 qha_count[i] += 1
 
@@ -421,12 +451,12 @@ class thfindMDB ():
         qha_phonon_count = [0] * len(hit)
         for i,mm in enumerate(hit):
             try:
-                qha_phonon_calculations = self.vasp_db.db['qha_phonon'].find({'metadata.tag': m['tag']})
+                qha_phonon_calculations = self.vasp_db.db['qha_phonon'].find({'metadata.tag': mm})
                 T = qha_phonon_calculations[0]['phonon']['temperatures']
                 qha_phonon_count[i] += 1
             except:
                 try:
-                    qha_phonon_calculations = self.vasp_db.db['qha'].find({'metadata.tag': m['tag']})
+                    qha_phonon_calculations = self.vasp_db.db['qha'].find({'metadata.tag': mm})
                     T = qha_phonon_calculations[0]['phonon']['temperatures']
                     qha_phonon_count[i] += 1
                 except:
@@ -437,7 +467,7 @@ class thfindMDB ():
         relaxations_count = [0] * len(hit)
         for i,mm in enumerate(hit):
             relaxations_calc = (self.vasp_db).db['relaxations'].\
-                find({'$and':[ {'metadata.tag': mm['tag']} ]})
+                find({'$and':[ {'metadata.tag': mm} ]})
             for calc in relaxations_calc:
                 relaxations_count[i] += 1
 
@@ -446,12 +476,13 @@ class thfindMDB ():
                 #dd = datetime.datetime.strptime(lastupdated[i], '%Y-%m-%d %H:%M:%S.%f').date()
                 dd = lastupdated[i].date()
                 now = datetime.datetime.now().date()
-                if supercellsize[i]>=16 and phonon_count[i]>=5: continue
+                #if supercellsize[i]>=16 and phonon_count[i]>=5: continue
+                if supercellsize[i]>=self.supercellN and phonon_count[i]>=self.nV: continue
                 if dd >now-datetime.timedelta(days=7): continue
                 nTBD += 1
                 sys.stdout.write('[{:>04}] relax: {:>2}, static: {:>2}, qha: {:>2}, qha_phonon: {:>2}, phonon: {:>2}, SN: {:>3}, phases: {}, {}\n'.format(i, relaxations_count[i], static_count[i], qha_count[i], qha_phonon_count[i], phonon_count[i], supercellsize[i], phases[i], dd))
                 #sys.stdout.write('{}, static: {:>2}, qha: {:>2}, qha_phonon: {:>2}, phonon: {:>2}, SN: {:>3}, phases: {}, date: {}\n'.format(mm['tag'], static_count[i], qha_count[i], qha_phonon_count[i], phonon_count[i], supercellsize[i], phases[i], lastupdated[i]))
-                self.tags.append({'tag':mm['tag'],'phasename':phases[i]})
+                self.tags.append({'tag':mm,'phasename':phases[i]})
 
         print("\n", nTBD,"/", len(hit), "recs to be removed\n")
 

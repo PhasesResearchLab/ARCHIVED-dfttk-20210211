@@ -11,16 +11,18 @@
     },
 
     "ENCUT": 520.0,
-    "Gruneisen parameter": 2.349,
+    "Entropy max error": "4.0e-03 J/K",
+    "Entropy quality": "1.0e-03 J/K",
+    "Gruneisen parameter": 2.347,
     "Helmholtz energy max error": "3.4e-05 eV",
-    "Helmholtz energy quality": "+-9.5e-06 eV",
+    "Helmholtz energy quality": "+-8.9e-06 eV",
     "LSORBIT": false,
     "METADATA": {
         "tag": "bdab3e9d-1f78-4f1a-a913-7aee12c58805"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-18 16:23:15.935588",
+    "Postprocess time": "2020-09-23 22:21:46.572084",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {

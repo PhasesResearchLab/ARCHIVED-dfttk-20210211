@@ -81,7 +81,10 @@ def formula2composition(formula, normalize=True):
     else:
       com.append(1.0)
   com = np.array(list(map(float,com)))
-  if normalize: com = com/sum(com)
+  #print("eeeeee", formula, ele, com)
+  if normalize: 
+      if sum(com)==0.0: raise ValueError("divided by zero")
+      com = com/sum(com)
 
   #sorted the sequence and merge the duplicate
   elist = sorted(set(ele))
@@ -127,15 +130,32 @@ def reduced_formula(formula):
   #print("eeeeeeee", _els, _nat, formula.replace(' ',''), _nat,form)
   return form
 
+"""exclude almost repeated volume data
+vol - single volume to checked
+volumes - list of found volumes
+thr - threshold
+return:
+True: vol is in volumes; otherwise False
+"""
 def vol_within(vol, volumes, thr=0.001):
     for i,v in enumerate(volumes):
         if (abs(vol-v) < thr*vol): return True
     return False
 
 
+"""get experimental data from a list of dict
+expt - a list of dict containing experimental data
+formula - chemical formula
+return:
+matched dict containing experimental data
+"""
 def get_expt(expt, formula):
-    with open(expt, encoding='utf-8') as element_json_file:
-        _expt = json.load(element_json_file)
+    #print ('eeeeeeee', expt)
+    if isinstance(expt, str):
+        with open(expt, encoding='utf-8') as element_json_file:
+            _expt = json.load(element_json_file)
+    else: _expt = expt
+
     f0 = reduced_formula(formula)
     #print ("eeeeeee f0=", f0, formula)
     data = []
@@ -147,29 +167,58 @@ def get_expt(expt, formula):
     return data
 
 
-def get_melting_temperature_from_JANAF(metatag, expt, db_file, args):
-    try:
-        _T1 = args.t1
-    except:
-        return None
+"""get melting temperature form jANAF table
+formula - chemical formula
+expt - a dict containing heat capacity data
+return:
+if found, the highest temperature from the heat capacity data
+otherwise, the up temperature limit defined in the argparse args 
+"""
+def get_melting_temperature_from_JANAF(expt=None, formula=None):
 
-    if expt!=None and metatag!=None and db_file!=None:
-        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
-        static_calculations = vasp_db.collection.\
-            find({'$and':[ {'metadata.tag': metatag}, {'adopted': True} ]})
-        structure = Structure.from_dict(static_calculations[0]['output']['structure'])
-        formula = reduced_formula(structure.composition.alphabetical_formula)
-        
+    if expt!=None and formula!=None:
         _expt =get_expt(expt, formula)
         for d in _expt:
-            #print("eeeeeeee", d)
             if "Malcolm W. Chase, Jr. NIST-JANAF Thermochemical Tables" in d['Author']:
                 if 'heat capacity'==d['property']:
-                    _T1 = max(d['data'][0::2])
-                    break
-    return _T1
+                    return max(d['data'][0::2])
+    return None
 
 
+"""get melting temperature form SSUB database
+formula - chemical formula
+expt - a dict containing heat capacity data
+return:
+if found the dict key 'melting', return its value
+otherwise, None
+"""
+def get_melting_temperature(expt=None, formula=None):
+
+    if expt!=None and formula!=None:
+        _expt =get_expt(expt, formula)
+        for d in _expt:
+            #print ('eeeeeeeeee 0', d)
+            if "Malcolm W. Chase, Jr. NIST-JANAF Thermochemical Tables" in d['Author']:
+                if 'heat capacity'==d['property']:
+                    return max(d['data'][0::2])
+        for d in _expt:
+            #print ('eeeeeeeeee 1', d)
+            """
+            if "Andersson(CALPHAD), Andersson J.O.," in d['Author']:
+                if 'heat capacity'==d['property']:
+            """
+            try:
+                return d['melting']
+            except:
+                pass
+    return None
+
+
+"""return E-V data information from MonggoDB database of static calculations
+vasp_db - MonggoDB database connection
+m - metadata tag value
+return: E-V, strain, stresses, bandgap etc
+"""
 def get_rec_from_metatag(vasp_db,m):
     static_calculations = vasp_db.collection.\
         find({'$and':[ {'metadata.tag': m}, {'adopted': True} ]})

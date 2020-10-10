@@ -19,7 +19,7 @@ import shutil
 import numpy as np
 from fireworks.fw_config import config_to_dict
 from atomate.vasp.database import VaspCalcDb
-from dfttk.analysis.ywutils import formula2composition
+from dfttk.analysis.ywutils import formula2composition, reduced_formula
 from dfttk.analysis.ywplot import myjsonout, thermoplot
 from dfttk.utils import sort_x_by_y
 from dfttk.analysis.ywutils import get_rec_from_metatag
@@ -126,6 +126,10 @@ class EVfindMDB ():
                 structure = Structure.from_dict(i['output']['structure'])
                 natoms = len(structure.sites)
                 formula_pretty = structure.composition.reduced_formula
+                try:
+                    formula2composition(formula_pretty)
+                except:
+                    formula_pretty = reduced_formula(structure.composition.alphabetical_formula)
                 sa = SpacegroupAnalyzer(structure)
                 phasename = formula_pretty+'_'\
                     + sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())+potsoc
@@ -146,9 +150,9 @@ class EVfindMDB ():
             if self.print: myjsonout(EV, sys.stdout, indent="", comma="")
  
             if self.plot: 
-                folder = phases[i]
-                if not os.path.exists(folder): os.mkdir(folder)
-                folder = phases[i]+'/EV'
+                evdir = './E-V/'
+                if not os.path.exists(evdir): os.mkdir(evdir)
+                folder = evdir+phases[i]
                 if not os.path.exists(folder): os.mkdir(folder)
                 thermoplot(folder,"0 K total energies (eV/atom)",EV['volumes'], EV['energies'])
 

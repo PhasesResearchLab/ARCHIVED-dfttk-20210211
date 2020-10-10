@@ -10,10 +10,11 @@ from atomate.vasp.firetasks.run_calc import RunVaspCustodian
 from dfttk.input_sets import RelaxSet, StaticSet, ForceConstantsSet, ATATIDSet, BornChargeSet
 from dfttk.ftasks import WriteVaspFromIOSetPrevStructure, SupercellTransformation, CalculatePhononThermalProperties, \
     CheckSymmetry, CheckRelaxation, ScaleVolumeTransformation, TransmuteStructureFile, WriteATATFromIOSet, RunATATCustodian, RunVaspCustodianNoValidate, \
-    Record_relax_running_path, Record_PreStatic_result, CheckSymmetryToDb, BornChargeToDb
+    Record_relax_running_path, Record_PreStatic_result, CheckSymmetryToDb, PhononStable, BornChargeToDb
 from atomate import __version__ as atomate_ver
 from dfttk import __version__ as dfttk_ver
 
+STORE_VOLUMETRIC_DATA = ("chgcar", "aeccar0", "aeccar2", "elfcar", "locpot")
 
 class OptimizeFW(Firework):
     """
@@ -42,7 +43,7 @@ class OptimizeFW(Firework):
                  name="structure optimization", vasp_input_set=None, job_type="normal", vasp_cmd="vasp", 
                  metadata=None, override_default_vasp_params=None, db_file=None, record_path=False, 
                  prev_calc_loc=True, parents=None, db_insert=False, tag=None,
-                 run_isif2=False, pass_isif4=False, force_gamma=True, 
+                 run_isif2=False, pass_isif4=False, force_gamma=True, store_volumetric_data=False,
                  modify_incar=None, modify_incar_params={}, modify_kpoints_params={}, **kwargs):
 
         metadata = metadata or {}
@@ -52,6 +53,16 @@ class OptimizeFW(Firework):
             tag = str(uuid4())
             metadata['tag'] = tag
         metadata.update({'tag': tag})
+
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
+            else:
+                store_volumetric_data = ()
+        else:
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         override_symmetry_tolerances = override_symmetry_tolerances or {}
@@ -81,8 +92,8 @@ class OptimizeFW(Firework):
         if record_path:
             t.append(Record_relax_running_path(db_file = db_file, metadata = metadata, run_isif2=run_isif2, pass_isif4=pass_isif4))
         if db_insert:
-            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, override_symmetry_tolerances=override_symmetry_tolerances))
+            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, override_symmetry_tolerances=override_symmetry_tolerances, site_properties=site_properties))
         super(OptimizeFW, self).__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
@@ -113,7 +124,7 @@ class RobustOptimizeFW(Firework):
                  override_symmetry_tolerances=None, job_type="normal", vasp_input_set=None,
                  vasp_cmd="vasp", metadata=None, override_default_vasp_params=None, db_file=None,
                  prev_calc_loc=True, parents=None, db_insert=False, tag=None, modify_incar_params={},
-                 modify_kpoints_params={}, energy_with_isif={}, **kwargs):
+                 modify_kpoints_params={}, energy_with_isif={}, store_volumetric_data=False, **kwargs):
 
         metadata = metadata or {}
         tag = tag or metadata.get('tag')
@@ -121,6 +132,16 @@ class RobustOptimizeFW(Firework):
         if tag is None:
             tag = str(uuid4())
             metadata['tag'] = tag
+
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
+            else:
+                store_volumetric_data = ()
+        else:
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         override_symmetry_tolerances = override_symmetry_tolerances or {}
@@ -138,16 +159,16 @@ class RobustOptimizeFW(Firework):
         t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, job_type=job_type, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         if db_insert:
-            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
+            t.append(VaspToDb(db_file=db_file, additional_fields={"task_label": name, "metadata": metadata}, store_volumetric_data=store_volumetric_data))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, site_properties=site_properties))
 
         common_kwargs = {'vasp_cmd': vasp_cmd, 'db_file': db_file, "metadata": metadata, "tag": tag,
                          'override_default_vasp_params': override_default_vasp_params}
         static_kwargs = {}
         relax_kwargs = {}
         t.append(CheckRelaxation(db_file=db_file, metadata=metadata, tag=tag, isif4=isif4, level=level, energy_with_isif=energy_with_isif,
-                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, 
-                                 **override_symmetry_tolerances))
+                                 common_kwargs=common_kwargs, relax_kwargs=relax_kwargs, static_kwargs=static_kwargs, site_properties=site_properties,
+                                 store_volumetric_data=store_volumetric_data, **override_symmetry_tolerances))
         super().__init__(t, parents=parents, name="{}-{}".format(structure.composition.reduced_formula, name), **kwargs)
 
 
@@ -180,7 +201,8 @@ class StaticFW(Firework):
     """
     def __init__(self, structure, isif=2, scale_lattice=None, name="static", vasp_input_set=None, 
                  vasp_cmd="vasp", metadata=None, prev_calc_loc=True, Prestatic=False, modify_incar=None, 
-                 db_file=None, parents=None, tag=None, override_default_vasp_params=None, **kwargs):
+                 db_file=None, parents=None, tag=None, override_default_vasp_params=None,
+                 store_volumetric_data=False, **kwargs):
 
         # TODO: @computron - I really don't like how you need to set the structure even for
         # prev_calc_loc jobs. Sometimes it makes appending new FWs to an existing workflow
@@ -191,6 +213,16 @@ class StaticFW(Firework):
         if tag is None:
             tag = str(uuid4())
             metadata['tag'] = tag
+
+        if isinstance(store_volumetric_data, (list, tuple)):
+            store_volumetric_data = store_volumetric_data
+        elif isinstance(store_volumetric_data, bool):
+            if store_volumetric_data:
+                store_volumetric_data = STORE_VOLUMETRIC_DATA
+            else:
+                store_volumetric_data = ()
+        else:
+            raise ValueError('The store_volumetric_data should be list or bool')
 
         override_default_vasp_params = override_default_vasp_params or {}
         vasp_input_set = vasp_input_set or StaticSet(structure, isif=isif, **override_default_vasp_params)
@@ -218,8 +250,9 @@ class StaticFW(Firework):
             t.append(Record_PreStatic_result(db_file = db_file, metadata = metadata, structure = structure, scale_lattice = scale_lattice))
         else:
             t.append(VaspToDb(db_file=db_file, parse_dos=True, additional_fields={"task_label": name, "metadata": metadata,
-                                "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True, "tag": tag},))
-        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag))
+                                "version_atomate": atomate_ver, "version_dfttk": dfttk_ver, "adopted": True, "tag": tag},
+                                store_volumetric_data=store_volumetric_data))
+        t.append(CheckSymmetryToDb(db_file=db_file, tag=tag, site_properties=site_properties))
         super(StaticFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
 
@@ -331,8 +364,8 @@ class PhononFW(Firework):
     """
     def __init__(self, structure, supercell_matrix, t_min=5, t_max=2000, t_step=5,
                  name="phonon", vasp_input_set=None, override_default_vasp_params=None,
-                 vasp_cmd="vasp", metadata=None, tag=None,
-                 prev_calc_loc=True, db_file=None, parents=None,
+                 vasp_cmd="vasp", metadata=None, tag=None, qpoint_mesh=(50, 50, 50),
+                 prev_calc_loc=True, db_file=None, parents=None, stable_tor=0.01,
                  **kwargs):
 
         metadata = metadata or {}
@@ -370,6 +403,7 @@ class PhononFW(Firework):
         t.append(PyTask(func='dfttk.vasprun_fix.fix_vasprun', args=['vasprun.xml']))
         t.append(PassCalcLocs(name=name))
         t.append(CalculatePhononThermalProperties(supercell_matrix=supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, db_file=db_file, tag=tag, metadata=metadata))
+        t.append(PhononStable(supercell_matrix=supercell_matrix, db_file=db_file, tag=tag, metadata=metadata, qpoint_mesh=qpoint_mesh, stable_tor=stable_tor))
 
         super(PhononFW, self).__init__(t, parents=parents, name="{}-{}".format(
             structure.composition.reduced_formula, name), **kwargs)
@@ -430,10 +464,15 @@ class BornChargeFW(Firework):
             t.append(WriteVaspFromIOSetPrevStructure(structure=structure, vasp_input_set=vasp_input_set, site_properties=site_properties))
         if (scale_lattice is not None):
             t.append(ScaleVolumeTransformation(scale_factor=scale_lattice, structure=structure))
+
+        #the following statement may not correct to Born effective charge calculation, so be commented.
+        """
         t.append(ModifyIncar(incar_update=">>incar_update<<"))
         if modify_incar != None:
              t.append(ModifyIncar(incar_update=modify_incar))
-        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
+        """
+        #t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=">>auto_npar<<", gzip_output=False))
+        t.append(RunVaspCustodian(vasp_cmd=vasp_cmd, auto_npar=False, gzip_output=False))
         t.append(PassCalcLocs(name=name))
         
         t.append(BornChargeToDb(db_file=db_file, tag=tag))

@@ -8,7 +8,7 @@ import os
 
 from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
-from pymatgen.io.vasp.outputs import Vasprun
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
 from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from fireworks import LaunchPad
 from ase.build import get_deviation_from_optimal_cell_shape
@@ -193,7 +193,7 @@ def get_norm_cell(cell, target_size, target_shape='sc'):
     norm_cell = norm * cell
     return norm_cell
 
-def find_optimal_cell_shape_in_range(cell, target_size, target_shape, size_range=None, lower_limit=-2, upper_limit=2,
+def find_optimal_cell_shape_in_range(cell, target_size, target_shape, size_range=None, optimize_sc=False, lower_limit=-2, upper_limit=2,
                             sc_tolerance=1e-5, verbose=False,):
     """
     Returns the transformation matrix that produces a supercell
@@ -217,6 +217,9 @@ def find_optimal_cell_shape_in_range(cell, target_size, target_shape, size_range
                     > 1    (-int(size_range), int(size_range)) + target_size
                 elif list/tuple (2 elements)
                     [size_range(0), size_range(1)]
+        optimize_sc: bool
+            Optimize the super cell matrix (True) or not (False)
+            If False, then use the closest integer transformation matrix of ideal matrix
         lower_limit: int
             Lower limit of search range.
         upper_limit: int
@@ -283,46 +286,49 @@ def find_optimal_cell_shape_in_range(cell, target_size, target_shape, size_range
         print("closest integer transformation matrix (P_0):")
         print(starting_P)
 
-    # Prepare run.
-    best_score = 1e6
-    optimal_P = None
-    #Set the starting_P as the first one
-    dPlist = list(itertools.product(range(lower_limit, upper_limit + 1), repeat=9))
-    dP0 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
-    dPlist.pop(dPlist.index(dP0))
-    dPlist = [dP0] + dPlist
-    for dP in dPlist:
-        dP = np.array(dP, dtype=int).reshape(3, 3)
-        P = starting_P + dP
-        New_size = np.around(np.linalg.det(P))
-        if New_size < min_size or New_size > max_size:
-            continue
-        norm_new = get_norm_cell(cell, New_size, target_shape=target_shape)
-        score = get_deviation_from_optimal_cell_shape(np.dot(P, norm_new), target_shape=target_shape, norm=1.0)
-        if score < best_score:
-            best_score = score
-            optimal_P = P
-        if best_score <  sc_tolerance:
-            break
+    if optimize_sc:
+        # Prepare run.
+        best_score = 1e6
+        optimal_P = None
+        #Set the starting_P as the first one
+        dPlist = list(itertools.product(range(lower_limit, upper_limit + 1), repeat=9))
+        dP0 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        dPlist.pop(dPlist.index(dP0))
+        dPlist = [dP0] + dPlist
+        for dP in dPlist:
+            dP = np.array(dP, dtype=int).reshape(3, 3)
+            P = starting_P + dP
+            New_size = np.around(np.linalg.det(P))
+            if New_size < min_size or New_size > max_size:
+                continue
+            norm_new = get_norm_cell(cell, New_size, target_shape=target_shape)
+            score = get_deviation_from_optimal_cell_shape(np.dot(P, norm_new), target_shape=target_shape, norm=1.0)
+            if score < best_score:
+                best_score = score
+                optimal_P = P
+            if best_score <  sc_tolerance:
+                break
 
-    if optimal_P is None:
-        print("Failed to find a transformation matrix.")
-        return None
+        if optimal_P is None:
+            optimal_P = starting_P
+            print("Failed to find a transformation matrix, using the ideal one.")
 
-    # Finalize.
-    if verbose:
-        print("smallest score (|Q P h_p - h_target|_2): %f" % best_score)
-        print("optimal transformation matrix (P_opt):")
-        print(optimal_P)
-        print("supercell metric:")
-        print(np.round(np.dot(optimal_P, cell), 4))
-        print(
-            "determinant of optimal transformation matrix: %g"
-            % np.linalg.det(optimal_P)
-        )
+        # Finalize.
+        if verbose:
+            print("smallest score (|Q P h_p - h_target|_2): %f" % best_score)
+            print("optimal transformation matrix (P_opt):")
+            print(optimal_P)
+            print("supercell metric:")
+            print(np.round(np.dot(optimal_P, cell), 4))
+            print(
+                "determinant of optimal transformation matrix: %g"
+                % np.linalg.det(optimal_P)
+            )
+    else:
+        optimal_P = starting_P
     return optimal_P
 
-def supercell_scaling_by_atom_lat_vol(structure, min_obj=60, max_obj=120, scale_object='atom',
+def supercell_scaling_by_atom_lat_vol(structure, min_obj=60, max_obj=120, scale_object='atom', optimize_sc=False,
                                       target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
                                       verbose=False, sc_tolerance=1e-5):
     """
@@ -398,7 +404,7 @@ def supercell_scaling_by_atom_lat_vol(structure, min_obj=60, max_obj=120, scale_
     for sc_size in range(size_range[0], size_range[1]):
         optimal_shape = find_optimal_cell_shape_in_range(structure.lattice.matrix, sc_size, target_shape,
             size_range=size_range, upper_limit=upper_search_limit, lower_limit=lower_search_limit,
-            verbose=True, sc_tolerance=sc_tolerance)
+            verbose=True, sc_tolerance=sc_tolerance, optimize_sc=optimize_sc)
         optimal_supercell_shapes.append(optimal_shape)
         norm_cell = get_norm_cell(structure.lattice.matrix, sc_size, target_shape=target_shape)
         scores = get_deviation_from_optimal_cell_shape(np.dot(optimal_shape, norm_cell), target_shape)
@@ -502,23 +508,25 @@ def get_mat_info(struct):
     return name, configuration, occupancy, site_ratio
  
 
-def mark_adopted_TF(tag, db_file, adpoted):
+def mark_adopted_TF(tag, db_file, adpoted, phonon=False):
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     if vasp_db:
         vasp_db.collection.update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
-        vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
+        if phonon:
+            vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
 
 
-def mark_adopted(tag, db_file, volumes):
-    mark_adopted_TF(tag, db_file, False)             # Mark all as adpoted
+def mark_adopted(tag, db_file, volumes, phonon=False):
+    mark_adopted_TF(tag, db_file, False, phonon=phonon)             # Mark all as adpoted
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     for volume in volumes:
         vasp_db.collection.update({'$and':[ {'metadata.tag': tag}, {'output.structure.lattice.volume': volume} ]},
                                   {'$set': {'adopted': True}}, upsert = True, multi = False)            # Mark only one
-        vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
-                                    {'$set': {'adopted': True}}, upsert = True, multi = False)
+        if phonon:
+            vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
+                                        {'$set': {'adopted': True}}, upsert = True, multi = False)
 
 
 def consistent_check_db(db_file, tag):
@@ -812,7 +820,7 @@ def update_pot_by_symbols(InputSet, write_file=True):
         potcar.write_file(filename="POTCAR")
     return potcar
 
-def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
+def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_properties=None):
     '''
     Check symmetry for vasp run. This should be run for each vasp run
 
@@ -832,9 +840,21 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
     '''
     # Get relevant files as pmg objects
     incar = Incar.from_file("INCAR")
+    outcar = Outcar('OUTCAR')
     vasprun = Vasprun("vasprun.xml")
     inp_struct = Structure.from_file("POSCAR")
     out_struct = Structure.from_file("CONTCAR")
+
+    if site_properties:
+        if 'magmom' in site_properties:
+            in_mag = incar.as_dict()['MAGMOM']
+            inp_struct.add_site_property('magmom', in_mag)
+            out_mag = [m['tot'] for m in outcar.magnetization]
+            out_struct.add_site_property('magmom', out_mag)
+            site_properties.pop('magmom')
+        for site_property in site_properties:
+            inp_struct.add_site_property(site_property, site_properties[site_property])
+            out_struct.add_site_property(site_property, site_properties[site_property])
 
     current_isif = incar['ISIF']
     initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
@@ -888,3 +908,4 @@ def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10):
         "symmetry_checks_passed": len(failures) == 0,
     }
     return symm_data
+

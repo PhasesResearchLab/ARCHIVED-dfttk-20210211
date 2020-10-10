@@ -11,6 +11,8 @@
     },
 
     "ENCUT": 520.0,
+    "Entropy max error": "2.9e-01 J/K",
+    "Entropy quality": "8.4e-02 J/K",
     "Gruneisen parameter": 1.179,
     "Helmholtz energy max error": "2.9e-03 eV",
     "Helmholtz energy quality": "+-5.8e-04 eV",
@@ -20,7 +22,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-14 03:07:07.331322",
+    "Postprocess time": "2020-09-24 02:16:37.866121",
     "bandgap": 5.003699999999999,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {

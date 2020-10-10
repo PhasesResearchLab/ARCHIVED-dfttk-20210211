@@ -8,6 +8,7 @@ import os
 import subprocess
 import math
 import copy
+import json
 import numpy as np
 from scipy.constants import physical_constants
 from scipy.optimize import brentq, curve_fit
@@ -691,7 +692,6 @@ def BMfitP(V, x, y, BMfunc):
 
 def BMfitF(V, x, y, BMfunc):
   f, pcov = alt_curve_fit(BMfunc, x, y)
-  #print("eeeeeee",f,pcov)
   return BMvol(V,f)
 
 def BMsmooth(_V, _E0, _Flat, _Fel, _Slat, _Sel, BMfunc, elmode):
@@ -885,8 +885,8 @@ class thelecMDB():
         Default 1. number of temperature points skipped from QHA analysis for debug speeding purpose 
     outf : str
         Output filename for the calculated properties
-    db_file : str
-        Filename containing the information to access the MongoDB database
+    vasp_db : obejct
+        object containing the information to access the MongoDB database
     metatag : str
         metadata tag to access the to be calculated the compound
     qhamode : str
@@ -908,12 +908,12 @@ class thelecMDB():
     and the equilibrium volume extracted from MongoDB in the last column
     """
 
-    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, db_file=None, 
+    def __init__(self, t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natfactor, outf, vasp_db=None, 
                 noel=False, everyT=1, metatag=None, qhamode=None, eqmode=0, elmode=1, smooth=False, 
                 phasename=None, pyphon=False, debug=False, renew=False, fitF=False, args=None):
         from atomate.vasp.database import VaspCalcDb
         from pymatgen import Structure
-        if db_file!=None: self.vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        self.vasp_db = vasp_db
         self.t0 = t0
         self.t1 = t1
         self.td = td
@@ -945,10 +945,15 @@ class thelecMDB():
             self.doscar=args.doscar
             self.poscar=args.poscar
             self.vdos=args.vdos
+        if self.vasp_db==None: self.pyphon=True
         #print ("iiiii=",len(self._Yphon))
 
 
     def toYphon(self, _T=None, for_plot=False):
+        if self.vasp_db==None:
+            self.toYphon_without_DB(_T=_T, for_plot=for_plot)
+            return
+
         self.Vlat = []
         self.Flat = []
         self.Clat = []
@@ -1063,6 +1068,57 @@ class thelecMDB():
         self.GibT = np.zeros(len(self.T_vib))
 
 
+    def toYphon_without_DB(self, _T=None, for_plot=False):
+        self.Vlat = []
+        self.Flat = []
+        self.Clat = []
+        self.Slat = []
+        self.quality = []
+        if _T is not None:
+            self.T_vib = copy.deepcopy(_T)
+        elif self.debug:
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=65)
+        else:
+            self.T_vib = T_remesh(self.t0, self.t1, self.td, _nT=self.nT)
+
+        print ("extract the superfij.out used by Yphon ...")
+        for i, vol in enumerate(self.volumes):
+            dir = self.phasename+'/Yphon/'+'V{:010.6f}'.format(vol)
+            cwd = os.getcwd()
+            if not os.path.exists(dir): continue
+            os.chdir( dir)
+            if not os.path.exists('vdos.out'):
+                cmd = "Yphon -tranI 2 -DebCut 0.5 " + " <superfij.out"
+                print(cmd, " at ", dir)
+                output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+
+            with open("vdos.out", "r") as fp:
+                f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, natoms \
+                    = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
+                #print ('eeeeeeeee', i, self.volumes)
+                self.Vlat.append(float(self.volumes[i]))
+                self.quality.append(quality)
+
+            self.Flat.append(f_vib)
+            self.Slat.append(s_vib)
+            self.Clat.append(cv_vib)
+            self.quality.append(quality)
+            os.chdir( cwd )
+
+        if len(self.Vlat)<=0:
+            print("\nFATAL ERROR! cannot find required data from phonon collection for metadata tag:", self.tag,"\n")
+            sys.exit()
+        self.Slat = np.array(sort_x_by_y(self.Slat, self.Vlat))
+        self.Clat = np.array(sort_x_by_y(self.Clat, self.Vlat))
+        self.Flat = np.array(sort_x_by_y(self.Flat, self.Vlat))
+        self.Vlat = np.array(sort_x_by_y(self.Vlat, self.Vlat))
+        self.Dlat = np.full((len(self.Vlat)), 400.)
+        if for_plot: return
+        self.volT = np.zeros(len(self.T_vib))
+        self.GibT = np.zeros(len(self.T_vib))
+
+
     def check_vol(self):
         print ("\nChecking compatibility between qha/Yphon data and static calculation:\n")
 
@@ -1100,6 +1156,7 @@ class thelecMDB():
             print("xxxxxx", self.Vlat, self.volumes)
             print("\nFATAL ERROR! It appears that the calculations are not all done!\n")
             sys.exit()
+
 
 
     # get the energies, volumes and DOS objects by searching for the tag
@@ -1181,6 +1238,20 @@ class thelecMDB():
             os.mkdir(self.phasename)
 
 
+    # get the energies, volumes and DOS objects by searching for the tag
+    def find_static_calculations_without_DB(self):
+        with open(self.phasename+'/readme') as f:
+            readme = json.load(f)
+            self.key_comments = readme
+            self.natoms = readme['E-V']['natoms']
+            self.volumes = np.array(readme['E-V']['volumes'])
+            self.energies = np.array(readme['E-V']['energies'])
+        self.dos_objs = []  # pymatgen.electronic_structure.dos.Dos objects
+        for vol in self.volumes:
+            dir = self.phasename+'/Yphon/'+'V{:010.6f}'.format(vol)
+            self.dos_objs.append(dir+'/DOSCAR.gz')
+
+
     def get_static_calculations(self):
         t0 = min(self.T)
         t1 = max(self.T)
@@ -1191,8 +1262,13 @@ class thelecMDB():
         self.theall = np.empty([14, len(self.T), len(self.volumes)])
         for i,dos in enumerate(self.dos_objs):
             #print ("processing dos object at volume: ", self.volumes[i], " with nT =", len(self.T))
-            prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
-                self.gaussian, self.natfactor, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
+            if isinstance(dos, str):
+                with gzip.open (dos,'rt') as _dos:
+                    prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
+                        self.gaussian, self.natfactor, dos=_dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
+            else:
+                prp_vol = runthelec(t0, t1, td, self.xdn, self.xup, self.dope, self.ndosmx, 
+                    self.gaussian, self.natfactor, dos=dos, _T=self.T, fout=sys.stdout, vol=self.volumes[i])
             """
             if 1==1:
                 iFunc = trapz
@@ -1208,6 +1284,7 @@ class thelecMDB():
 
             """
             """
+            if self.vasp_db==None: continue
             phdir = self.phasename+'/Yphon'
             if not os.path.exists(phdir): os.mkdir(Yphon)
             vol = 'V{:010.6f}'.format(self.volumes[i])
@@ -1507,8 +1584,9 @@ class thelecMDB():
 
 
     def add_comput_inf(self):
-        self.key_comments['METADATA'] = {'tag':self.tag}
-        self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
+        if self.vasp_db!=None:
+            self.key_comments['METADATA'] = {'tag':self.tag}
+            self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
         nT = len(self.volT)
         for i in range(nT):
             if self.blat[i] < 0:
@@ -1542,7 +1620,6 @@ class thelecMDB():
             if self.blat[i] < 0:
                 nT = i
                 break
-        #print("eeeeeeeee", self.volT[0:nT], nT)
         vn = min(self.volT[0:nT])
         vx = max(self.volT[0:nT])
         for ix,vol in enumerate(self.volumes):
@@ -1552,29 +1629,39 @@ class thelecMDB():
             n = 0
             q = 0.0
             qmax = 0.0
-            #print("eeeeeeee", vn, vx)
+            qT = 0.0
+            qmaxT = 0.0
             for i in range(ix-1, len(self.volumes)):
-                #print("eeeeeeee", self.volumes[i])
                 n = n+1
                 for k,t in enumerate(self.T):
                     for j in range(len(xx)-1):
                         if (xx[j]-self.volumes[i])*(xx[j+1]-self.volumes[i])<0:
-                            #print ('eeeeeee', fitted[k,j])
+                            fn0 = fitted[0][j]+(self.volumes[i]-xx[j])/(xx[j+1]-xx[j])*(fitted[0][j+1]-fitted[0][j])
                             fn = fitted[k][j]+(self.volumes[i]-xx[j])/(xx[j+1]-xx[j])*(fitted[k][j+1]-fitted[k][j])
                             q += abs(fn-orig_points[k][i])
                             qmax = max(qmax,abs(fn-orig_points[k][i]))
+                            if k!=0:
+                                #tmp = abs((fn-orig_points[k][i]-fn0+orig_points[0][i])/(fn-fn0))
+                                tmp = abs((fn-orig_points[k][i]-fn0+orig_points[0][i])/(t))
+                                qT += tmp
+                                qmaxT = max(qmaxT,tmp)
                             break
                 if self.volumes[i] > vx: break
             q /= n*len(self.T)*self.natoms
             qmax /= self.natoms
+            qT /= n*(len(self.T)-1)*self.natoms
+            qmaxT /= self.natoms
             readme['Helmholtz energy quality'] = '+-{:.1e} eV'.format(q)
             readme['Helmholtz energy max error'] = '{:.1e} eV'.format(qmax)
+            readme['Entropy quality'] = '{:.1e} J/K'.format(qT*96484)
+            readme['Entropy max error'] = '{:.1e} J/K'.format(qmaxT*96484)
         #except:
         #    readme['Helmholtz energy quality'] = '+-{} eV'.format(9999)
      
            
     def run_console(self):
-        self.find_static_calculations()
+        if self.vasp_db!=None: self.find_static_calculations()
+        else: self.find_static_calculations_without_DB()
         if not self.fitF:
             if os.path.exists(self.phasename+'/fitF'): 
                 print ("\nWARNING: phase skipped due to file 'fitF' seen in ", self.phasename, "\n")
@@ -1586,7 +1673,9 @@ class thelecMDB():
 
         if not self.renew:
             pdis298 = self.phasename+'/figures/vdis298.15.png'
-            if os.path.exists(pdis298): return None, None, None, None
+            if os.path.exists(pdis298): 
+                print ("\nWARNING: previous calculation existed. supply -renew in the options to recalculate.\n")
+                return None, None, None, None
       
         self.find_vibrational()
 
@@ -1670,7 +1759,11 @@ class thelecMDB():
 
     
     def get_formula(self):
-        return self.formula_pretty
+        if self.vasp_db==None:
+            ss = [s for s in self.phasename.split('/') if s!=""]
+            return ss[-1].split('_')[0]
+        else:
+            return self.formula_pretty
 
     
     def calc_single(self):

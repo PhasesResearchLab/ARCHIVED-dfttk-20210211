@@ -19,7 +19,7 @@ import sys
 import shutil
 from datetime import datetime
 from dfttk.analysis.ywplot import myjsonout, thermoplot
-from dfttk.analysis.ywutils import get_melting_temperature_from_JANAF
+from dfttk.analysis.ywutils import get_melting_temperature, reduced_formula, get_expt
 
 def ext_thelec(args, plotfiles=None):
     print ("Postprocess for thermodynamic properties, Seebeck, Lorenz number etc. Yi Wang\n")
@@ -68,28 +68,81 @@ def ext_thelec(args, plotfiles=None):
         ndosmx = max(100001, int(ndosmx))
         gaussian = max(10000., float(gaussian))
         
+    formula = None
+    vasp_db = None
+    if not args.plotonly:
+        #if True:
+        try:
+            from atomate.vasp.database import VaspCalcDb
+            from fireworks.fw_config import config_to_dict
+            from monty.serialization import loadfn
+            db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
+            vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+            static_calculations = vasp_db.collection.\
+                find({'$and':[ {'metadata.tag': metatag}, {'adopted': True} ]})
+            structure = Structure.from_dict(static_calculations[0]['output']['structure'])
+            formula = reduced_formula(structure.composition.alphabetical_formula)
+        except:
+            print("\n*********WARNING: CANNOT get MongoDB service, so I will proceed using local data")
+            print("*********WARNING: CANNOT get MongoDB service, so I will proceed using local data")
+            print("*********WARNING: CANNOT get MongoDB service, so I will proceed using local data\n")
+        """
+        """
+
     #call API
-    if plotfiles!=None:
-        thermofile, volumes, energies, formula = plotfiles
+    if args.plotonly and plotfiles!=None:
+        metatag, thermofile, volumes, energies, dir, formula = plotfiles
         #print(thermofile, volumes, energies, formula)
+        #print(thermofile, dir, formula)
         readme={}
         from dfttk.analysis.ywplot import plotAPI
         plotAPI(readme, thermofile, None, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
             formula = formula, vtof=None, plotlabel=args.plot)
-
-    elif metatag != None:
-        from fireworks.fw_config import config_to_dict
-        from monty.serialization import loadfn
-        db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-
-
+    elif vasp_db==None and plotfiles!=None:
+        metatag, thermofile, volumes, energies, dir, formula = plotfiles
+        print('eeeeeeeeeee', plotfiles)
         if expt!=None: 
-            _t1 = get_melting_temperature_from_JANAF(metatag, expt, db_file, args)
+            _t1 = get_melting_temperature(expt, formula)
             if _t1!=None: t1 = _t1
 
         readme = {}
         record_cmd(readme)
-        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, db_file=db_file, 
+        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, vasp_db=vasp_db, 
+            noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
+            smooth=smooth, debug=args.debug, 
+            phasename=dir, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF, args=args)
+        volumes, energies, thermofile, comments = proc.run_console()
+
+        if comments!=None: readme.update(comments)
+        else: return
+        if "ERROR" in readme.keys(): 
+            #record_cmd_print(thermofile, readme, dir=args.phasename)
+            return
+
+        print("\nFull thermodynamic properties have outputed into:", thermofile) 
+        #print(args.plot, "eeeeeeeee", volumes, energies, thermofile, comments)
+        if args.plot==None: print("\nSupply '-plot phasename' for plot\n")
+        else: 
+            from dfttk.analysis.ywplot import plotAPI
+            if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+                formula = proc.get_formula(), debug=args.debug,
+                plotlabel=args.plot):
+                vtof = proc.get_free_energy_for_plot(readme)
+                if vtof is not None:
+                    plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
+                    formula = proc.get_formula(), vtof=vtof, plotlabel=args.plot)
+            """
+            """
+        #record_cmd_print(thermofile, readme)
+
+    elif metatag != None:
+        if expt!=None: 
+            _t1 = get_melting_temperature(expt, formula)
+            if _t1!=None: t1 = _t1
+
+        readme = {}
+        record_cmd(readme)
+        proc = thelecMDB(t0, t1, td, xdn, xup, dope, ndosmx, gaussian, natom, outf, vasp_db=vasp_db, 
             noel=noel, metatag=metatag, qhamode=qhamode, eqmode=eqmode, elmode=elmode, everyT=everyT, 
             smooth=smooth, debug=args.debug, 
             phasename=args.phasename, pyphon=args.pyphon, renew=args.renew, fitF=args.fitF, args=args)
@@ -103,8 +156,8 @@ def ext_thelec(args, plotfiles=None):
 
         print("\nFull thermodynamic properties have outputed into:", thermofile) 
         #print(args.plot, "eeeeeeeee", volumes, energies, thermofile, comments)
-        if args.plot!=None: 
-            #print("eeeeeeeee", volumes)
+        if args.plot==None: print("\nSupply '-plot phasename' for plot\n")
+        else:
             from dfttk.analysis.ywplot import plotAPI
             if plotAPI(readme, thermofile, volumes, energies, expt=expt, xlim=xlim, _fitCp=args.SGTEfitCp, 
                 formula = proc.get_formula(), debug=args.debug,
@@ -267,6 +320,9 @@ def shared_aguments(pthelec):
                            "set in that phase folder using 'touch fitF' to make the option take effect.\n"
                            "Note: The regualar run will skip the phase folder if a file name 'fitF' is seen there.\n"
                            "Default: False")
+    pthelec.add_argument("-po", "--plotonly", dest="plotonly", action='store_true', default=False,
+                      help="No calculations, only plot the calulcated results if any. \n"
+                           "Default: False")
     pthelec.add_argument("-g", "--debug", dest="debug", action='store_true', default=False,
                       help="turn on debug mode by reducing the mesh. \n"
                            "Default: False")
@@ -302,7 +358,7 @@ def run_ext_thelec(subparsers):
 
 def run_ext_thfind(subparsers):
     #SUB-PROCESS: thfind
-    pthfind = subparsers.add_parser("thfind", help="Check the dfttk DFT calculation results followed by calling the module to get thermodynamic properties when the option '-get' is given.")
+    pthfind = subparsers.add_parser("thfind", help="Check the dfttk DFT calculation results followed by calling the 'thelec' module to get thermodynamic properties when the option '-get' is given.")
     pthfind.add_argument("-w", "--within", dest="within", nargs="?", type=str, default=None,
                       help="find calculations within element list\n"
                            "Default: None")
@@ -356,11 +412,9 @@ def ext_thfind(args):
     """
     proc=thfindMDB(args)
     tags = proc.run_console()
-    #print("xxxxx=",tags,_Yphon)
     if args.get:
         with open("runs.log", "a") as fp:
             fp.write ('\nPostprocessing run at {}\n\n'.format(datetime.now()))
-        #print ("eeeeeeee 0", tags)
         for t in tags:
             if isinstance(t,dict):
                 print("\nDownloading data by metadata tag:", t['tag'], "\n")

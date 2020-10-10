@@ -11,6 +11,8 @@
     },
 
     "ENCUT": 520.0,
+    "Entropy max error": "7.8e-01 J/K",
+    "Entropy quality": "2.3e-01 J/K",
     "Gruneisen parameter": 2.755,
     "Helmholtz energy max error": "1.8e-02 eV",
     "Helmholtz energy quality": "+-3.2e-03 eV",
@@ -20,7 +22,7 @@
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-14 03:56:37.486412",
+    "Postprocess time": "2020-09-24 03:08:49.880147",
     "bandgap": 0.0,
     "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
     "kpoints": {

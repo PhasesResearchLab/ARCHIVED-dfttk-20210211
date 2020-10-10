@@ -23,7 +23,7 @@ from pymatgen.analysis.eos import Vinet, EOS
 from fireworks import explicit_serialize, FiretaskBase, FWAction
 from atomate.utils.utils import load_class, env_chk
 from atomate.vasp.database import VaspCalcDb
-from dfttk.analysis.phonon import get_f_vib_phonopy, get_phonon_band_dos
+from dfttk.analysis.phonon import get_f_vib_phonopy, get_phonon_band_dos, phonon_stable
 from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from dfttk.analysis.quasiharmonic import Quasiharmonic
 from dfttk.utils import sort_x_by_y, update_pos_by_symbols, update_pot_by_symbols, check_symmetry
@@ -155,7 +155,7 @@ class CheckSymmetry(FiretaskBase):
     """
     required_params = ['tolerance', 'db_file']
     optional_params = ['vasp_cmd', 'structure', 'metadata', 'name', 'modify_incar_params', 'modify_kpoints_params',
-                       'run_isif2', 'pass_isif4']
+                       'run_isif2', 'pass_isif4', 'store_volumetric_data']
     def run_task(self, fw_spec):
         # unrelaxed cell
         cell = Structure.from_file('POSCAR')
@@ -178,12 +178,13 @@ class CheckSymmetry(FiretaskBase):
 
             fws = []
             vis = RelaxSet(self.get('structure'), volume_relax=True)
+            store_volumetric_data = self.get('store_volumetric_data', False)
             vol_relax_fw = OptimizeFW(self.get('structure'), symmetry_tolerance=None,
                                        job_type='normal', name='Volume relax', #record_path = True,
                                        vasp_input_set=vis, modify_incar = {'ISIF': 7},
                                        vasp_cmd=self.get('vasp_cmd'), db_file=self.get('db_file'),
                                        metadata=self.get('metadata'), run_isif2=self.get('run_isif2'),
-                                       pass_isif4=self.get('pass_isif4')
+                                       pass_isif4=self.get('pass_isif4'), store_volumetric_data=store_volumetric_data
                                       )
             fws.append(vol_relax_fw)
 
@@ -747,11 +748,16 @@ class CheckRelaxation(FiretaskBase):
 
     required_params = ["db_file", "tag", "common_kwargs"]
     optional_params = ["metadata", "tol_energy", "tol_strain", "tol_bond", 'level', 'isif4',  "energy_with_isif",
-                       "static_kwargs", "relax_kwargs"]
+                       "static_kwargs", "relax_kwargs", 'store_volumetric_data', 'site_properties']
 
     def run_task(self, fw_spec):
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
+
+        store_volumetric_data = self.get('store_volumetric_data', False)
+        site_properties = self.get('site_properties', None)
+        self.store_volumetric_data = store_volumetric_data
+        self.site_properties = site_properties
 
         tol_energy = self.get("tol_energy", 0.025)
         tol_strain = self.get("tol_strain", 0.05)
@@ -759,7 +765,7 @@ class CheckRelaxation(FiretaskBase):
         energy_with_isif = self.get('energy_with_isif', {})
         self.symmetry_options = {"tol_energy": tol_energy, "tol_strain": tol_strain, "tol_bond": tol_bond}
 
-        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond, site_properties=site_properties)
         passed = symm_check_data["symmetry_checks_passed"]
         cur_isif = symm_check_data["isif"]
         if passed:
@@ -884,10 +890,11 @@ class CheckRelaxation(FiretaskBase):
                 md = common_copy.get("metadata", {})
                 md['symmetry_type'] = step["symmetry_type"]
                 common_copy["metadata"] = md
-                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], **static_kwargs, **common_copy))
+                detour_fws.append(StaticFW(inp_structure, isif=step['isif'], store_volumetric_data=self.store_volumetric_data,
+                                           **static_kwargs, **common_copy))
             elif job_type == "relax":
                 detour_fws.append(RobustOptimizeFW(inp_structure, isif=step["isif"], energy_with_isif=energy_with_isif,
-                        override_symmetry_tolerances=symmetry_options, **self["common_kwargs"]))
+                                override_symmetry_tolerances=symmetry_options, store_volumetric_data=self.store_volumetric_data, **self["common_kwargs"]))
             else:
                 raise ValueError(f"Unknown job_type {job_type} for step {step}.")
         return detour_fws
@@ -1057,14 +1064,15 @@ class CheckSymmetryToDb(FiretaskBase):
     Store the CheckSymmetry result to MongoDB, the stored collection is named as 'relaxations'
     '''
     required_params = ["db_file", "tag"]
-    optional_params = ['override_symmetry_tolerances', 'metadata']
+    optional_params = ['override_symmetry_tolerances', 'metadata', 'site_properties']
     def run_task(self, fw_spec):
         override_symmetry_tolerances = self.get('override_symmetry_tolerances', {})
         tol_energy = override_symmetry_tolerances.get("tol_energy", 0.025)
         tol_strain = override_symmetry_tolerances.get("tol_strain", 0.05)
         tol_bond = override_symmetry_tolerances.get("tol_bond", 0.10)
+        site_properties = self.get('site_properties', None)
 
-        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond)
+        symm_check_data = check_symmetry(tol_energy=tol_energy, tol_strain=tol_strain, tol_bond=tol_bond, site_properties=site_properties)
 
         symm_check_data.update({
             "tag": self["tag"],
@@ -1110,8 +1118,48 @@ class BornChargeToDb(FiretaskBase):
                        'born_charge': born_charge_matrix,
                        'dielectric_tensor': dielectric_tensor,
                        'volume': structure.volume,
+                       'structure': structure.as_dict(),
+                       'formula_pretty': structure.composition.reduced_formula,
                        'inputs': {'incar': incar}}
 
         self.db_file = env_chk(self.get("db_file"), fw_spec)
         vasp_db = VaspCalcDb.from_db_file(self.db_file, admin=True)
         vasp_db.db['borncharge'].insert_one(born_result)
+
+
+@explicit_serialize
+class  PhononStable(FiretaskBase):
+    """
+    Stability by phonon
+    This fire task will judge if the structure is stable or not by phonon dos.
+    If the negative part percentage of dos is larger than stable_tor(default 1%), then the structure is unstable
+
+    """
+    required_params = ['supercell_matrix', 'db_file', 'tag']
+    optional_params = ['metadata', 'qpoint_mesh', 'stable_tor']
+
+    def run_task(self, fw_spec):
+
+        tag = self["tag"]
+        metadata = self.get('metadata', {})
+        metadata['tag'] = tag
+
+        unitcell = Structure.from_file('POSCAR-unitcell')
+        supercell_matrix = self['supercell_matrix']
+        qpoint_mesh = self.get('qpoint_mesh', (50, 50, 50))
+        stable_tor = self.get('stable_tor', 0.01)
+
+        vasprun = PhonopyVasprun('vasprun.xml')
+        force_constants, elements = vasprun.read_force_constants()
+
+        phonon_stability = phonon_stable(unitcell, supercell_matrix, force_constants, 
+                                         qpoint_mesh=qpoint_mesh, stable_tor=stable_tor)
+
+        stability = {'phonon_stability': {'stability': phonon_stability, 'stable_tolerance': stable_tor,
+                     'qpoint_mesh': qpoint_mesh}}
+
+        # insert into database
+        db_file = env_chk(self["db_file"], fw_spec)
+        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+        vasp_db.db['phonon'].insert_one(stability)
+        
