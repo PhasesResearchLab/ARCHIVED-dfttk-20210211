@@ -1,0 +1,157 @@
+
+Primitive lattice vector from Supercell
+
+    3.899108071800      0.000000000000      0.000000000000  
+    0.000000000000      3.899108071800      0.000000000000  
+    0.000000000000      0.000000000000      3.899108071800  
+
+Supercell lattice vector
+
+    7.798216143500      0.000000000000      0.000000000000  
+    0.000000000000      7.798216143500      0.000000000000  
+    0.000000000000      0.000000000000      7.798216143500  
+
+Primitive lattice vector from Bornfile
+
+    3.899108071751      0.000000000000      0.000000000000  
+    0.000000000000      3.899108071751      0.000000000000  
+    0.000000000000      0.000000000000      3.899108071751  
+
+ Atom position(s) in the Born effective charge file:
+
+ 0.500000 0.500000 0.500000 Ti
+ 0.000000 0.000000 0.000000 Pb
+ 0.500000 0.000000 0.500000 O
+ 0.500000 0.500000 0.000000 O
+ 0.000000 0.500000 0.500000 O
+
+Supercell is a transformation of the Primitive cell by
+
+    1.999999999974      0.000000000000      0.000000000000  
+    0.000000000000      1.999999999974      0.000000000000  
+    0.000000000000      0.000000000000      1.999999999974  
+
+The tranforming Matrix is truncated into
+
+    2.000000000000      0.000000000000      0.000000000000  
+    0.000000000000      2.000000000000      0.000000000000  
+    0.000000000000      0.000000000000      2.000000000000  
+
+  40 Atom(s) in the Supercell
+
+
+Used Primitive lattice vector
+
+    3.899108071750      0.000000000000      0.000000000000  
+    0.000000000000      3.899108071750      0.000000000000  
+    0.000000000000      0.000000000000      3.899108071750  
+
+   5 Atom(s) in the Primitive cell
+
+ 0.5000000000 0.5000000000 0.5000000000 Ti    0
+ 0.0000000000 0.0000000000 0.0000000000 Pb    1
+ 0.5000000000 0.0000000000 0.5000000000  O    2
+ 0.5000000000 0.5000000000 0.0000000000  O    3
+ 0.0000000000 0.5000000000 0.5000000000  O    4
+
+ Mapping of Supercell of Primitive cell
+
+Atom  0 Ti   0   1   2   3   4   5   6   7
+Atom  1 Pb   8   9  10  11  12  13  14  15
+Atom  2  O  16  17  18  19  20  21  22  23
+Atom  3  O  24  25  26  27  28  29  30  31
+Atom  4  O  32  33  34  35  36  37  38  39
+
+MAXimum interaction DIS = 6.753453, Dynamical Matrix will be averaged over 1 cell(s) built by 5 centered atom(s)
+
+ Ti PI=   0 SI=   0 at   0.250000   0.250000   0.250000 Index=   0   0   0
+ Pb PI=   1 SI=  15 at   0.500000   0.500000   0.500000 Index=   1   1   1
+  O PI=   2 SI=  18 at   0.250000   0.500000   0.250000 Index=   0   1   0
+  O PI=   3 SI=  25 at   0.250000   0.250000   0.500000 Index=   0   0   1
+  O PI=   4 SI=  36 at   0.500000   0.250000   0.250000 Index=   1   0   0
+
+Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
+
+Restore the translational invariance : Section time 0.280 Sec., Total time = 0.280 Sec.
+
+Macroscopic high freq dielectric field tensor
+
+     8.68432      0.00000      0.00000 
+     0.00000      8.68432     -0.00000 
+    -0.00000      0.00000      8.68432 
+
+Electric neutral condition
+
+    -0.00066      0.00000      0.00000 
+     0.00000     -0.00061      0.00000 
+     0.00000      0.00000     -0.00070 
+
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.280 Sec.
+
+ Used q-mesh 4x4x4
+
+Setting workspace & pre-optimizing : Section time 0.030 Sec., Total time = 0.310 Sec.
+
+Handling symmetry : Section time 0.000 Sec., Total time = 0.310 Sec.
+
+
+Solving frequencies considering LO-TO splitting:
+
+  4  T1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
+ No irrep        THz                 (cm-1)           Z*(x)     Z*(y)     Zz(z)
+  0  T1u  15.5362   20.8157  (  518.23    694.34)    0.0000    0.0000    1.9118
+  1  T1u  -4.0539   12.7138  ( -135.22    424.09)    0.0000    0.0000    0.7671
+  2  T1u   3.7725    3.0377  (  125.84    101.33)    0.0000    0.0000   -0.0733
+  3  T1u  -0.0000    0.0000  (   -0.00      0.00)    0.0000    0.0000   -0.0000
+
+  1  T2u Modes of silent_mode 
+ No irrep        THz                 (cm-1)           Z*(x)     Z*(y)     Zz(z)
+  0  T2u   7.3017    7.3017  (  243.56    243.56)    0.0000    0.0000    0.0000
+
+Macroscopic high freq dielectric field tensor with ionic contribution
+
+     8.68432      0.00000      0.00000 
+     0.00000      8.68432      0.00000 
+     0.00000      0.00000     22.69877 
+
+ 8 Exact Q points found
+
+
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.310 Sec.
+
+Frequencies in Gamma point without & with NA term) 
+
+      without         with         without    with     LOTO        IR    irrep
+              (THz)                     (cm-1)
+   0  15.5362       15.5362         518.23   518.23    0.0000   0.1182    T1u  ir_active (1.1027)
+   1  15.5362       15.5362         518.23   518.23    0.0000   0.1182    T1u  ir_active (0.3565)
+   2  15.5362 ?TO?  20.8157 ?LO?    518.23   694.34    0.0000   0.8648    T1u  ir_active (0.8866)
+   3   7.3017        7.3017         243.56   243.56    0.0000   0.0000    T2u  silent_mode (0.2360)
+   4   7.3017        7.3017         243.56   243.56    0.0000   0.0000    T2u  silent_mode (0.2214)
+   5   7.3017        7.3017         243.56   243.56    0.0000   0.0000    T2u  silent_mode (0.9462)
+   6   3.7725       -4.0539         125.84  -135.22    0.0000   1.4593    T1u  ir_active (1.2748)
+   7   3.7725       -4.0539         125.84  -135.22    0.0000   1.4593    T1u  ir_active (0.7428)
+   8   3.7725 ?TO?  12.7139 ?LO?    125.84   424.09    0.0000   0.6768    T1u  ir_active (0.9411)
+   9   0.0000        3.7725           0.00   125.84    0.0000   0.9112    T1u  ir_active (0.1455)
+  10  -0.0000        3.7725          -0.00   125.84    0.0000   0.9112    T1u  ir_active (1.1521)
+  11  -0.0000       -0.0000          -0.00    -0.00    0.0000   2.2361    T1u  ir_active (0.4422)
+  12  -4.0539       -0.0000        -135.22    -0.00    0.0000   2.2361    T1u  ir_active (1.5327)
+  13  -4.0539        0.0000        -135.22     0.00    0.0000   2.2361    T1u  ir_active (0.7874)
+  14  -4.0539 ?TO?   3.0377 ?LO?   -135.22   101.33    0.0000   1.6332    T1u  ir_active (1.0714)
+
+         240 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.310 Sec.
+         480 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.310 Sec.
+         720 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.310 Sec.
+         960 out of 960 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.310 Sec.
+
+Calculating PDOS from the 960 frequencies
+
+
+960 frequencies
+
+
+Primmitive Q/PI2 vectors in the Inverse space
+
+    0.256468910735      0.000000000000      0.000000000000  
+    0.000000000000      0.256468910735      0.000000000000  
+    0.000000000000      0.000000000000      0.256468910735  

@@ -23,6 +23,7 @@ import dfttk.pyphon as ywpyphon
 from dfttk.utils import sort_x_by_y
 from dfttk.analysis.ywplot import myjsonout
 from dfttk.analysis.ywutils import get_rec_from_metatag
+from dfttk.analysis.ywutils import formula2composition, reduced_formula
 
 
 k_B = physical_constants['Boltzmann constant in eV/K'][0]
@@ -937,6 +938,7 @@ class thelecMDB():
         self.pyphon=pyphon
         self.debug=debug
         self.renew=renew
+        self.refresh=args.refresh
         self.fitF=fitF
         if self.debug:
             if self.dope==0.0: self.dope=-1.e-5
@@ -947,6 +949,161 @@ class thelecMDB():
             self.vdos=args.vdos
         if self.vasp_db==None: self.pyphon=True
         #print ("iiiii=",len(self._Yphon))
+
+
+    def get_superfij(self,i, phdir):
+        if vol_within(float(i['volume']), self.Vlat):
+            print("\nit seems a repeated phonon calculation for", i['volume'],"so it is discared\n")
+            return None
+        try:
+            structure = Structure.from_dict(i['unitcell'])
+        except:
+            print("\nit seems phonon for", i['volume'],"is not finished yet  and so it is discared\n")
+            return None
+        vol = 'V{:010.6f}'.format(float(i['volume']))
+        voldir = phdir+'/'+vol
+        #print("eeeeeeeee", vol)
+        if not os.path.exists(voldir):
+            os.mkdir(voldir)
+        elif os.path.exists(voldir+'/superfij.out'): return voldir
+
+        poscar = structure.to(fmt="poscar")
+        unitcell_l = str(poscar).split('\n')
+        natom = len(structure.sites)
+
+        supercell_matrix = i['supercell_matrix']
+        supercell_structure = copy.deepcopy(structure)
+        supercell_structure.make_supercell(supercell_matrix)
+
+        sa = SpacegroupAnalyzer(supercell_structure)
+        #reduced_structure = supercell_structure.get_reduced_structure(reduction_algo='niggli')
+        #print ('niggli reduced structure', reduced_structure)
+        #poscar = reduced_structure.to(fmt="poscar")
+        primitive_unitcell_structure = sa.find_primitive()
+        poscar = primitive_unitcell_structure.to(fmt="poscar")
+        punitcell_l = str(poscar).split('\n')
+
+        natoms = len(supercell_structure.sites)
+        poscar = supercell_structure.to(fmt="poscar")
+        supercell_l = str(poscar).split('\n')
+        structure.to(filename=voldir+'/POSCAR')
+        with open (voldir+'/metadata.json','w') as out:
+            mm = i['metadata']
+            mm['volume'] = i['volume']
+            mm['energy'] = self.energies[(list(self.volumes)).index(i['volume'])]
+            out.write('{}\n'.format(mm))
+        with open (voldir+'/OSZICAR','w') as out:
+            out.write('   1 F= xx E0= {}\n'.format(self.energies[(list(self.volumes)).index(i['volume'])]))
+        with open (voldir+'/superfij.out','w') as out:
+            for line in range (2,5):
+                out.write('{}\n'.format(unitcell_l[line]))
+            for line in range (2,5):
+                out.write('{}\n'.format(supercell_l[line]))
+            out.write('{} {}\n'.format(natoms, natoms//natom))
+            for line in range (7,natoms+8):
+                out.write('{}\n'.format(supercell_l[line]))
+            force_constant_matrix = np.array(i['force_constants'])
+            hessian_matrix = np.empty((natoms*3, natoms*3), dtype=float)
+            for ii in range(natoms):
+                for jj in range(natoms):
+                    for x in range(3):
+                        for y in range(3):
+                            hessian_matrix[ii*3+x, jj*3+y] = -force_constant_matrix[ii,jj,x,y]
+            for xx in range(natoms*3):
+                for yy in range(natoms*3-1):
+                    out.write('{} '.format(hessian_matrix[xx,yy]))
+                out.write('{}\n'.format(hessian_matrix[xx,natoms*3-1]))
+        return voldir
+
+
+    def get_dielecfij(self, phdir):
+        volumes = (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}, {'_id':0, 'volume':1})
+        #volumes_p = [i['volume'] for i in volumes]
+        volumes_p = []
+        for vol in volumes:
+            try:
+                structure = Structure.from_dict(i['unitcell'])
+                volumes_p.append(vol)
+            except:
+                pass
+        try:
+            volumes_b = (self.vasp_db).db['borncharge'].find({'metadata.tag': self.tag}, {'_id':0, 'volume':1})
+            volumes_b = [i['volume'] for i in volumes_b]
+            has_Born =  all(elem in volumes_b for elem in volumes_p)
+            #print("eeeeeeeeee", sorted(volumes_p))
+            #print("eeeeeeeeee", sorted(volumes_b))
+        except:
+            has_Born = False
+        if has_Born:
+            nV = 0
+            for v in volumes_b:
+                voldir = phdir+'/'+ 'V{:010.6f}'.format(float(v))
+                if not os.path.exists(voldir+'/dielecfij.out'): break
+                nV += 1
+            if nV==len(volumes_b) and not self.refresh: return has_Born
+
+            for i in (self.vasp_db).db['borncharge'].find({'metadata.tag': self.tag}):
+                vol = 'V{:010.6f}'.format(float(i['volume']))
+                voldir = phdir+'/'+vol
+                if not os.path.exists(voldir):
+                   os.mkdir(voldir)
+                elif os.path.exists(voldir+'/dielecfij.out') and not self.refresh: continue
+
+                structure = Structure.from_dict(i['structure'])
+                poscar = structure.to(fmt="poscar")
+                poscar = str(poscar).split('\n')
+                natom = len(structure.sites)
+                with open (voldir+'/dielecfij.out','w') as out:
+                    for line in range (2,5):
+                        out.write('{}\n'.format(poscar[line]))
+                    for line in range (8,natom+8):
+                        out.write('{}\n'.format(poscar[line]))
+                    dielectric_tensor = np.array(i['dielectric_tensor'])
+                    for x in range(3):
+                        for y in range(3):
+                            out.write('{} '.format(dielectric_tensor[x,y]))
+                        out.write('\n')
+                    born_charge = np.array(i['born_charge'])
+                    for ii in range(natom):
+                        out.write(' ion  {}\n'.format(ii+1))
+                        for x in range(3):
+                            out.write('  {} '.format(x+1))
+                            for y in range(3):
+                                out.write('{} '.format(born_charge[ii,x,y]))
+                            out.write('\n')
+        return has_Born
+
+
+    def get_Cij(self, phdir):
+        try:
+            volumes_c = (self.vasp_db).db['elasticity'].find({'metadata.tag': self.tag}, \
+                {'_id':0, 'elastic_tensor':1, 'initial_structure':1})
+        except:
+            volumes_c = []
+
+        self.Cij = []
+        self.VCij = []
+        for i in volumes_c:
+            vol  = float(i['initial_structure']['lattice']['volume'])
+            if vol in self.VCij: continue
+            if vol not in self.volumes: continue
+            voldir = phdir+'/'+'V{:010.6f}'.format(vol)
+            if not os.path.exists(voldir): os.mkdir(voldir)
+
+            Cij = i['elastic_tensor']['ieee_format']
+            self.Cij.append(Cij)
+            self.VCij.append(vol)
+            with open (voldir+'/Cij.out','w') as out:
+                for x in range(6):
+                    for y in range(6):
+                        out.write('{:10.2f} '.format(Cij[x][y]))
+                    out.write('\n')
+
+        has_Cij = len(self.Cij)>0
+        if has_Cij:
+            self.Cij = np.array(sort_x_by_y(self.Cij, self.VCij))
+            self.VCij = sort_x_by_y(self.VCij, self.VCij)
+        return has_Cij
 
 
     def toYphon(self, _T=None, for_plot=False):
@@ -970,74 +1127,33 @@ class thelecMDB():
         phdir = self.phasename+'/Yphon'
         if not os.path.exists(phdir):
             os.mkdir(phdir)
+
+        has_Born = self.get_dielecfij(phdir)
+
         for i in (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}):
+            #print("eeeeeeeee", i['volume'])
             if i['volume'] not in self.volumes: continue
-            if vol_within(float(i['volume']), self.Vlat):
-                print("\nit seems a repeated phonon calculation honon for", i['volume'],"so it is discared\n")
-                continue
-            try:
-                structure = Structure.from_dict(i['unitcell'])
-            except:
-                print("\nit seems phonon for", i['volume'],"is not finished yet  and so it is discared\n")
-                continue
+            #print("eeeeeeeee", i['volume'])
+            voldir = self.get_superfij(i, phdir)
+            if voldir is None: continue
 
             self.Vlat.append(float(i['volume']))
-
-            poscar = structure.to(fmt="poscar")
-            unitcell_l = str(poscar).split('\n')
-            natom = len(structure.sites)
-
-            supercell_matrix = i['supercell_matrix']
-            supercell_structure = copy.deepcopy(structure)
-            supercell_structure.make_supercell(supercell_matrix)
-
-            sa = SpacegroupAnalyzer(supercell_structure)
-            #reduced_structure = supercell_structure.get_reduced_structure(reduction_algo='niggli')
-            #print ('niggli reduced structure', reduced_structure)
-            #poscar = reduced_structure.to(fmt="poscar")
-            primitive_unitcell_structure = sa.find_primitive()
-            poscar = primitive_unitcell_structure.to(fmt="poscar")
-            punitcell_l = str(poscar).split('\n')
-
-            natoms = len(supercell_structure.sites)
-            poscar = supercell_structure.to(fmt="poscar")
-            supercell_l = str(poscar).split('\n')
-            vol = 'V{:010.6f}'.format(float(i['volume']))
-            voldir = phdir+'/'+vol
-            if not os.path.exists(voldir):
-               os.mkdir(voldir)
-            structure.to(filename=voldir+'/POSCAR')
-            with open (voldir+'/metadata.json','w') as out:
-                mm = i['metadata']
-                mm['volume'] = i['volume']
-                mm['energy'] = self.energies[(list(self.volumes)).index(i['volume'])]
-                out.write('{}\n'.format(mm))
-            with open (voldir+'/OSZICAR','w') as out:
-                out.write('   1 F= xx E0= {}\n'.format(self.energies[(list(self.volumes)).index(i['volume'])]))
-            with open (voldir+'/superfij.out','w') as out:
-                for line in range (2,5):
-                    out.write('{}\n'.format(unitcell_l[line]))
-                for line in range (2,5):
-                    out.write('{}\n'.format(supercell_l[line]))
-                out.write('{} {}\n'.format(natoms, natoms//natom))
-                for line in range (7,natoms+8):
-                    out.write('{}\n'.format(supercell_l[line]))
-                force_constant_matrix = np.array(i['force_constants'])
-                hessian_matrix = np.empty((natoms*3, natoms*3), dtype=float)
-                for ii in range(natoms):
-                    for jj in range(natoms):
-                        for x in range(3):
-                            for y in range(3):
-                                hessian_matrix[ii*3+x, jj*3+y] = -force_constant_matrix[ii,jj,x,y]
-                for xx in range(natoms*3):
-                    for yy in range(natoms*3-1):
-                        out.write('{} '.format(hessian_matrix[xx,yy]))
-                    out.write('{}\n'.format(hessian_matrix[xx,natoms*3-1]))
-
             cwd = os.getcwd()
             os.chdir( voldir )
-            if not os.path.exists('vdos.out'):
+
+            if os.path.exists('vdos.out'):
+                updatevdos = False
+                vdostime = os.path.getmtime('vdos.out')
+                if os.path.exists('superfij.out'):
+                    updatevdos = os.path.getmtime('superfij.out')>vdostime
+                if os.path.exists('dielecfij.out'):
+                    updatevdos = os.path.getmtime('dielecfij.out')>vdostime
+            else: updatevdos = True
+
+            #if not os.path.exists('vdos.out') or self.refresh:
+            if updatevdos:
                 cmd = "Yphon -tranI 2 -DebCut 0.5 " + " <superfij.out"
+                if has_Born: cmd += " -Born dielecfij.out"
                 print(cmd, " at ", voldir)
                 output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                     universal_newlines=True)
@@ -1096,7 +1212,6 @@ class thelecMDB():
             with open("vdos.out", "r") as fp:
                 f_vib, U_ph, s_vib, cv_vib, C_ph_n, Sound_ph, Sound_nn, N_ph, NN_ph, debyeT, quality, natoms \
                     = ywpyphon.vibrational_contributions(self.T_vib, dos_input=fp, energyunit='eV')
-                #print ('eeeeeeeee', i, self.volumes)
                 self.Vlat.append(float(self.volumes[i]))
                 self.quality.append(quality)
 
@@ -1184,6 +1299,10 @@ class thelecMDB():
                 print ('niggli reduced structure', reduced_structure)
                 print ("\n")
                 self.formula_pretty = structure.composition.reduced_formula
+                try:
+                    formula2composition(formula_pretty)
+                except:
+                    self.formula_pretty = reduced_formula(reduced_structure.composition.alphabetical_formula)
                 self.natoms = len(structure.sites)
                 sa = SpacegroupAnalyzer(structure)
 
@@ -1202,6 +1321,7 @@ class thelecMDB():
                     if calc['input']['incar']['LSORBIT']: potsoc = pot +"+SOC"
                 except:
                     potsoc = pot
+                self.space_group_number = sa.get_space_group_number()
                 self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())+potsoc
 
                 key_comments ={}
@@ -1535,6 +1655,8 @@ class thelecMDB():
 
             if nT <3: return np.array(self.volumes)/self.natoms, np.array(self.energies_orig)/self.natoms, thermofile
             self.TupLimit = self.T[-1]
+            self.Cp = []
+            self.Cv = []
             for i in range(len(self.T)):
                 if self.hasSCF:
                     blat, beta = self.blat[i], self.beta[i]
@@ -1562,6 +1684,8 @@ class thelecMDB():
                 if prp_T[5] > 1.e-16: L = prp_T[2]/prp_T[5]*k_B #avoiding divided by zero
 
                 if self.hasSCF:
+                    self.Cp.append(cplat+prp_T[2])
+                    self.Cv.append(clat+prp_T[2])
                     debyeT = get_debye_T_from_phonon_Cv(self.T[i], clat, dlat, self.natoms)
                     fvib.write('{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n'.
                     format(self.T[i], self.volT[i]/self.natoms, self.GibT[i]/self.natoms, (slat+prp_T[1])*toJmol,
@@ -1586,7 +1710,10 @@ class thelecMDB():
     def add_comput_inf(self):
         if self.vasp_db!=None:
             self.key_comments['METADATA'] = {'tag':self.tag}
-            self.key_comments['E-V'] = get_rec_from_metatag(self.vasp_db, self.tag)
+            self.key_comments['E-V'], self.key_comments['POSCAR'], self.key_comments['INCAR'] = \
+                get_rec_from_metatag(self.vasp_db, self.tag)
+            with open (self.phasename+'/POSCAR', 'w') as fp:
+                fp.write(self.key_comments['POSCAR'])
         nT = len(self.volT)
         for i in range(nT):
             if self.blat[i] < 0:
@@ -1659,6 +1786,281 @@ class thelecMDB():
         #    readme['Helmholtz energy quality'] = '+-{} eV'.format(9999)
      
            
+    def calc_eij(self):
+        R = []
+        lat = self.key_comments['E-V']['lattices']
+        for vol in self.volumes:
+            idx = self.key_comments['E-V']['volumes'].index(vol)
+            R.append(lat[idx])
+        T = self.T[self.T <=self.TupLimit]
+        nT = len(T)
+        R = np.array(R)
+        R_T = np.zeros((nT, 3, 3), dtype=float)
+        for i in range(3):
+            for j in range(3):
+                f2 = splrep(self.volumes, R[:,i,j])
+                R_T[:,i,j] = splev(self.volT[0:nT], f2)
+        R_T_dT = np.zeros((nT, 3, 3), dtype=float)
+        for i in range(3):
+            for j in range(3):
+                f2 = splrep(self.T[0:nT], R_T[:,i,j])
+                R_T_dT[:,i,j] = splev(self.T[0:nT], f2, der=1)
+        inv_R_T = np.linalg.inv(R_T)
+        #eij_T = np.matmul(inv_R_T,R_T_dT)
+        eij_T = np.matmul(R_T_dT, inv_R_T)
+            
+        with open (self.phasename+'/fvib_eij', 'w') as fp:
+            fp.write('#T volume alpha alpha_xx alpha_yy alpha_zz alpha_yz alpha_zx alpha_xz alpha_zx alpha_xy alpha_yx\n')
+            for i,m in enumerate(eij_T):
+                fp.write('{} {:10.6f} {:12.4e} {:12.4e} {:12.4e} {:12.4e} {:12.4e} {:12.4e} '\
+                    '{:12.4e} {:12.4e} {:12.4e} {:12.4e}\n'.format(T[i], self.volT[i]/self.natoms, self.beta[i]/3., \
+                    m[0,0], m[1,1], m[2,2], m[1,2], m[2,1], m[0,2], m[2,0], m[0,1], m[1,0]))
+        self.eij_T = eij_T
+
+           
+    def Cij_to_Moduli(self, C):
+        A = (C[0,0] + C[1,1] + C[2,2])/3.
+        B = (C[0,1] + C[0,2] + C[1,2])/3.
+        C = (C[3,3] + C[4,4] + C[5,5])/3.
+        Bv = (A + 2.*B)/3.
+        Gv = (A - B + 3.*C)/5.
+        Ev = 9.*Bv*Gv/(Gv+3.*Bv)
+        return Ev, Gv, Bv
+
+
+    def calc_Cij(self):
+        if len(self.VCij) == 0: return
+        T = self.T[self.T <=self.TupLimit]
+        nT = len(T)
+        """
+        print ('eeeeeeee', nT, self.blat[0:nT])
+        print ('eeeeeeee', self.volT[0:nT])
+        print ('eeeeeeee', T)
+        print ('eeeeeeee', min(self.volT) , min(self.VCij) , max(self.volT) , max(self.VCij))
+        """
+        if min(self.volT[0:nT]) < min(self.VCij) or max(self.volT[0:nT]) > max(self.VCij): return
+        self.Cij_T = np.zeros((nT, 6, 6), dtype=float)
+        electron_volt = physical_constants["electron volt"][0]
+        angstrom = 1e-30
+        toGPa = electron_volt/angstrom*1.e-9
+        #print("eeeeeeeee", self.VCij)
+        for i in range(6):
+            for j in range(6):
+                f2 = splrep(self.VCij, self.Cij[:,i,j])
+                self.Cij_T[:,i,j] = splev(self.volT[0:nT], f2)
+        """
+        if True:
+                    print ("eeeeeeeeee",self.VCij)
+                    print (self.volT[0])
+                    print (self.Cij_T[0,:,:])
+                    sys.exit() 
+        """
+            
+        with open (self.phasename+'/fvib_Cij_T', 'w') as fp:
+            ngroup = self.space_group_number
+            self.Young_Modulus_Cij = []
+            self.Shear_Modulus_Cij = []
+            self.Bulk_Modulus_Cij = []
+            for i,m in enumerate(self.Cij_T):
+                E,G,B = self.Cij_to_Moduli(m)
+                correction_factor = self.blat[i]*toGPa/B
+                for j in range(3):
+                    for k in range(3):
+                        self.Cij_T[i,j,k] *=correction_factor
+                E,G,B = self.Cij_to_Moduli(self.Cij_T[i,:,:])
+                self.Young_Modulus_Cij.append(E)
+                self.Shear_Modulus_Cij.append(G)
+                #self.Bulk_Modulus_Cij.append(B)
+                self.Bulk_Modulus_Cij.append(correction_factor)
+
+            if ngroup>=1 and ngroup<=2: #for Triclinic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C14 C15 C16 C22 C23 C24 C25 C26 C33 C34'\
+                    ' C35 C36 C44 C45 C46 C55 C56 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(21+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[0,3], m[0,4], m[0,5], m[1,1], m[1,2], m[1,3], m[1,4], m[1,5], m[2,2], m[2,3], m[2,4], m[2,5], m[3,3], m[3,4], m[3,5], m[4,4], m[4,5], m[5,5], \
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=3 and ngroup<=15: # for Monoclinic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C16 C22 C23 C26 C33 C36 C44 C45 C55 C66'\
+                    ' E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(13+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[0,5], m[1,1], m[1,2], m[1,5], m[2,2], m[2,5], m[3,3], m[3,4], m[4,4], m[5,5], \
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=16 and ngroup<=74: # for Orthorhombic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C22 C23 C33 C44 C55 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(9+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[1,1], m[1,2], m[2,2], m[3,3], m[4,4], m[5,5],\
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=75 and ngroup<=142: # for Tetragonal system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(6+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[2,2], m[3,3], m[5,5],\
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=143 and ngroup<=194: # for Trigonal system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(5+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[2,2], m[3,3],\
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            #elif ngroup>=168 and ngroup<=194: # for Hexagonal system
+            elif ngroup>=195 and ngroup<=230: # for cubic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C44 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(3+4)
+                for i,m in enumerate(self.Cij_T):
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                    m[0,0], m[0,1], m[3,3], \
+                    self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
+
+        with open (self.phasename+'/fvib_Mii_T', 'w') as fp:
+            fp.write('# T(K) V(Ang^3) B(GPa) M1(GPa) M2(GPa) M3(GPa) M4(GPa) M5(GPa) M6(GPa)'
+                ' E(GPa) G(GPa)\n')
+            fm = "{} {:10.6f}"+" {:8.2f}"*(6+3)
+            for i,m in enumerate(self.Cij_T):
+                M = (m+m.T)/2.0
+                w, v = np.linalg.eig(M)
+                #w = np.real(w)
+                w = sorted(w, reverse=True)
+                print(fm.format\
+                (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
+                w[0], w[1], w[2], w[3], w[4], w[5], \
+                self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i]),file=fp)
+
+
+    def calc_Cij_S(self):
+        if len(self.VCij) == 0: return
+        T = self.T[self.T <=self.TupLimit]
+        nT = len(T)
+        #if min(self.volT) < min(self.VCij) or max(self.volT) > max(self.VCij): return
+        if min(self.volT[0:nT]) < min(self.VCij) or max(self.volT[0:nT]) > max(self.VCij): return
+        self.Cij_S = np.zeros((nT, 6, 6), dtype=float)
+        electron_volt = physical_constants["electron volt"][0]
+        angstrom = 1e-30
+        toGPa = electron_volt/angstrom*1.e-9
+            
+        with open (self.phasename+'/fvib_Cij_S', 'w') as fp:
+            ngroup = self.space_group_number
+            self.Young_Modulus_Cij_S = []
+            self.Shear_Modulus_Cij_S = []
+            self.Bulk_Modulus_Cij_S = []
+            ev = np.zeros((6), dtype=float)
+            for i,m in enumerate(self.Cij_T):
+                eij = self.eij_T[i]
+                ev[0] = eij[0,0]
+                ev[1] = eij[1,1]
+                ev[2] = eij[2,2]
+                ev[3] = eij[1,2] + eij[1,2]
+                ev[4] = eij[0,2] + eij[2,0]
+                ev[5] = eij[0,1] + eij[1,0]
+                ec = np.matmul(ev,m)/toGPa
+                """
+                if T[i] == 0.0:
+                    print (m)
+                    print (ec)
+                    sys.exit() 
+                """
+                for j in range(6):
+                    for k in range(6):
+                        if self.Cv[i] > 1.e-8:
+                            self.Cij_S[i, j, k] = self.Cij_T[i, j, k] + T[i]*self.volT[i]/self.Cv[i]*ec[j]*ec[k]*toGPa
+                        else:
+                            self.Cij_S[i, j, k] = self.Cij_T[i, j, k]
+                
+                E,G,B = self.Cij_to_Moduli(self.Cij_S[i, :, :])
+                self.Young_Modulus_Cij_S.append(E)
+                self.Shear_Modulus_Cij_S.append(G)
+                self.Bulk_Modulus_Cij_S.append(B)
+
+            if ngroup>=1 and ngroup<=2: #for Triclinic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C14 C15 C16 C22 C23 C24 C25 C26 C33 C34'\
+                    ' C35 C36 C44 C45 C46 C55 C56 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(21+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[0,3], m[0,4], m[0,5], m[1,1], m[1,2], m[1,3], m[1,4], m[1,5], m[2,2], m[2,3], m[2,4], m[2,5], m[3,3], m[3,4], m[3,5], m[4,4], m[4,5], m[5,5], \
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=3 and ngroup<=15: # for Monoclinic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C16 C22 C23 C26 C33 C36 C44 C45 C55 C66'\
+                    ' E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(13+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[0,5], m[1,1], m[1,2], m[1,5], m[2,2], m[2,5], m[3,3], m[3,4], m[4,4], m[5,5], \
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=16 and ngroup<=74: # for Orthorhombic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C22 C23 C33 C44 C55 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(9+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[1,1], m[1,2], m[2,2], m[3,3], m[4,4], m[5,5],\
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=75 and ngroup<=142: # for Tetragonal system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 C66 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(6+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[2,2], m[3,3], m[5,5],\
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            elif ngroup>=143 and ngroup<=194: # for Trigonal system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(5+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[0,2], m[2,2], m[3,3],\
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+            #elif ngroup>=168 and ngroup<=194: # for Hexagonal system
+            elif ngroup>=195 and ngroup<=230: # for cubic system
+                fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C44 E(GPa) G(GPa) B_correction_factor\n')
+                fm = "{} {:10.6f}"+" {:8.2f}"*(3+4)
+                for i,m in enumerate(self.Cij_S):
+                    if self.Cv[i] > 1.e-8:
+                        Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
+                    else:
+                        Bs = self.blat[i]
+                    print(fm.format\
+                    (T[i], self.volT[i]/self.natoms, Bs*toGPa, \
+                    m[0,0], m[0,1], m[3,3], \
+                    self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
+
+
     def run_console(self):
         if self.vasp_db!=None: self.find_static_calculations()
         else: self.find_static_calculations_without_DB()
@@ -1692,12 +2094,18 @@ class thelecMDB():
         if not self.pyphon: self.get_qha()
         self.hasSCF = True
         self.check_vol()
+        self.has_Cij = self.get_Cij(self.phasename+'/Yphon')
         self.energies_orig = copy.deepcopy(self.energies)
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])
         else : self.get_static_calculations()
         a,b,c = self.calc_thermodynamics()
-        if self.add_comput_inf(): return a,b,c,self.key_comments
+        if self.add_comput_inf(): 
+            self.calc_eij()
+            if self.has_Cij:
+                self.calc_Cij()
+                self.calc_Cij_S()
+            return a,b,c,self.key_comments
         else: return a,b,c,self.key_comments
 
 
@@ -1776,6 +2184,10 @@ class thelecMDB():
             volume = structure.volume
             self.natoms = len(structure.sites)
             self.formula_pretty = structure.composition.reduced_formula
+            try:
+                formula2composition(formula_pretty)
+            except:
+                self.formula_pretty = reduced_formula(structure.composition.alphabetical_formula)
             sa = SpacegroupAnalyzer(structure)
             self.phase = sa.get_space_group_symbol().replace('/','.')+'_'+str(sa.get_space_group_number())
             if self.phasename==None:

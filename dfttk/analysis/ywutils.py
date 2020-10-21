@@ -229,13 +229,24 @@ def get_rec_from_metatag(vasp_db,m):
     lattices = []
     bandgaps = []
     pressures = []
+    magmoms = []
+    emin = 1.e36
     for calc in static_calculations:
         vol = calc['output']['structure']['lattice']['volume']
         if vol_within(vol, volumes): continue
         natoms = len(calc['output']['structure']['sites'])
+        try:
+            sites = calc['output']['structure']['sites']
+            magmoms.append([{s['label']:s['properties']['magmom']} for s in sites])
+        except:
+            pass
         lat = calc['output']['structure']['lattice']['matrix']
         sts = calc['output']['stress']
         ene = calc['output']['energy']
+        if ene < emin:
+            structure = Structure.from_dict(calc['input']['structure'])
+            POSCAR = structure.to(fmt="poscar")
+            INCAR = calc['input']['incar']
         gap = calc['output']['bandgap']
         volumes.append(vol)
         energies.append(ene)
@@ -250,6 +261,10 @@ def get_rec_from_metatag(vasp_db,m):
     stresses = sort_x_by_y(stresses, volumes)
     lattices = sort_x_by_y(lattices, volumes)
     bandgaps = sort_x_by_y(bandgaps, volumes)
+    try:
+        magmoms = sort_x_by_y(magmoms, volumes)
+    except:
+        pass
     volumes = sort_x_by_y(volumes, volumes)
     EV = {}
     EV['metatag'] = m
@@ -260,4 +275,12 @@ def get_rec_from_metatag(vasp_db,m):
     EV['pressures'] = pressures
     EV['bandgaps'] = bandgaps
     EV['lattices'] = lattices
-    return EV
+    try:
+        for volume in magmoms:
+            for magmom in volume.values():
+                if magmom!=0.:
+                    EV['magmoms'] = magmoms
+                    break
+    except:
+        pass
+    return EV,POSCAR,INCAR

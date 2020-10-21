@@ -11,22 +11,47 @@
     },
 
     "ENCUT": 520.0,
-    "Entropy max error": "2.8e-01 J/K",
-    "Entropy quality": "9.6e-02 J/K",
-    "Gruneisen parameter": 0.994,
-    "Helmholtz energy max error": "3.5e-03 eV",
-    "Helmholtz energy quality": "+-7.9e-04 eV",
+    "Entropy max error": "8.7e-02 J/K",
+    "Entropy quality": "3.8e-02 J/K",
+    "Gruneisen parameter": 1.148,
+    "Helmholtz energy max error": "1.1e-03 eV",
+    "Helmholtz energy quality": "+-3.1e-04 eV",
+    "INCAR": {
+        "ALGO": "Normal",
+        "EDIFF": 2e-06,
+        "ENCUT": 520.0,
+        "IBRION": -1,
+        "ICHARG": 2,
+        "ISIF": 4,
+        "ISMEAR": -5,
+        "ISPIN": 2,
+        "KPOINT_BSE": [-1, 0, 0, 0],
+        "LAECHG": true,
+        "LCHARG": true,
+        "LORBIT": false,
+        "LREAL": false,
+        "LVHAR": true,
+        "LWAVE": false,
+        "MAGMOM": [0.6, 0.6],
+        "NEDOS": 5001,
+        "NELM": 100,
+        "NSW": 0,
+        "PREC": "accurate",
+        "SIGMA": 0.05
+    },
+
     "LSORBIT": false,
     "METADATA": {
         "tag": "825d4c7e-5d46-4185-8f53-7b0fd5f2080b"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-24 02:46:05.542887",
+    "POSCAR": "Na1 Cl1\n1.0\n0.000000 2.819980 2.819980\n2.819980 0.000000 2.819980\n2.819980 2.819980 0.000000\nNa Cl\n1 1\ndirect\n0.000000 0.000000 0.000000 Na\n0.500000 0.500000 0.500000 Cl\n",
+    "Postprocess time": "2020-10-18 15:09:21.226489",
     "bandgap": 5.0824,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -fitF -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 10 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
-        "T1u 00000": [202.2, "ir_active"]
+        "T1u 00000": ["199.7(TO)+277.5(LO)", "ir_active"]
     },
 
     "kpoints": {

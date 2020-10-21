@@ -16,15 +16,40 @@
     "Gruneisen parameter": 1.596,
     "Helmholtz energy max error": "1.7e-04 eV",
     "Helmholtz energy quality": "+-4.8e-05 eV",
+    "INCAR": {
+        "ALGO": "Normal",
+        "EDIFF": 2e-06,
+        "ENCUT": 520.0,
+        "IBRION": -1,
+        "ICHARG": 2,
+        "ISIF": 4,
+        "ISMEAR": -5,
+        "ISPIN": 2,
+        "KPOINT_BSE": [-1, 0, 0, 0],
+        "LAECHG": true,
+        "LCHARG": true,
+        "LORBIT": false,
+        "LREAL": false,
+        "LVHAR": true,
+        "LWAVE": false,
+        "MAGMOM": [0.6, 0.6],
+        "NEDOS": 5001,
+        "NELM": 100,
+        "NSW": 0,
+        "PREC": "accurate",
+        "SIGMA": 0.05
+    },
+
     "LSORBIT": false,
     "METADATA": {
         "tag": "803690be-d130-4d47-9d0f-fddf7f2e94f0"
     },
 
     "NEDOS": 5001,
-    "Postprocess time": "2020-09-23 22:15:35.500886",
+    "POSCAR": "Mg2\n1.0\n3.301244 0.000000 0.000000\n-1.650623 2.858961 0.000000\n0.000000 0.000000 5.328863\nMg\n2\ndirect\n0.666667 0.333333 0.750000 Mg\n0.333333 0.666667 0.250000 Mg\n",
+    "Postprocess time": "2020-10-18 14:09:51.331329",
     "bandgap": 0.0,
-    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 30 -expt ExptData/ExptData.json",
+    "command": "dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -ss 10 -expt ExptData/ExptData.json",
     "gamma phonons (cm^{-1})": {
         "B2g 00000": [227.4, "silent_mode"],
         "E2g 00000": [123.1, "raman_active"]

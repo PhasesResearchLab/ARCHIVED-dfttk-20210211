@@ -381,6 +381,11 @@ class ElasticTensorToDb(FiretaskBase):
             d.update({"derived_properties": soec.get_structure_property_dict(ref_struct)})
 
         d["formula_pretty"] = ref_struct.composition.reduced_formula
+        d['last_updated'] = datetime.utcnow()
+        try:
+            d["volume"] = ref_struct.volume
+        except:
+            d["volume"] = ref_struct.lattice.volume
         d["fitting_method"] = method
         d["order"] = order
 

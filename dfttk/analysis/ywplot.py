@@ -728,7 +728,7 @@ class thermoplot:
             y = np.array(self.y)
             y0,y1,y2 = y[:,0], y[:,1], y[:,2]
             self.ax.set_ylim([0.0,np.array(list(map(float,y0))).max()*1.05])
-            self.ax.plot(self.x,y0,'-',linewidth=2,color='b', label=_label+",$C_p$")
+            self.ax.plot(self.x,y0,'-',linewidth=2,color='b', label=self._label+",$C_p$")
             self.ax.plot(self.xT[::5],self.fitted[::5],'--',fillstyle='none', marker='o', markersize=12, 
                 linewidth=2,color='k', label="fitted")
             self.ax.plot(self.x,y1,'--',linewidth=2,color='black', label="$C_v$")
@@ -1573,6 +1573,46 @@ def extractGph():
     i += 1
   threcord.update({"gamma point phonons (cm-1) ":phononmode})
     
+
+class BornMix:
+    def __init__(self, dir0, V0, V1, ff1, phdir298):
+        F0 = dir0+'/'+V0+'/dielecfij.out'
+        if not os.path.exists(F0): return
+        F1 = dir0+'/'+V1+'/dielecfij.out'
+        if not os.path.exists(F1): return
+        with open (F0, 'r') as fp: data0 = fp.readlines()
+        with open (F1, 'r') as fp: data1 = fp.readlines()
+        out = phdir298+'/dielecfij.out'
+        with open (out, 'w') as fp:
+            for i, line in enumerate(data0):
+                self.mix(line, data1[i], ff1, fp)
+
+    def simplemix(self, ss0, ss1, ff1, fp):
+        for i,s0 in enumerate(ss0):
+            if s0 == ss1[i]: fp.write(' {}'.format(s0))
+            else: fp.write(' {}'.format( float(s0)+(1.-float(ff1))*(float(ss1[i])-float(s0)) ))
+        fp.write('\n')
+
+    def sitemix(self, ss0, ss1, ff1, fp):
+        for i,s0 in enumerate(ss0):
+            if s0 == ss1[i]: fp.write(' {}'.format(s0))
+            else: 
+                change = float(ss1[i])-float(s0)
+                if change>=0.5: change -= 1.
+                if change<=-0.5: change += 1.
+                fp.write(' {}'.format( float(s0)+(1.-float(ff1))*change ))
+        fp.write('\n')
+
+    def mix(self, line0, line1, ff1, fp):
+        ss0 = [f.strip() for f in line0.split(' ') if f!='']
+        ss1 = [f.strip() for f in line1.split(' ') if f!='']
+        if len(ss0) >= 4: 
+            if ss0[3] in periodictable and ss0[3] in periodictable: self.sitemix(ss0, ss1, ff1, fp)
+            else: self.simplemix(ss0, ss1, ff1, fp)
+        else:
+            self.simplemix(ss0, ss1, ff1, fp)
+
+
 def Phonon298(dir0, pvdos=False):
   V298 = threcord.get("Atomic volume at 298.15 K ($\AA^3$)")
   phdir298 = dir0 + '/phonon298.15K'
@@ -1588,10 +1628,10 @@ def Phonon298(dir0, pvdos=False):
   i1 = min(i1, len(volumes)-2)
   dV = float(volumes[i1+1]) - float(volumes[i1])
   ff1 = (float(volumes[i1+1]) - V298)/dV
-  cmd = "Ymix -f "+str(ff1)+ " " + dir0+'/'+Pfiles[i1]+"/superfij.out " + " " + dir0+'/'+Pfiles[i1+1]+"/superfij.out >"+phdir298+"/superfij.out"
-  print(cmd)
+  cmd = "Ymix -mlat -f "+str(ff1)+ " " + dir0+'/'+Pfiles[i1]+"/superfij.out " + " " + dir0+'/'+Pfiles[i1+1]+"/superfij.out >"+phdir298+"/superfij.out"
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
+  mix = BornMix(dir0, Pfiles[i1], Pfiles[i1+1], ff1, phdir298)
 
   cwd = os.getcwd()
   os.chdir( phdir298 )
@@ -1811,7 +1851,6 @@ def plotAPI(readme, thermofile, volumes=None, energies=None, expt=None, xlim=Non
   thermo = np.loadtxt(thermofile, comments="#", dtype=np.float)
   thermo[np.isnan(thermo)] = 0.0
   _single = len(set(thermo[:,1])) == 1
-  #print ("eeeeeeeeee", _single)
   if len (thermo) < 1:
       print("\nCorrupted thermofile for", thermofile, "Please check it!")
       return False
@@ -2069,6 +2108,7 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
 
   thermoplot(folder,"LTC (1/K)",list(thermo[:,0]),list(1.e06*thermo[:,5]),yzero=0.0, xlim=xlim, label=plotlabel)
   ncols = [6,8]
+  #print('eeeeeeee', plotlabel, expt)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), expt=expt, xlim=xlim, label=plotlabel)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=300,expt=expt, label=plotlabel)
   thermoplot(folder,"Heat capacities (J/mol-atom/K)",list(thermo[:,0]),list(thermo[:,ncols]), xlim=100,expt=expt, CoT=True, label=plotlabel)
@@ -2081,15 +2121,15 @@ def plotCMD(thermofile, volumes=None, energies=None, expt=None, xlim=None, _fitC
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=xlim, label=plotlabel)
   thermoplot(folder,"Debye temperature (K)",list(thermo[:,0]),list(thermo[:,13]),yzero=0.0, xlim=70, label=plotlabel)
   #thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,15]),yzero=0.0,xlim=xlim, label=plotlabel)
-  bs = np.ones((len(thermo[:,15])), dtype=float)
-  bs[1:] = thermo[1:,6]/thermo[1:,7]*thermo[1:,15]
+  bs = copy.deepcopy(thermo[:,9])
+  for i,Cv in enumerate(thermo[1:,7]):
+     if Cv>0.0: bs[i] = thermo[i,6]/Cv*thermo[i,9]
   thermoplot(folder,"Bulk modulus (GPa)",list(thermo[:,0]),list(thermo[:,9]), reflin=list(bs) , expt=expt, yzero=0.0,xlim=xlim, label=plotlabel)
   T = copy.deepcopy(thermo[:,0])
   t22 = copy.deepcopy(thermo[:,22])
-  if T[0]==0.0: 
-      T[0]=1.e-8
-      t22[0]=1.e-8
-
+  for i,tval in enumerate(t22):
+      if T[i] <=0.0 : T[i]=1.e-8
+      if t22[i] <=0.0 : t22[i]=1.e-8
   Lfactor = physical_constants['Boltzmann constant'][0]/physical_constants['atomic unit of charge'][0]**2/physical_constants['Avogadro constant'][0]
   thermoplot(folder,"Seebeck coefficients (μV/K)",list(thermo[:,0]),list(thermo[:,21]/t22/T),xlim=xlim, label=plotlabel)
   thermoplot(folder,"Lorenz number ($WΩK^{−2}$)",list(thermo[:,0]),list((thermo[:,6]-thermo[:,8])/t22*Lfactor),xlim=xlim, label=plotlabel)
@@ -2263,9 +2303,16 @@ def Plot298(folder, V298, volumes, debug=False, plottitle=None):
   #print (plotdatabase, folder)
   ydir = folder+'/../Yphon/'
   
+  structure = None
   for root, dirs, files in os.walk(ydir):
-    structure = Structure.from_file(ydir+dirs[len(dirs)//2]+'/POSCAR')
-    break
+    for dir in dirs:
+      poscar = ydir+dir+'/POSCAR'
+      if os.path.exists(poscar):
+        structure = Structure.from_file(poscar)
+        break
+    if structure is not None: break
+    #structure = Structure.from_file(ydir+dirs[len(dirs)//2]+'/POSCAR')
+    #break
 
   try:
     natom = len(structure.sites)
@@ -2298,10 +2345,13 @@ def Plot298(folder, V298, volumes, debug=False, plottitle=None):
   phdir298 = ydir+'/Phonon298.15'
   if not os.path.exists(phdir298):
       os.mkdir(phdir298)
-  cmd = "Ymix -f "+str(ff1)+ " "+file1+ " "+file2 +" >"+phdir298+"/superfij.out"
+  cmd = "Ymix -mlat -f "+str(ff1)+ " "+file1+ " "+file2 +" >"+phdir298+"/superfij.out"
   print(cmd)
   output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
+
+  mix = BornMix(ydir, 'V{:010.6f}'.format(float(natom*volumes[i1])), \
+                      'V{:010.6f}'.format(float(natom*volumes[i1+1])), ff1, phdir298)
 
   cwd = os.getcwd()
   os.chdir( phdir298 )
@@ -2369,7 +2419,8 @@ def Plot298(folder, V298, volumes, debug=False, plottitle=None):
     dfile0 = dfile.split('/')[-1]
     copyfile(dfile,dfile0)
     cmd = "Yphon -tranI 2 -eps -pdis "+dfile0+ " <superfij.out"
-    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out'
+    if os.path.exists('dielecfij.out') : cmd = cmd + ' -Born dielecfij.out -bvec'
+    print(cmd)
     output = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                       universal_newlines=True)
     cmd = "gnuplot vdis.plt; convert -flatten -rotate 90 -density 120x120 vdis.eps vdis.png"

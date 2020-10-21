@@ -146,14 +146,21 @@ class EVfindMDB ():
             if count[i]<self.nV: continue
             if self.skipby(phases[i]): continue
             sys.stdout.write('{}, static: {:>2}, {}\n'.format(m, count[i], phases[i]))
-            EV = get_rec_from_metatag(self.vasp_db, m)
-            if self.print: myjsonout(EV, sys.stdout, indent="", comma="")
+            EV, POSCAR, INCAR = get_rec_from_metatag(self.vasp_db, m)
  
-            if self.plot: 
-                evdir = './E-V/'
-                if not os.path.exists(evdir): os.mkdir(evdir)
-                folder = evdir+phases[i]
-                if not os.path.exists(folder): os.mkdir(folder)
-                thermoplot(folder,"0 K total energies (eV/atom)",EV['volumes'], EV['energies'])
+            evdir = './E-V/'
+            if not os.path.exists(evdir): os.mkdir(evdir)
+            folder = evdir+phases[i]
+            if not os.path.exists(folder): os.mkdir(folder)
+            with open (folder+'/POSCAR', 'w') as fp:
+                fp.write(POSCAR)
+            readme = {}
+            readme['E-V'] = EV
+            readme['INCAR'] = INCAR
+            readme['POSCAR'] = POSCAR
+            with open (folder+'/readme', 'w') as fp:
+                myjsonout(readme, fp, indent="", comma="")
+
+            thermoplot(folder,"0 K total energies (eV/atom)",EV['volumes'], EV['energies'])
 
 

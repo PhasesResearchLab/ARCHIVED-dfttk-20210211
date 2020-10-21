@@ -2,6 +2,7 @@
 Custom Firetasks for the DFTTK
 """
 import warnings
+import datetime
 import subprocess
 import os
 import json
@@ -1118,6 +1119,7 @@ class BornChargeToDb(FiretaskBase):
                        'born_charge': born_charge_matrix,
                        'dielectric_tensor': dielectric_tensor,
                        'volume': structure.volume,
+                       'last_updated':datetime.datetime.utcnow(),
                        'structure': structure.as_dict(),
                        'formula_pretty': structure.composition.reduced_formula,
                        'inputs': {'incar': incar}}

@@ -116,7 +116,6 @@ class thfindMDB ():
     def skipby(self, phase, metatag):
         if self.metatag!=None:
             if self.metatag!=metatag: return True
-        #print("eeeeeeee",phase)
         try:
             els,tmp = formula2composition(phase.split('_')[0])
         except:

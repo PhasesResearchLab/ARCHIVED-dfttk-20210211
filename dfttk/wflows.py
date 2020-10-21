@@ -113,7 +113,7 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
         elasticity = struct_energy_elasticity[2]
         static_setting = struct_energy_elasticity[3]
     
-        volumes_existed_calc = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='elasticity')
+        volumes_existed_calc = is_property_exist_in_db(metadata=metadata, db_file=db_file, collection='elasticity')
         if not volumes_existed_calc:
             structures = struct_energy_elasticity[0]
             elasticity = struct_energy_elasticity[2]
@@ -130,8 +130,6 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
                 elasticity.append(struct_energy_elasticity[2][i])
                 volumes.append(struct_energy_elasticity[4][i])
 
-            #Born charge has been calculated
-            #raise ValueError('The borncharge with tag={} has been calculated.'.format(tag))
         if len(structures)==0:
             print("Elasticity already calculated for all volumes for", \
             struct_energy_elasticity[0][0].composition.reduced_formula, " with tag:", tag, "\n")
@@ -201,7 +199,7 @@ def get_wf_borncharge(structure=None, metadata=None, db_file=None, isif=2, name=
             print("\nWARNING! No bandgap found for ", \
             struct_energy_bandgap[0][0].composition.reduced_formula, " with tag:", tag, "\n")
     
-        volumes_existed_calc = is_property_exist_in_db(metadata=metadata, db_file=db_file, property='borncharge')
+        volumes_existed_calc = is_property_exist_in_db(metadata=metadata, db_file=db_file, collection='borncharge')
         if not volumes_existed_calc:
             structures = struct_energy_bandgap[0]
             bandgap = struct_energy_bandgap[2]

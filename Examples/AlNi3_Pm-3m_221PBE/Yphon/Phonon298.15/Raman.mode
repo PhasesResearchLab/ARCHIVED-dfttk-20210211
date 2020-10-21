@@ -1,0 +1,113 @@
+
+Primitive lattice vector from Supercell
+
+    3.583381570300      0.000000000000      0.000000000000  
+    0.000000000000      3.583381570300      0.000000000000  
+    0.000000000000      0.000000000000      3.583381570300  
+
+Supercell lattice vector
+
+    7.166763140600      0.000000000000      0.000000000000  
+    0.000000000000      7.166763140600      0.000000000000  
+    0.000000000000      0.000000000000      7.166763140600  
+
+Supercell is a transformation of the Primitive cell by
+
+    2.000000000000      0.000000000000      0.000000000000  
+    0.000000000000      2.000000000000      0.000000000000  
+    0.000000000000      0.000000000000      2.000000000000  
+
+The tranforming Matrix is truncated into
+
+    2.000000000000      0.000000000000      0.000000000000  
+    0.000000000000      2.000000000000      0.000000000000  
+    0.000000000000      0.000000000000      2.000000000000  
+
+  32 Atom(s) in the Supercell
+
+
+Used Primitive lattice vector
+
+    3.583381570300      0.000000000000      0.000000000000  
+    0.000000000000      3.583381570300      0.000000000000  
+    0.000000000000      0.000000000000      3.583381570300  
+
+   4 Atom(s) in the Primitive cell
+
+ 0.0000000000 0.5000000000 0.5000000000 Ni    0
+ 0.5000000000 0.0000000000 0.5000000000 Ni    1
+ 0.5000000000 0.5000000000 0.0000000000 Ni    2
+ 0.0000000000 0.0000000000 0.0000000000 Al    3
+
+ Mapping of Supercell of Primitive cell
+
+Atom  0 Ni   0   1   2   3   4   5   6   7
+Atom  1 Ni   8   9  10  11  12  13  14  15
+Atom  2 Ni  16  17  18  19  20  21  22  23
+Atom  3 Al  24  25  26  27  28  29  30  31
+
+MAXimum interaction DIS = 6.206599, Dynamical Matrix will be averaged over 1 cell(s) built by 4 centered atom(s)
+
+ Ni PI=   0 SI=   4 at   0.500000   0.250000   0.250000 Index=   1   0   0
+ Ni PI=   1 SI=  10 at   0.250000   0.500000   0.250000 Index=   0   1   0
+ Ni PI=   2 SI=  17 at   0.250000   0.250000   0.500000 Index=   0   0   1
+ Al PI=   3 SI=  31 at   0.500000   0.500000   0.500000 Index=   1   1   1
+
+Mapping supercell : Section time 0.000 Sec., Total time = 0.000 Sec.
+
+Restore the translational invariance : Section time 0.140 Sec., Total time = 0.140 Sec.
+
+Solving frequencies in real space : Section time 0.000 Sec., Total time = 0.140 Sec.
+
+ Used q-mesh 4x4x4
+
+Setting workspace & pre-optimizing : Section time 0.010 Sec., Total time = 0.150 Sec.
+
+  3  T1u Modes of ir_active : P=  0.000, 0.000, 1.000 ( 0.000, 0.000, 1.000)  with one tranlational mode 
+  0  T1u   9.3022  (  310.29)
+  1  T1u   6.6429  (  221.58)
+  2  T1u   0.0000  (    0.00)
+
+  1  T2u Modes of silent_mode 
+  0  T2u   7.1331  (  237.93)
+
+Handling symmetry : Section time 0.000 Sec., Total time = 0.150 Sec.
+
+ 8 Exact Q points found
+
+
+Finding exact Q points : Section time 0.000 Sec., Total time = 0.150 Sec.
+
+Frequencies in Gamma point without & with NA term) 
+
+      without         with         without    with     LOTO        IR    irrep
+              (THz)                     (cm-1)
+   0   9.3022        9.3022         310.29   310.29    0.0000   0.4798
+   1   9.3022        9.3022         310.29   310.29    0.0000   0.4798
+   2   9.3022        9.3022         310.29   310.29    0.0000   0.4798
+   3   6.6429        6.6429         221.58   221.58    0.0000   0.3422
+   4   6.6429        6.6429         221.58   221.58    0.0000   0.3422
+   5   6.6429        6.6429         221.58   221.58    0.0000   0.3422
+   6   6.0487        6.0487         201.76   201.76    0.0000   0.0000
+   7   6.0487        6.0487         201.76   201.76    0.0000   0.0000
+   8   6.0487        6.0487         201.76   201.76    0.0000   0.0000
+   9   0.0000       -0.0000           0.00    -0.00    0.0000   2.0000
+  10   0.0000        0.0000           0.00     0.00    0.0000   2.0000
+  11  -0.0000       -0.0000          -0.00    -0.00    0.0000   2.0000
+
+         192 out of 768 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.150 Sec.
+         384 out of 768 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.150 Sec.
+         576 out of 768 Frequencied calculated!  Section time 0.010 Sec., Total time = 0.160 Sec.
+         768 out of 768 Frequencied calculated!  Section time 0.000 Sec., Total time = 0.160 Sec.
+
+Calculating PDOS from the 768 frequencies
+
+
+768 frequencies
+
+
+Primmitive Q/PI2 vectors in the Inverse space
+
+    0.279066010801      0.000000000000      0.000000000000  
+    0.000000000000      0.279066010801      0.000000000000  
+    0.000000000000      0.000000000000      0.279066010801  

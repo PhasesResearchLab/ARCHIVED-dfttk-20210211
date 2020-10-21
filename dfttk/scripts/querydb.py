@@ -8,9 +8,6 @@ from fireworks.fw_config import config_to_dict
 from dfttk.utils import sort_x_by_y
 from warnings import warn
 
-PRO_COLLECTION_MAP = {'static': 'tasks', 'relax': 'relax_scheme', 'check_symmetry': 'relaxations',
-                      'phonon': 'phonon', 'qha': 'qha', 'qha_phonon': 'qha_phonon', 'borncharge': 'borncharge'}
-
 def get_eq_structure_by_metadata(metadata, db_file=None):
     '''
     Get the equilibrium structure by metadata
@@ -85,31 +82,33 @@ def get_static_structure_by_metadata(metadata, db_file=None):
     return (structure_list, energies, band_gap, static_settings, volumes)
 
 
-def is_property_exist_in_db(metadata, db_file=None, property='static'):
+def is_property_exist_in_db(metadata, db_file=None, collection='tasks'):
     '''
-    Search the MongoDB for specific property by metadata
+    Search the MongoDB collection by metadata
     '''    
     if (db_file is None) or (db_file == '>>db_file<<'):
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]
-    if property == 'static':
+    if collection == 'tasks':
         return get_static_structure_by_metadata(metadata=metadata, db_file=db_file)
     else:
-        vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
-        try:
-            collection = PRO_COLLECTION_MAP[property]
-        except:
-            return False
+        #try:
+        if True:
+            vasp_db = VaspCalcDb.from_db_file(db_file, admin=True)
+            search_items = list(vasp_db.db[collection].find({'metadata.tag': metadata['tag']},{'_id':0,'volume':1}))
+            try:
+                volumes = [f['volume'] for f in search_items]
+            except:
+                volumes = []
+            if not volumes:
+                try:
+                    search_items = list(vasp_db.db[collection].find({'metadata.tag': metadata['tag']},{'_id':0,'initial_structure':1}))
+                    volumes = [f['initial_structure']['lattice']['volume'] for f in search_items]
+                except:
+                    volumes = []
+        #except:
+        #    volumes = []
+        return volumes
 
-        search_items = list(vasp_db.db[collection].find({'metadata.tag': metadata['tag']},{'volume':1}))
-        if search_items:
-            #Not empty
-            volumes = []
-            for item in search_items:
-                volumes.append(item['volume'])
-            return volumes
-            #return get_static_structure_by_metadata(metadata=metadata, db_file=db_file)
-        else:
-            return False
 
 def remove_data_by_metadata(tag, db_file=None, rem_mode='vol', forcedelete=False):
     '''

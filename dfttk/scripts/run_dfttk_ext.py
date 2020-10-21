@@ -310,6 +310,9 @@ def shared_aguments(pthelec):
     pthelec.add_argument("-renew", "-renew", dest="renew", action='store_true', default=False,
                       help="renew/plot the figure. Otherwise, calculation will be skipped if the file 'fvib_ele' is seen.\n"
                            "Default: False")
+    pthelec.add_argument("-refresh", "-refresh", dest="refresh", action='store_true', default=False,
+                      help="recalculate the phonon dos.\n"
+                           "Default: False")
     pthelec.add_argument("-fitCp", "--SGTEfitCp", dest="SGTEfitCp", action='store_true', default=False,
                       help="report SGTE fitting through the order of Cp, S, and H. \n"
                            "Default: False, report SGTE fitting using Gibbs energy.")
