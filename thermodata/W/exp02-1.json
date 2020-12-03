@@ -1,0 +1,26 @@
+[
+    {
+        "Compound": "W",
+        "property" : "heat capacity",
+        "Author" : "Goodfellow, Metals, Alloys, Compounds, Ceramics, Polymers, Composites. Catalogue 1993/94, http://www-ferp.ucsd.edu/LIB/PROPS/PANOS/w.html",
+        "Unit" : "J/K",
+        "natom" : 1,
+        "data": [
+293,24.3275,
+300,24.2669,
+400,25.1861,
+473,25.4508,
+600,26.1053,
+800,26.6568,
+873,26.9638,
+1000,27.2083,
+1073,27.5172,
+1200,27.9437,
+1273,28.0797,
+1473,28.7103,
+1500,28.8629,
+2000,30.7013,
+2500,32.3558
+        ]
+    }
+]
