@@ -1017,13 +1017,14 @@ class thelecMDB():
 
 
     def get_dielecfij(self, phdir):
-        volumes = (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}, {'_id':0, 'volume':1})
+        #volumes = (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag}, {'_id':0, 'volume':1})
         #volumes_p = [i['volume'] for i in volumes]
+        volumes = (self.vasp_db).db['phonon'].find({'metadata.tag': self.tag})
         volumes_p = []
-        for vol in volumes:
+        for i in volumes:
             try:
                 structure = Structure.from_dict(i['unitcell'])
-                volumes_p.append(vol)
+                volumes_p.append(i['volume'])
             except:
                 pass
         try:
@@ -1074,7 +1075,7 @@ class thelecMDB():
         return has_Born
 
 
-    def get_Cij(self, phdir):
+    def get_Cij_old(self, phdir):
         try:
             volumes_c = (self.vasp_db).db['elasticity'].find({'metadata.tag': self.tag}, \
                 {'_id':0, 'elastic_tensor':1, 'initial_structure':1})
@@ -1091,6 +1092,114 @@ class thelecMDB():
             if not os.path.exists(voldir): os.mkdir(voldir)
 
             Cij = i['elastic_tensor']['ieee_format']
+            self.Cij.append(Cij)
+            self.VCij.append(vol)
+            with open (voldir+'/Cij.out','w') as out:
+                for x in range(6):
+                    for y in range(6):
+                        out.write('{:10.2f} '.format(Cij[x][y]))
+                    out.write('\n')
+
+        has_Cij = len(self.Cij)>0
+        if has_Cij:
+            self.Cij = np.array(sort_x_by_y(self.Cij, self.VCij))
+            self.VCij = sort_x_by_y(self.VCij, self.VCij)
+        return has_Cij
+
+
+    def Cij_by_pinv(self,ii):
+        all_stresses = np.array(ii['fitting_data']['cauchy_stresses'])
+        all_strains = np.array(ii['fitting_data']['strains'])
+        stresses = []
+        strains = []
+        eq_stress = None
+        for jj, strain in enumerate(all_strains):
+            if (abs(strain) < 1e-10).all():
+                eq_stress = np.array(copy.deepcopy(all_stresses[jj]))
+            else:
+                stresses.append(all_stresses[jj])
+                strains.append(all_strains[jj])
+        stresses = np.array(stresses)
+        strains = np.array(strains)
+        if eq_stress is not None:
+            stresses -= eq_stress
+        stresses_v = np.zeros((len(strains),6))
+        strains_v = np.zeros((len(strains),6))
+        for i in range(len(strains)):
+            #print (stresses.shape)
+            stresses_v[i,0] = stresses[i, 0, 0]
+            stresses_v[i,1] = stresses[i, 1, 1]
+            stresses_v[i,2] = stresses[i, 2, 2]
+            stresses_v[i,3] = (stresses[i, 1, 2] + stresses[i, 2, 1])*0.5
+            stresses_v[i,4] = (stresses[i, 2, 0] + stresses[i, 0, 2])*0.5
+            stresses_v[i,5] = (stresses[i, 0, 1] + stresses[i, 1, 0])*0.5
+            strains_v[i,0] = strains[i, 0, 0]
+            strains_v[i,1] = strains[i, 1, 1]
+            strains_v[i,2] = strains[i, 2, 2]
+            strains_v[i,3] = (strains[i, 1, 2] + strains[i, 2, 1])
+            strains_v[i,4] = (strains[i, 2, 0] + strains[i, 0, 2])
+            strains_v[i,5] = (strains[i, 0, 1] + strains[i, 1, 0])
+        svd_strains_v = np.linalg.pinv(strains_v.T)
+        Cij = np.matmul(stresses_v.T,svd_strains_v)
+        for i in range(6):
+            for j in range(i):
+                Cij[i,j] = 0.5*(Cij[i,j]+Cij[j,i])
+                Cij[j,i] = Cij[i,j]
+        """
+        print(svd_strains_v)
+        print(stresses_v)
+        print(strains_v)
+        print(Cij)
+        print(ii['elastic_tensor']['ieee_format'])
+        sys.exit()
+        """
+        return Cij
+       
+
+    def vol_in_volumes(self, vol):
+        for v in self.volumes:
+            ncell = int(vol/v+1.e-12)
+            if abs(vol-ncell*v)<1.e-12: return True, v
+        return False, 0
+
+
+    def get_Cij(self, phdir, pinv=True):
+        try:
+            volumes_c = (self.vasp_db).db['elasticity'].find({'metadata.tag': self.tag}, \
+                {'_id':0, 'elastic_tensor':1, 'initial_structure':1, 'fitting_data':1})
+        except:
+            volumes_c = []
+
+        self.Cij = []
+        self.VCij = []
+        for i in volumes_c:
+            vol  = float(i['initial_structure']['lattice']['volume'])
+            if vol in self.VCij: continue
+            #if vol not in self.volumes: continue
+            volin, vol = self.vol_in_volumes(vol)
+            if not volin: continue
+            voldir = phdir+'/'+'V{:010.6f}'.format(vol)
+            if not os.path.exists(voldir): os.mkdir(voldir)
+
+            ngroup = self.space_group_number
+            #if ngroup>=195 and ngroup<=230:
+            if pinv:
+                Cij = self.Cij_by_pinv(i)
+            else:
+                Cij = i['elastic_tensor']['ieee_format']
+            """
+            if ngroup>=195 and ngroup<=230: # for cubic system
+                C11 = (Cij[0,0] + Cij[1,1] + Cij[2,2])/3.0
+                C12 = (Cij[0,1] + Cij[1,2] + Cij[2,0])/3.0
+                C44 = (Cij[3,3] + Cij[4,4] + Cij[5,5])/3.0
+                for i in range(0,3):
+                    Cij[i,i] = C11
+                    Cij[i+3,i+3] = C44
+                    for j in range(0,3):
+                        if j==i: continue
+                        Cij[i,j] = C12
+            """
+         
             self.Cij.append(Cij)
             self.VCij.append(vol)
             with open (voldir+'/Cij.out','w') as out:
@@ -1810,7 +1919,7 @@ class thelecMDB():
         eij_T = np.matmul(R_T_dT, inv_R_T)
             
         with open (self.phasename+'/fvib_eij', 'w') as fp:
-            fp.write('#T volume alpha alpha_xx alpha_yy alpha_zz alpha_yz alpha_zx alpha_xz alpha_zx alpha_xy alpha_yx\n')
+            fp.write('#T volume alpha alpha_xx alpha_yy alpha_zz alpha_yz alpha_zy alpha_xz alpha_zx alpha_xy alpha_yx\n')
             for i,m in enumerate(eij_T):
                 fp.write('{} {:10.6f} {:12.4e} {:12.4e} {:12.4e} {:12.4e} {:12.4e} {:12.4e} '\
                     '{:12.4e} {:12.4e} {:12.4e} {:12.4e}\n'.format(T[i], self.volT[i]/self.natoms, self.beta[i]/3., \
@@ -1864,6 +1973,7 @@ class thelecMDB():
             for i,m in enumerate(self.Cij_T):
                 E,G,B = self.Cij_to_Moduli(m)
                 correction_factor = self.blat[i]*toGPa/B
+                #correction_factor = 1.0
                 for j in range(3):
                     for k in range(3):
                         self.Cij_T[i,j,k] *=correction_factor
@@ -1876,7 +1986,7 @@ class thelecMDB():
             if ngroup>=1 and ngroup<=2: #for Triclinic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C14 C15 C16 C22 C23 C24 C25 C26 C33 C34'\
                     ' C35 C36 C44 C45 C46 C55 C56 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(21+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(21+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1885,7 +1995,7 @@ class thelecMDB():
             elif ngroup>=3 and ngroup<=15: # for Monoclinic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C16 C22 C23 C26 C33 C36 C44 C45 C55 C66'\
                     ' E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(13+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(13+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1893,7 +2003,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=16 and ngroup<=74: # for Orthorhombic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C22 C23 C33 C44 C55 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(9+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(9+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1901,7 +2011,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=75 and ngroup<=142: # for Tetragonal system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(6+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(6+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1909,7 +2019,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij[i], self.Shear_Modulus_Cij[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=143 and ngroup<=194: # for Trigonal system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(5+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(5+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1918,7 +2028,7 @@ class thelecMDB():
             #elif ngroup>=168 and ngroup<=194: # for Hexagonal system
             elif ngroup>=195 and ngroup<=230: # for cubic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C44 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(3+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(3+4)
                 for i,m in enumerate(self.Cij_T):
                     print(fm.format\
                     (T[i], self.volT[i]/self.natoms, self.blat[i]*toGPa, \
@@ -1928,7 +2038,7 @@ class thelecMDB():
         with open (self.phasename+'/fvib_Mii_T', 'w') as fp:
             fp.write('# T(K) V(Ang^3) B(GPa) M1(GPa) M2(GPa) M3(GPa) M4(GPa) M5(GPa) M6(GPa)'
                 ' E(GPa) G(GPa)\n')
-            fm = "{} {:10.6f}"+" {:8.2f}"*(6+3)
+            fm = "{} {:10.6f}"+" {:10.4f}"*(6+3)
             for i,m in enumerate(self.Cij_T):
                 M = (m+m.T)/2.0
                 w, v = np.linalg.eig(M)
@@ -1987,7 +2097,7 @@ class thelecMDB():
             if ngroup>=1 and ngroup<=2: #for Triclinic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C14 C15 C16 C22 C23 C24 C25 C26 C33 C34'\
                     ' C35 C36 C44 C45 C46 C55 C56 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(21+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(21+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2000,7 +2110,7 @@ class thelecMDB():
             elif ngroup>=3 and ngroup<=15: # for Monoclinic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C16 C22 C23 C26 C33 C36 C44 C45 C55 C66'\
                     ' E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(13+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(13+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2012,7 +2122,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=16 and ngroup<=74: # for Orthorhombic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C22 C23 C33 C44 C55 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(9+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(9+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2024,7 +2134,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=75 and ngroup<=142: # for Tetragonal system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 C66 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(6+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(6+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2036,7 +2146,7 @@ class thelecMDB():
                     self.Young_Modulus_Cij_S[i], self.Shear_Modulus_Cij_S[i], self.Bulk_Modulus_Cij[i]),file=fp)
             elif ngroup>=143 and ngroup<=194: # for Trigonal system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C13 C33 C44 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(5+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(5+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2049,7 +2159,7 @@ class thelecMDB():
             #elif ngroup>=168 and ngroup<=194: # for Hexagonal system
             elif ngroup>=195 and ngroup<=230: # for cubic system
                 fp.write('# T(K) V(Ang^3) B(GPa) C11 C12 C44 E(GPa) G(GPa) B_correction_factor\n')
-                fm = "{} {:10.6f}"+" {:8.2f}"*(3+4)
+                fm = "{} {:10.6f}"+" {:10.4f}"*(3+4)
                 for i,m in enumerate(self.Cij_S):
                     if self.Cv[i] > 1.e-8:
                         Bs = self.blat[i]*self.Cp[i]/self.Cv[i]
@@ -2094,7 +2204,7 @@ class thelecMDB():
         if not self.pyphon: self.get_qha()
         self.hasSCF = True
         self.check_vol()
-        self.has_Cij = self.get_Cij(self.phasename+'/Yphon')
+        self.has_Cij = self.get_Cij(self.phasename+'/Yphon', pinv=False)
         self.energies_orig = copy.deepcopy(self.energies)
 
         if self.noel : self.theall = np.zeros([14, len(self.T), len(self.volumes)])

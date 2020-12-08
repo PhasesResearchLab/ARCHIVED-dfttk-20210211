@@ -79,6 +79,7 @@ def get_wf_elastic_constant(structure, metadata, strain_states=None, stencils=No
                    "PREC": "High"}
     vis = vasp_input_set or MPStaticSet(structure,
                                         user_incar_settings=uis_elastic)
+
     strains = []
     if strain_states is None:
         strain_states = get_default_strain_states(order)
@@ -93,12 +94,21 @@ def get_wf_elastic_constant(structure, metadata, strain_states=None, stencils=No
 
     # Remove zero strains
     strains = [strain for strain in strains if not (abs(strain) < 1e-10).all()]
+    # Adding the zero strains for the purpose of calculating at finite pressure or thermal expansion
+    _strains = [Strain.from_deformation([[1, 0, 0], [0, 1, 0], [0, 0, 1]])]
+    strains.extend(_strains)
+    """
+    """
     vstrains = [strain.voigt for strain in strains]
     if np.linalg.matrix_rank(vstrains) < 6:
         # TODO: check for sufficiency of input for nth order
         raise ValueError("Strain list is insufficient to fit an elastic tensor")
 
     deformations = [s.get_deformation_matrix() for s in strains]
+    """
+    print(strains)
+    print(deformations)
+    """
 
     if sym_reduce:
         # Note this casts deformations to a TensorMapping
@@ -132,7 +142,7 @@ def get_wf_elastic_constant(structure, metadata, strain_states=None, stencils=No
 
         fw_analysis = Firework(
             ElasticTensorToDb(structure=structure, db_file=db_file,
-                              order=order, fw_spec_field='tags', metadata=metadata),
+                              order=order, fw_spec_field='tags', metadata=metadata, vasp_input_set=vis),
             name="Analyze Elastic Data", spec={"_allow_fizzled_parents": True})
         wf_elastic.append_wf(Workflow.from_Firework(fw_analysis),
                              wf_elastic.leaf_fw_ids)

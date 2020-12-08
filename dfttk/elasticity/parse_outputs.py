@@ -2,6 +2,7 @@
 
 
 import json
+import copy
 import os
 import re
 from collections import defaultdict
@@ -293,7 +294,7 @@ class ElasticTensorToDb(FiretaskBase):
     """
 
     required_params = ['structure','metadata']
-    optional_params = ['db_file', 'order', 'fw_spec_field', 'fitting_method']
+    optional_params = ['db_file', 'order', 'fw_spec_field', 'fitting_method', 'vasp_input_set']
 
     def run_task(self, fw_spec):
         ref_struct = self['structure']
@@ -302,6 +303,11 @@ class ElasticTensorToDb(FiretaskBase):
             "initial_structure": self['structure'].as_dict(),
             "metadata": self['metadata']
         }
+        vasp_input_set = env_chk(self.get('vasp_input_set'), False)
+        if vasp_input_set:
+            d['vasp_input_set_all'] = vasp_input_set.CONFIG
+            d['vasp_input_set'] = {'INCAR':vasp_input_set.CONFIG['INCAR'], \
+            'KPOINTS':vasp_input_set.CONFIG['KPOINTS'].as_dict()}
 
         # Get optimized structure
         calc_locs_opt = [cl for cl in fw_spec.get('calc_locs', []) if 'optimiz' in cl['name']]
@@ -337,12 +343,33 @@ class ElasticTensorToDb(FiretaskBase):
         pk_stresses = [stress.piola_kirchoff_2(deformation)
                        for stress, deformation in zip(stresses, deformations)]
 
+        #get zero strain stress
+        for ii, strain in enumerate(strains):
+            if (abs(strain) < 1e-10).all():
+                eq_stress = copy.deepcopy(stresses[ii])
+                break
+
         d['fitting_data'] = {'cauchy_stresses': stresses,
                              'eq_stress': eq_stress,
                              'strains': strains,
                              'pk_stresses': pk_stresses,
                              'deformations': deformations
                              }
+
+
+        # remove zero strain due to fitting error
+        _strains = []
+        _stresses = []
+        _pk_stresses = []
+        for ii, strain in enumerate(strains):
+            if (abs(strain) < 1e-10).all(): continue
+            _strains.append(strain)
+            _stresses.append(stresses[ii])
+            _pk_stresses.append(pk_stresses[ii])
+        strains = copy.deepcopy(_strains)
+        stresses = copy.deepcopy(_stresses)
+        pk_stresses = copy.deepcopy(_pk_stresses)
+  
 
         logger.info("Analyzing stress/strain data")
         # TODO: @montoyjh: what if it's a cubic system? don't need 6. -computron
@@ -384,6 +411,9 @@ class ElasticTensorToDb(FiretaskBase):
         d['last_updated'] = datetime.utcnow()
         try:
             d["volume"] = ref_struct.volume
+            sa = SpacegroupAnalyzer(ref_struct)
+            primitive_unitcell_structure = sa.find_primitive()
+            d["primitive_unitcell_volume"] = primitive_unitcell_structure.volume
         except:
             d["volume"] = ref_struct.lattice.volume
         d["fitting_method"] = method

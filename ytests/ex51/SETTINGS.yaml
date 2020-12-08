@@ -1,2 +1,0 @@
-phonon : True
-phonon_supercell_matrix : [[-1, -2, -1], [2, 0, -1], [1, -2, 1]]

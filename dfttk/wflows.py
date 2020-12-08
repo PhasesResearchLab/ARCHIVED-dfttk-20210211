@@ -15,6 +15,7 @@ from dfttk.utils import check_relax_path, add_modify_incar_by_FWname, add_modify
 from dfttk.scripts.querydb import is_property_exist_in_db, get_eq_structure_by_metadata
 #from atomate.vasp.workflows.base.elastic import get_wf_elastic_constant
 from dfttk.elasticity.elastic import get_wf_elastic_constant
+from pymatgen.symmetry.analyzer import SpacegroupAnalyzer
 import sys
 
 
@@ -69,6 +70,15 @@ def get_wf_EV_bjb(structure, deformation_fraction=(-0.08, 0.12), store_volumetri
     wf = Workflow(fws, name=wfname, metadata=metadata)
     return wf
 
+
+
+def vol_in_volumes(vol, volumes):
+    for v in volumes:
+        ncell = int(v/vol+1.e-12)
+        if abs(v-ncell*vol)<1.e-12: return True
+    return False
+
+
 def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_file=None, name="elastic",
                    vasp_input_set=None, override_default_vasp_params=None, strain_states=None, stencils=None,
                    analysis=True, sym_reduce=False, order=2, conventional=False, **kwargs):
@@ -110,24 +120,26 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
 
     struct_energy_elasticity = is_property_exist_in_db(metadata=metadata, db_file=db_file)
     if struct_energy_elasticity:
-        elasticity = struct_energy_elasticity[2]
+        bandgap = struct_energy_elasticity[2]
         static_setting = struct_energy_elasticity[3]
     
         volumes_existed_calc = is_property_exist_in_db(metadata=metadata, db_file=db_file, collection='elasticity')
         if not volumes_existed_calc:
             structures = struct_energy_elasticity[0]
-            elasticity = struct_energy_elasticity[2]
+            bandgap = struct_energy_elasticity[2]
             volumes = struct_energy_elasticity[4]
         else:
             structures = []
-            elasticity = []
+            bandgap = []
             volumes = []
             for i,vol in enumerate(struct_energy_elasticity[4]):
-                if vol in volumes_existed_calc:
+                #if vol in volumes_existed_calc:
+                if vol_in_volumes(vol, volumes_existed_calc):
                     print("Elasticity already calculated for volume=", vol)
+                    #"eeeeeeeeeee" debug 11/01/2020
                     continue
                 structures.append(struct_energy_elasticity[0][i])
-                elasticity.append(struct_energy_elasticity[2][i])
+                bandgap.append(struct_energy_elasticity[2][i])
                 volumes.append(struct_energy_elasticity[4][i])
 
         if len(structures)==0:
@@ -137,20 +149,35 @@ def get_wf_elastic(structure=None, metadata=None, tag=None, vasp_cmd=None, db_fi
         else:
             print("Elasticity will be calculated for volumes=", volumes," for", \
             struct_energy_elasticity[0][0].composition.reduced_formula, " with tag:", tag, "\n")
-    else: elasticity=False
+    else: bandgap=False
 
     wfs = []
-    if elasticity:
+    if bandgap:
         if override_default_vasp_params is None: override_default_vasp_params = {}
         override_default_vasp_params.update(static_setting)
 
-        for struct in structures:
-            vasp_input_set = vasp_input_set or ElasticSet(structure=struct, **override_default_vasp_params)
+        for i,struct in enumerate(structures):
+            if conventional:
+                _struct = SpacegroupAnalyzer(
+                    struct).get_conventional_standard_structure()
+            else:
+                _struct = struct
+
+            """
+            if bandgap[i]==0.0:
+                override_default_vasp_params['user_incar_settings'].update({'ISMEAR': 0})
+                override_default_vasp_params['user_incar_settings'].update({'SIGMA': 0.05})
+            print(vasp_input_set.CONFIG['INCAR'])
+            """
+            vasp_input_set = vasp_input_set or ElasticSet(structure=_struct, **override_default_vasp_params)
+    
             wf_elastic = get_wf_elastic_constant(struct, metadata, strain_states=strain_states, stencils=stencils,
                                 db_file=db_file, conventional=conventional, order=order, vasp_input_set=vasp_input_set,
                                 analysis=analysis, sym_reduce=sym_reduce, tag='{}-{}'.format(name, tag),
                                 vasp_cmd=vasp_cmd, **kwargs)
             wfs.append(wf_elastic)
+            #"eeeeeeeeeeee" debug
+            #break
     else:
         if structure is None:
                 raise ValueError('There is no optimized structure with tag={}, Please provide structure.'.format(tag))
