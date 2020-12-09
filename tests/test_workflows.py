@@ -2,7 +2,7 @@ from pymatgen import Structure
 import pymatgen
 from pymatgen.io.vasp.inputs import Incar
 from fireworks import FWorker, Workflow, LaunchPad
-from dfttk import get_wf_gibbs
+from dfttk import get_wf_gibbs_robust
 from dfttk.utils import update_fws_spec
 import pytest
 import shutil
