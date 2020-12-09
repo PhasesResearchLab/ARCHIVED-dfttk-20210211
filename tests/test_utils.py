@@ -18,6 +18,20 @@ Direct
 0.500000000 0.500000000 0.000000000
 0.500000000 0.000000000 0.500000000"""
 
+POSCAR_scalling_t1 = """Ti1 Pb1 O3
+1.0
+2.0 0.000000 0.000000
+0.000000 2.0 0.000000
+0.000000 0.000000 8.0
+Ti Pb O
+1 1 3
+direct
+0.500000 0.500000 0.520923 Ti
+0.000000 0.000000 0.969212 Pb
+0.500000 0.500000 0.142449 O
+0.000000 0.500000 0.626658 O
+0.500000 0.000000 0.626658 O"""
+
 try:
     API_KEY = SETTINGS["PMG_MAPI_KEY"]
     PMG_VASP_PSP_DIR = SETTINGS["PMG_VASP_PSP_DIR"]
@@ -80,3 +94,22 @@ def test_update_pot_by_symbols():
     potcar = dfttkutils.update_pot_by_symbols(InputSet, write_file=False)
     syms = potcar.symbols
     assert(syms == ["Fe", "Fe"])
+
+def test_supercell_scaling_by_atom_lat_vol():
+    min_atoms = 60
+    max_atoms = 90
+    lower_search_limit = -2
+    upper_search_limit = 2
+    target_shape = 'sc'
+    #test for cubic
+    stru1 = Structure.from_str(POSCAR_STR_check_symbol, fmt="POSCAR")
+    #optimal_sc_shape = dfttkutils.supercell_scaling_by_target_atoms(stru1, min_atoms=min_atoms, max_atoms=max_atoms,
+    #                                  target_shape=target_shape, lower_search_limit=lower_search_limit,
+    #                                  upper_search_limit=upper_search_limit, verbose=False)
+    stru2 = Structure.from_str(POSCAR_scalling_t1, fmt='POSCAR')
+    optimal_sc_shape = dfttkutils.supercell_scaling_by_atom_lat_vol(stru2, min_obj=min_atoms, max_obj=max_atoms,
+                                      target_shape=target_shape, lower_search_limit=lower_search_limit,
+                                      upper_search_limit=upper_search_limit, verbose=False)
+    print(optimal_sc_shape)
+
+#test_supercell_scaling_by_target_atoms()

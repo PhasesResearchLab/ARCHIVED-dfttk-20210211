@@ -6,12 +6,16 @@ these are more verbose """
 import fnmatch
 import os
 
-from pymatgen import MPRester
+from pymatgen import MPRester, Structure
 from pymatgen.io.vasp.inputs import Incar, Poscar, Potcar
+from pymatgen.io.vasp.outputs import Vasprun, Outcar
+from dfttk.analysis.relaxing import get_non_isotropic_strain, get_bond_distance_change
 from fireworks import LaunchPad
+from ase.build import get_deviation_from_optimal_cell_shape
 import numpy as np
 import itertools
 import scipy
+import math
 
 # TODO: wrap MPRester calls in a try-except block to catch errors and retry automatically
 
@@ -158,21 +162,187 @@ def sort_x_by_y(x, y):
     """Sort a list of x in the order of sorting y"""
     return [xx for _, xx in sorted(zip(y, x), key=lambda pair: pair[0])]
 
+def get_norm_cell(cell, target_size, target_shape='sc'):
+    '''
+    Get the normed cell
 
-def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
+    Parameters
+    ----------
+        cell: 2D array of floats
+            Metric given as a (3x3 matrix) of the input structure.
+        target_size: integer
+            Size of desired super cell in number of unit cells.
+        target_shape: str
+            Desired supercell shape. Can be 'sc' for simple cubic or
+            'fcc' for face-centered cubic.
+    Returns
+    -------
+        norm_cell: 2D array of floats
+            The normed cell
+    Note: This function is extracted from ase
+    '''
+    target_shape = target_shape.lower()
+    target_size = int(target_size)
+    if target_shape in ["sc", "simple-cubic"]:
+        target_metric = np.eye(3)
+    elif target_shape in ["fcc", "face-centered cubic"]:
+        target_metric = 0.5 * np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=float)
+    else:
+        raise ValueError('The target_shape should be sc or fcc (ase supported)')
+    norm = (target_size * np.linalg.det(cell) / np.linalg.det(target_metric)) ** (-1.0 / 3.)
+    norm_cell = norm * cell
+    return norm_cell
+
+def find_optimal_cell_shape_in_range(cell, target_size, target_shape, size_range=None, optimize_sc=False, lower_limit=-2, upper_limit=2,
+                            sc_tolerance=1e-5, verbose=False,):
+    """
+    Returns the transformation matrix that produces a supercell
+    corresponding to *target_size* unit cells with metric *cell* that
+    most closely approximates the shape defined by *target_shape*.
+
+    Parameters:
+        cell: 2D array of floats
+            Metric given as a (3x3 matrix) of the input structure.
+        target_size: integer
+            Size of desired super cell in number of unit cells.
+        target_shape: str
+            Desired supercell shape. Can be 'sc' for simple cubic or
+            'fcc' for face-centered cubic.
+        size_range: None/int/float/list/tuple
+            The range of the target_size
+                if None, 80%-120% target_size
+                elif int/float
+                    < 1    (1-size_range, 1+size_range) * target_size
+                    = 1    == target_size
+                    > 1    (-int(size_range), int(size_range)) + target_size
+                elif list/tuple (2 elements)
+                    [size_range(0), size_range(1)]
+        optimize_sc: bool
+            Optimize the super cell matrix (True) or not (False)
+            If False, then use the closest integer transformation matrix of ideal matrix
+        lower_limit: int
+            Lower limit of search range.
+        upper_limit: int
+            Upper limit of search range.
+        sc_tolerance: float
+            The tolerance for the search. If the score is less than sc_tolerance, stop searching
+        verbose: bool
+            Set to True to obtain additional information regarding
+            construction of transformation matrix.
+    Return
+        numpy.ndarray
+            2d array of a scaling matrix, e.g. [[3,0,0],[0,3,0],[0,0,3]]
+
+    Note: this function taken from ase(ase.build.find_optimal_cell_shape), and we made some improvements 
+          (add sc_tolerance and set the ideal_matrix as the first loop, which will speed up the code for high symmetry
+           add size_range, which will allow search in a range)
+    """
+
+    # Set up target metric
+    if target_shape in ["sc", "simple-cubic"]:
+        target_metric = np.eye(3)
+    elif target_shape in ["fcc", "face-centered cubic"]:
+        target_metric = 0.5 * np.array(
+            [[0, 1, 1], [1, 0, 1], [1, 1, 0]], dtype=float
+        )
+    if verbose:
+        print("target metric (h_target):")
+        print(target_metric)
+
+    if size_range is None:
+        min_size = int(target_size * 0.8)
+        max_size = math.ceil(target_size * 1.2)
+    elif isinstance(size_range, (float, int)):
+        if size_range < 1:
+            min_size = int(target_size * (1 - size_range))
+            max_size = math.ceil(target_size * (1 + size_range))
+        elif size_range == 1:
+            min_size = target_size
+            max_size = target_size
+        else:
+            min_size = target_size - int(size_range)
+            max_size = target_size + math.ceil(size_range)
+    elif isinstance(size_range, (list, tuple)):
+        min_size = int(size_range[0])
+        max_size = math.ceil(size_range[1])
+    else:
+        raise ValueError('Unsupported size range.')
+
+    # Normalize cell metric to reduce computation time during looping
+    norm = (
+        target_size * np.linalg.det(cell) / np.linalg.det(target_metric)
+    ) ** (-1.0 / 3)
+    norm_cell = norm * cell
+    if verbose:
+        print("normalization factor (Q): %g" % norm)
+
+    # Approximate initial P matrix
+    ideal_P = np.dot(target_metric, np.linalg.inv(norm_cell))
+    if verbose:
+        print("idealized transformation matrix:")
+        print(ideal_P)
+    starting_P = np.array(np.around(ideal_P, 0), dtype=int)
+    if verbose:
+        print("closest integer transformation matrix (P_0):")
+        print(starting_P)
+
+    if optimize_sc:
+        # Prepare run.
+        best_score = 1e6
+        optimal_P = None
+        #Set the starting_P as the first one
+        dPlist = list(itertools.product(range(lower_limit, upper_limit + 1), repeat=9))
+        dP0 = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        dPlist.pop(dPlist.index(dP0))
+        dPlist = [dP0] + dPlist
+        for dP in dPlist:
+            dP = np.array(dP, dtype=int).reshape(3, 3)
+            P = starting_P + dP
+            New_size = np.around(np.linalg.det(P))
+            if New_size < min_size or New_size > max_size:
+                continue
+            norm_new = get_norm_cell(cell, New_size, target_shape=target_shape)
+            score = get_deviation_from_optimal_cell_shape(np.dot(P, norm_new), target_shape=target_shape, norm=1.0)
+            if score < best_score:
+                best_score = score
+                optimal_P = P
+            if best_score <  sc_tolerance:
+                break
+
+        if optimal_P is None:
+            optimal_P = starting_P
+            print("Failed to find a transformation matrix, using the ideal one.")
+
+        # Finalize.
+        if verbose:
+            print("smallest score (|Q P h_p - h_target|_2): %f" % best_score)
+            print("optimal transformation matrix (P_opt):")
+            print(optimal_P)
+            print("supercell metric:")
+            print(np.round(np.dot(optimal_P, cell), 4))
+            print(
+                "determinant of optimal transformation matrix: %g"
+                % np.linalg.det(optimal_P)
+            )
+    else:
+        optimal_P = starting_P
+    return optimal_P
+
+def supercell_scaling_by_atom_lat_vol(structure, min_obj=60, max_obj=120, scale_object='atom', optimize_sc=False,
                                       target_shape='sc', lower_search_limit=-2, upper_search_limit=2,
-                                      verbose=False):
+                                      verbose=False, sc_tolerance=1e-5):
     """
     Find a the supercell scaling matrix that gives the most cubic supercell for a
-    structure, where the supercell has between the minimum and maximum nubmer of atoms.
+    structure, where the supercell has between the minimum and maximum nubmer of object(atom/lattice/volume).
 
     Parameters
     ----------
     structure : pymatgen.Structure
         Unitcell of a structure
-    min_atoms : target number of atoms in the supercell, defaults to 5
-    max_atoms : int
-        Maximum number of atoms allowed in the supercell
+    scale_object: str
+        control the scale object, atom or lattice or volume (only first letter matters)
+    min_obj/max_obj : int/float
+        minimum/maximum atoms/lattice/volume(controlled by scale_object)
     target_shape : str
         Target shape of supercell. Could choose 'sc' for simple cubic or 'fcc' for face centered
         cubic. Default is 'sc'.
@@ -182,6 +352,8 @@ def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
         How far to search below the 'ideal' cubic scaling. Default is 2.
     verbose : bool
         Whether to print extra details on the cell shapes and scores. Useful for debugging.
+    sc_tolerance: float
+        The tolerance for the search. If the score is less than sc_tolerance, stop searching
 
     Returns
     -------
@@ -199,7 +371,7 @@ def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
 
     We are using a pure Python implementation from ASE, which is not very fast for a given
     supercell size. This allows for a variable supercell size, so it's going to be slow
-    for a large range of atoms.
+    for a large range of atoms. (TODO: The performance is improved, but still can be faster)
 
     The search limits are passed directloy to ``find_optimal_cell_shape``.
     They define the search space for each individual supercell based on the "ideal" scaling.
@@ -208,23 +380,42 @@ def supercell_scaling_by_target_atoms(structure, min_atoms=60, max_atoms=120,
     calculations are based on the cartesian product of 3x3 matrices, large search ranges are
     very expensive.
     """
-    from ase.build import get_deviation_from_optimal_cell_shape, find_optimal_cell_shape
+    #from ase.build import get_deviation_from_optimal_cell_shape
 
     # range of supercell sizes in number of unitcells
-    supercell_sizes = range(min_atoms//len(structure), max_atoms//len(structure) + 1)
+    scale_object = scale_object.lower()
+    if scale_object.startswith('a'):
+        unit_obj = len(structure)
+    elif scale_object.startswith('l'):
+        unit_obj = structure.volume
+        min_obj = min_obj ** 3
+        max_obj = max_obj ** 3
+    elif scale_object.startswith('v'):
+        unit_obj = structure.volume
+    else:
+        raise ValueError('Unsupported scale object, please choose atom or lattice or volume.')
+    size_range = [int(min_obj/unit_obj), math.ceil(max_obj/unit_obj)]
 
     optimal_supercell_shapes = []  # numpy arrays of optimal shapes
     optimal_supercell_scores = []  # will correspond to supercell size
+    supercell_sizes_out = []
 
     # find the target shapes
-    for sc_size in supercell_sizes:
-        optimal_shape = find_optimal_cell_shape(structure.lattice.matrix, sc_size, target_shape, upper_limit=upper_search_limit, lower_limit=lower_search_limit, verbose = True)
+    for sc_size in range(size_range[0], size_range[1]):
+        optimal_shape = find_optimal_cell_shape_in_range(structure.lattice.matrix, sc_size, target_shape,
+            size_range=size_range, upper_limit=upper_search_limit, lower_limit=lower_search_limit,
+            verbose=True, sc_tolerance=sc_tolerance, optimize_sc=optimize_sc)
         optimal_supercell_shapes.append(optimal_shape)
-        optimal_supercell_scores.append(get_deviation_from_optimal_cell_shape(optimal_shape, target_shape))
+        norm_cell = get_norm_cell(structure.lattice.matrix, sc_size, target_shape=target_shape)
+        scores = get_deviation_from_optimal_cell_shape(np.dot(optimal_shape, norm_cell), target_shape)
+        optimal_supercell_scores.append(scores)
+        supercell_sizes_out.append(sc_size)
+        if scores < sc_tolerance:
+            break
 
     if verbose:
-        for i in range(len(supercell_sizes)):
-            print('{} {:0.4f} {}'.format(supercell_sizes[i], optimal_supercell_scores[i], optimal_supercell_shapes[i].tolist()))
+        for i in range(len(optimal_supercell_shapes)):
+            print('{} {:0.4f} {}'.format(supercell_sizes_out[i], optimal_supercell_scores[i], optimal_supercell_shapes[i].tolist()))
 
     # find the most optimal cell shape along the range of sizes
     optimal_sc_shape = optimal_supercell_shapes[np.argmin(optimal_supercell_scores)]
@@ -317,23 +508,25 @@ def get_mat_info(struct):
     return name, configuration, occupancy, site_ratio
  
 
-def mark_adopted_TF(tag, db_file, adpoted):
+def mark_adopted_TF(tag, db_file, adpoted, phonon=False):
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     if vasp_db:
         vasp_db.collection.update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
-        vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
+        if phonon:
+            vasp_db.db['phonon'].update({'metadata.tag': tag}, {'$set': {'adopted': adpoted}}, upsert = True, multi = True)
 
 
-def mark_adopted(tag, db_file, volumes):
-    mark_adopted_TF(tag, db_file, False)             # Mark all as adpoted
+def mark_adopted(tag, db_file, volumes, phonon=False):
+    mark_adopted_TF(tag, db_file, False, phonon=phonon)             # Mark all as adpoted
     from atomate.vasp.database import VaspCalcDb
     vasp_db = VaspCalcDb.from_db_file(db_file, admin = True)
     for volume in volumes:
         vasp_db.collection.update({'$and':[ {'metadata.tag': tag}, {'output.structure.lattice.volume': volume} ]},
                                   {'$set': {'adopted': True}}, upsert = True, multi = False)            # Mark only one
-        vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
-                                    {'$set': {'adopted': True}}, upsert = True, multi = False)
+        if phonon:
+            vasp_db.db['phonon'].update({'$and':[ {'metadata.tag': tag}, {'volume': volume} ]},
+                                        {'$set': {'adopted': True}}, upsert = True, multi = False)
 
 
 def consistent_check_db(db_file, tag):
@@ -408,7 +601,6 @@ def add_modify_kpoints_by_FWname(wf, modify_kpoints_params):
 
 
 import re
-from pymatgen import Structure
 class metadata_in_POSCAR():
     '''
     First line in POSCAR is like: SIGMA1;[0.5,0.5]16[0.25,0.75]32...;SQS;    Occupancies of 0 in [,] could not omitted
@@ -447,14 +639,7 @@ class metadata_in_POSCAR():
             
         '''
         if not os.path.exists(self.poscarfile):
-            print('''
-#####################################################################################################
-#                                                                                                   #
-     The file "%s" does NOT exist, please biuld it with some instructions in first line!         
-#                                                                                                   #
-#####################################################################################################
-                  ''' %(self.poscarfile))
-            ss = list()
+            raise FileNotFoundError('No such file ({}), please set the first line of POSCAR properly.'.format(self.poscarfile))
         else:
             file = open(self.poscarfile)
             firstline = file.readline()
@@ -634,3 +819,93 @@ def update_pot_by_symbols(InputSet, write_file=True):
     if write_file:
         potcar.write_file(filename="POTCAR")
     return potcar
+
+def check_symmetry(tol_energy=0.025, tol_strain=0.05, tol_bond=0.10, site_properties=None):
+    '''
+    Check symmetry for vasp run. This should be run for each vasp run
+
+    Parameter
+    ---------
+        tol_energy: float
+            The tolerance of energy
+        tol_strain: float
+            The tolerance of strain
+        tol_bond: float
+            The tolerance of bond
+    Return
+        symm_data: dict
+            It will store the initial structure/final_structure, isif, initial_energy_per_atom,
+                final_energy_per_atom, symmetry_checks_passed, tolerances, failures, number_of_failures
+    ------
+    '''
+    # Get relevant files as pmg objects
+    incar = Incar.from_file("INCAR")
+    outcar = Outcar('OUTCAR')
+    vasprun = Vasprun("vasprun.xml")
+    inp_struct = Structure.from_file("POSCAR")
+    out_struct = Structure.from_file("CONTCAR")
+
+    if site_properties:
+        if 'magmom' in site_properties:
+            in_mag = incar.as_dict()['MAGMOM']
+            inp_struct.add_site_property('magmom', in_mag)
+            out_mag = [m['tot'] for m in outcar.magnetization]
+            out_struct.add_site_property('magmom', out_mag)
+            site_properties.pop('magmom')
+        for site_property in site_properties:
+            inp_struct.add_site_property(site_property, site_properties[site_property])
+            out_struct.add_site_property(site_property, site_properties[site_property])
+
+    current_isif = incar['ISIF']
+    initial_energy = float(vasprun.ionic_steps[0]['e_wo_entrp'])/len(inp_struct)
+    final_energy = float(vasprun.final_energy)/len(out_struct)
+
+    # perform all symmetry breaking checks
+    failures = []
+    energy_difference = np.abs(final_energy - initial_energy)
+    if energy_difference > tol_energy:
+        fail_dict = {
+            'reason': 'energy',
+            'tolerance': tol_energy,
+            'value': energy_difference,
+        }
+        failures.append(fail_dict)
+    strain_norm = get_non_isotropic_strain(inp_struct.lattice.matrix, out_struct.lattice.matrix)
+    if strain_norm > tol_strain:
+        fail_dict = {
+            'reason': 'strain',
+            'tolerance': tol_strain,
+            'value': strain_norm,
+        }
+        failures.append(fail_dict)
+    bond_distance_change = get_bond_distance_change(inp_struct, out_struct)
+    if bond_distance_change > tol_bond:
+        fail_dict = {
+            'reason': 'bond distance',
+            'tolerance': tol_bond,
+            'value': bond_distance_change,
+        }
+        failures.append(fail_dict)
+
+    symm_data = {
+        "initial_structure": inp_struct.as_dict(),
+        "final_structure": out_struct.as_dict(),
+        "isif": current_isif,
+        "initial_energy_per_atom": initial_energy,
+        "final_energy_per_atom": final_energy,
+        "real_value": {
+            "energy": energy_difference,
+            "strain": strain_norm,
+            "bond": bond_distance_change
+        },
+        "tolerances": {
+            "energy": tol_energy,
+            "strain": tol_strain,
+            "bond": tol_bond,
+        },
+        "failures": failures,
+        "number_of_failures": len(failures),
+        "symmetry_checks_passed": len(failures) == 0,
+    }
+    return symm_data
+

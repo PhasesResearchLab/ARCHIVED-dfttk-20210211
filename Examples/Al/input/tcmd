@@ -1,0 +1,2 @@
+#
+dfttk run -wf robust -f POSCAR.Al -l -m 4

@@ -44,13 +44,7 @@ def getdos(dos, xdn, xup, dope, dos_grid_size, gaussian_grid_size): # Line 186
     dos_energies = np.linspace(edn, eup, n_dos)
     grid_dos = np.zeros(dos_grid_size)
 
-    from pymatgen import Spin
-    try:
-        # TODO: fixme? possibly use dos.spin_polarized
-        vaspEdos = np.array(dos.densities[Spin.up])
-        vaspEdos += np.array(dos.densities[Spin.down])
-    except:
-        vaspEdos = np.array(list(dos.densities.values())[0])
+    vaspEdos = np.array(dos.get_densities())
 
     xdn = max(xdn,edn)
     xup = min(xup,eup)
@@ -69,36 +63,36 @@ def getdos(dos, xdn, xup, dope, dos_grid_size, gaussian_grid_size): # Line 186
     iBoF = -1
     for i,eband in enumerate(dos_energies):
         if eband > 0.0 and eband <=vde and vaspEdos[i]==0.0:
-          iBoF = 1
-          continue
+            iBoF = 1
+            continue
         if iBoF == 1:
-          if vaspEdos[i]!=0.0:
-            iBoF = i-1
-            break
+            if vaspEdos[i]!=0.0:
+                iBoF = i-1
+                break
 
     eBoF = -1.0
     if iBoF>0:
-      eBoF = dos_energies[iBoF]
-      espr = vaspEdos[iBoF+2]-vaspEdos[iBoF+1]
-      if espr>0.0:
-        espr = vaspEdos[iBoF+1]/espr*vde
-        if (espr < vde):
-          eBoF = dos_energies[iBoF+1] - espr
+        eBoF = dos_energies[iBoF]
+        espr = vaspEdos[iBoF+2]-vaspEdos[iBoF+1]
+        if espr>0.0:
+            espr = vaspEdos[iBoF+1]/espr*vde
+            if (espr < vde):
+                eBoF = dos_energies[iBoF+1] - espr
 
     if gaussian_grid_size != 0.0:
-      grid_energies[0] = xdn
-    # line 238
-      sigma = (xup-xdn) / gaussian_grid_size
-      fac = gaussian_grid_size / (math.sqrt(2.0 * math.pi))
-      for i in range(1, dos_grid_size):
-        if iBoF<0:
-          f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
-          yde = 2.0*xde/(1.0+f1)
-        else:
-          f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
-          f2 = fac*math.exp(-0.5*((grid_energies[i-1]-eBoF)/sigma)**2)
-          yde = 3.0*xde/(1.0+f1+f2)
-        grid_energies[i] = grid_energies[i-1] + yde
+        grid_energies[0] = xdn
+        # line 238
+        sigma = (xup-xdn) / gaussian_grid_size
+        fac = gaussian_grid_size / (math.sqrt(2.0 * math.pi))
+        for i in range(1, dos_grid_size):
+            if iBoF<0:
+                f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
+                yde = 2.0*xde/(1.0+f1)
+            else:
+                f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
+                f2 = fac*math.exp(-0.5*((grid_energies[i-1]-eBoF)/sigma)**2)
+                yde = 3.0*xde/(1.0+f1+f2)
+            grid_energies[i] = grid_energies[i-1] + yde
 
 
     for i in range(0, dos_grid_size):
@@ -108,17 +102,17 @@ def getdos(dos, xdn, xup, dope, dos_grid_size, gaussian_grid_size): # Line 186
         kx = min([n_dos-2, kx])
         # handling near the top of valence band
         if vaspEdos[kx+1]==0.0 and dos_energies[kx+1]>0.0 and dos_energies[kx+1]<vde:
-          if tx >= 0.0:
-            grid_dos[i] = 0.0
-          else:
-            grid_dos[i] = vaspEdos[kx] * tx / dos_energies[kx]
+            if tx >= 0.0:
+                grid_dos[i] = 0.0
+            else:
+                grid_dos[i] = vaspEdos[kx] * tx / dos_energies[kx]
         elif eBoF > 0.0 and vaspEdos[kx]==0.0 and dos_energies[kx+1]-eBoF<vde and dos_energies[kx+1]-eBoF>0.0:
-          if tx <= eBoF:
-            grid_dos[i] = 0.0
-          else:
-            grid_dos[i] = vaspEdos[kx + 1] * (tx - eBoF) / (dos_energies[kx + 1] - eBoF)
+            if tx <= eBoF:
+                grid_dos[i] = 0.0
+            else:
+                grid_dos[i] = vaspEdos[kx + 1] * (tx - eBoF) / (dos_energies[kx + 1] - eBoF)
         else:
-          grid_dos[i] = vaspEdos[kx] + (vaspEdos[kx + 1] - vaspEdos[kx]) / vde * (grid_energies[i] - dos_energies[kx])
+            grid_dos[i] = vaspEdos[kx] + (vaspEdos[kx + 1] - vaspEdos[kx]) / vde * (grid_energies[i] - dos_energies[kx])
 
     # find undoped number of electrons by integrating on the dos until the
     # energies change sign, then interpolate the sign change step
@@ -141,41 +135,41 @@ def getdos(dos, xdn, xup, dope, dos_grid_size, gaussian_grid_size): # Line 186
         grid_energies = grid_energies - dF # This is done in a loop (line 289), but I think we can do without
 
     if gaussian_grid_size != 0.0 and abs(dope)>0.0001:
-      grid_energies[0] = xdn - dF
-      sigma = (xup-xdn) / gaussian_grid_size
-      fac = gaussian_grid_size / (math.sqrt(2.0 * math.pi))
-      for i in range(1, dos_grid_size):
-        if iBoF<0:
-          f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
-          yde = 2.0*xde/(1.0+f1)
-        else:
-          f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
-          if dF < eBoF:
-            f2 = fac*math.exp(-0.5*((grid_energies[i-1]-eBoF+dF)/sigma)**2)
-          else:
-            f2 = fac*math.exp(-0.5*((grid_energies[i-1]+dF)/sigma)**2)
-          yde = 3.0*xde/(1.0+f1+f2)
-        grid_energies[i] = grid_energies[i-1]+yde
-
-      for i in range(0, dos_grid_size):
-        tx = grid_energies[i] + dF
-        kx = int((tx-edn)/vde) # Converted to int, remember the type!
-        kx = max([kx,0])
-        kx = min([n_dos-2, kx])
-        if vaspEdos[kx+1]==0.0 and dos_energies[kx+1]>0.0 and dos_energies[kx+1]<vde:
-          # handling near the Top of valence band
-          if tx >= 0.0:
-            grid_dos[i] = 0.0
-          else:
-            grid_dos[i] = vaspEdos[kx] * tx / dos_energies[kx]
-        elif eBoF > 0.0 and vaspEdos[kx]==0.0 and dos_energies[kx+1]-eBoF<vde and dos_energies[kx+1]-eBoF>0.0:
-          # handling near the bottom of conduction band
-            if tx <= eBoF:
-              grid_dos[i] = 0.0
+        grid_energies[0] = xdn - dF
+        sigma = (xup-xdn) / gaussian_grid_size
+        fac = gaussian_grid_size / (math.sqrt(2.0 * math.pi))
+        for i in range(1, dos_grid_size):
+            if iBoF<0:
+                f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
+                yde = 2.0*xde/(1.0+f1)
             else:
-              grid_dos[i] = vaspEdos[kx + 1] * (tx - eBoF) / (dos_energies[kx + 1] - eBoF)
-        else:
-          grid_dos[i] = vaspEdos[kx] + (vaspEdos[kx + 1] - vaspEdos[kx]) / vde * (tx - dos_energies[kx])
+                f1 = fac*math.exp(-0.5*(grid_energies[i-1]/sigma)**2)
+                if dF < eBoF:
+                    f2 = fac*math.exp(-0.5*((grid_energies[i-1]-eBoF+dF)/sigma)**2)
+                else:
+                    f2 = fac*math.exp(-0.5*((grid_energies[i-1]+dF)/sigma)**2)
+                yde = 3.0*xde/(1.0+f1+f2)
+            grid_energies[i] = grid_energies[i-1]+yde
+
+        for i in range(0, dos_grid_size):
+            tx = grid_energies[i] + dF
+            kx = int((tx-edn)/vde) # Converted to int, remember the type!
+            kx = max([kx,0])
+            kx = min([n_dos-2, kx])
+            if vaspEdos[kx+1]==0.0 and dos_energies[kx+1]>0.0 and dos_energies[kx+1]<vde:
+                # handling near the Top of valence band
+                if tx >= 0.0:
+                    grid_dos[i] = 0.0
+                else:
+                    grid_dos[i] = vaspEdos[kx] * tx / dos_energies[kx]
+            elif eBoF > 0.0 and vaspEdos[kx]==0.0 and dos_energies[kx+1]-eBoF<vde and dos_energies[kx+1]-eBoF>0.0:
+                # handling near the bottom of conduction band
+                if tx <= eBoF:
+                    grid_dos[i] = 0.0
+                else:
+                    grid_dos[i] = vaspEdos[kx + 1] * (tx - eBoF) / (dos_energies[kx + 1] - eBoF)
+            else:
+                grid_dos[i] = vaspEdos[kx] + (vaspEdos[kx + 1] - vaspEdos[kx]) / vde * (tx - dos_energies[kx])
 
     ados = cumtrapz(grid_dos, grid_energies, initial=0.0)
     for i in range(0, dos_grid_size-1):
