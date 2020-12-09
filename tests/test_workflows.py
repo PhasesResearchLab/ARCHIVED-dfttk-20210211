@@ -90,7 +90,8 @@ def test_fw_spec_modified_by_powerup():
 
 def test_gibbs_wf_fireworks_graph():
     """Test that the graph of Fireworks is correct for a Gibbs workflow."""
-    wf_phonon = get_wf_gibbs_robust(STRUCT, db_file=os.path.join(MODULE_DIR, "db.json"), phonon=True, num_deformations=11)
+    wf_phonon = get_wf_gibbs_robust(STRUCT, db_file=os.path.join(MODULE_DIR, "db.json"), phonon=True, \
+        phonon_supercell_matrix=[[2,0,0],[0,2,0],[0,0,2]], num_deformations=11)
     assert len(wf_phonon.fws) == 4
     wf_debye = get_wf_gibbs_robust(STRUCT, db_file=os.path.join(MODULE_DIR, "db.json"), num_deformations=11, phonon=False)
     assert len(wf_debye.fws) == 3
