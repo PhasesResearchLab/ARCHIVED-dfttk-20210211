@@ -1,4 +1,4 @@
-This folder is designed to contain the compounds/phases used to test the DFTTK package. 
+This folder is designed to keep the compounds/phases used to test the DFTTK package. 
 At present, we include Al here due to consideration of saving storage.
 Within the "Al" subfolder, one see two subfloders
 
