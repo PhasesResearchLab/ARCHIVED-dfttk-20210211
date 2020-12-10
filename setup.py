@@ -12,7 +12,8 @@ def readme():
 
 setup(
     name='dfttk',
-    version=versioneer.get_version(),
+    #version=versioneer.get_version(),
+    version="0.3.0",
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests"]),
     package_data = {'dfttk.structure_builders' : ["prototype_anrl.all", "aflow_prototype_db.json"]},
