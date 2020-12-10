@@ -230,6 +230,7 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
         from fireworks.fw_config import config_to_dict
         db_file = loadfn(config_to_dict()["FWORKER_LOC"])["env"]["db_file"]    
 
+    """
     if WORKFLOW == "get_wf_gibbs":
         #Currently, only this workflow is supported
         wf = get_wf_gibbs(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction, 
@@ -240,9 +241,11 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
                     modify_incar_params=modify_incar_params, modify_kpoints_params=modify_kpoints_params, 
                     verbose=verbose, store_volumetric_data=store_volumetric_data)
     elif WORKFLOW == "eos":
+    """
+    if WORKFLOW == "eos":
         wf = get_wf_EV_bjb(structure, deformation_fraction=deformation_fraction, store_volumetric_data=store_volumetric_data,
                   num_deformations=num_deformations, override_symmetry_tolerances=override_default_vasp_params, metadata=metadata)
-    elif WORKFLOW == "robust":
+    elif WORKFLOW == "robust" or WORKFLOW == "get_wf_gibbs":
         wf = get_wf_gibbs_robust(structure, num_deformations=num_deformations, deformation_fraction=deformation_fraction,
                  phonon=phonon, phonon_supercell_matrix=phonon_supercell_matrix, t_min=t_min, t_max=t_max, t_step=t_step, 
                  eos_tolerance=eos_tolerance, volume_spacing_min=volume_spacing_min, vasp_cmd=vasp_cmd, db_file=db_file, 
