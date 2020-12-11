@@ -2,7 +2,14 @@
 Changelog
 =========
 
-0.22 (2020-08-18)
+0.3.0 (2020-12-10)
+================
+
+Revised dfttk/script/run_dfttk.py
+ made workflow "get_wf_gibbs" run on "robust" with get_wf_gibbs_robust
+ changed test module from get_wf_gibbs into get_wf_gibbs_robust
+
+0.2.2 (2020-08-18)
 ================
 
 (Contributor: `@YiWang`_, `@mxf469`_)
