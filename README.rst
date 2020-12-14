@@ -9,11 +9,11 @@ This branch is based the robust_relax branch
 
 - The following extensions are currently implemented:
 
-    - thelec : process the downloaded from the database, covering phonon/debye approach
+    - thelec process the downloaded from the database, covering phonon/debye approach
 
         * try "dfttk thelec -h" for command available line options
 
-    - thfind : search what have in the database and batch processing the data
+    - thfind search what have in the database and batch processing the data
 
         * try "dfttk thfind -h" for command available line options
 
