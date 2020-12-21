@@ -11,11 +11,9 @@ Installation
 
 - Development version
 
-  git clone https://github.com/PhasesResearchLab/dfttk.git
-
-  cd dfttk
-
-  pip install -e .
+|    git clone https://github.com/PhasesResearchLab/dfttk.git
+|    cd dfttk
+|    pip install -e .
 
 - Run environmental setup
 
