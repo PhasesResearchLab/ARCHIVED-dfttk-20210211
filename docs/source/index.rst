@@ -6,6 +6,8 @@
 Welcome to dfttk's documentation!
 =================================
 
+.. figure::DFTTK-LOGO.png
+
 .. toctree::
     :maxdepth: 3
     :caption: Contents:
@@ -13,6 +15,7 @@ Welcome to dfttk's documentation!
     README.rst
     Installation.rst  
     Examples.rst  
+    recipes.rst
     faq.rst
     troubleshooting.rst
     CHANGES.rst
