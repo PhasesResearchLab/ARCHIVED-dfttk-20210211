@@ -1,0 +1,133 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Examaples &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="FAQ" href="faq.html" />
+    <link rel="prev" title="Releasing DFTTK" href="RELEASING.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="examaples">
+<h1>Examaples<a class="headerlink" href="#examaples" title="Permalink to this headline">¶</a></h1>
+<p>The Examples folder is designed to keep the compounds/phases used to test the DFTTK package.
+At present, we only include Al here due to consideration of saving storage.
+Within the “Al” subfolder, one see two subfloders</p>
+<p>dir “input/” - contain input setup files using “Al” as the example on E-V, phonon, and thermodynamic property calculations</p>
+<p>Al_Fm-3m_225PBE/ - contain outputs by postprocessing data that saved in MongoDB by the above “Al” example.
+For the data within Al_Fm-3m_225PBE/</p>
+<p>dir “Yphon/” - all data input/output for Yphon, e.x., hessian matrix (superfij.out), calculated phonon dos
+dir “figures/” - plots in png format for most of the thermodynamic properities
+file “readme” - extensive summary of the calculated results in json format
+file “fvib_ele” - tablated data containing the calculated thermodynamic properties
+file “fvib_eij” - tablated data containing the calculated thermal expansion coefficient tensor
+file “record.json” - SGTE fitting record for heat capacity, Gibbs energy, enthalpy, and entropy at given temperature range</p>
+<p>to run the Example,</p>
+<p>For the VASP calculation
+cd Al/input
+dfttk run -wf robust -f POSCAR.Al -l -m 1</p>
+<p>For the postprocess calculations after the VASP calculation done
+cd Al
+dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a</p>
+<p>##note that the key “0c1887fa-0cb4-4ce2-9559-7f7909ffa11a” is obtained from the file “input/METADATAS.yaml” automatically produced by the VASP calculation step.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">dfttk</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RELEASING.html">Releasing DFTTK</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examaples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="RELEASING.html" title="previous chapter">Releasing DFTTK</a></li>
+      <li>Next: <a href="faq.html" title="next chapter">FAQ</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/Examples.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,274 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Changelog &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="changelog">
+<h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>0.3.0 (2020-12-10)<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>(Contributor: &#64;YiWang, &#64;mxf469, &#64;bocklund)
+- Change List:</p>
+<blockquote>
+<div><ul class="simple">
+<li>formally release dfttk version 0.3.0</li>
+<li>Revised dfttk/script/run_dfttk.py</li>
+<li>made workflow “get_wf_gibbs” run on “robust” with get_wf_gibbs_robust changed test module from get_wf_gibbs into get_wf_gibbs_robust</li>
+<li>Add elasticity calculation model</li>
+<li>Add Born effective charge calculations</li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="id2">
+<h2>0.2.2 (2020-08-18)<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>(Contributor: <a class="reference external" href="https://github.com/yiwang62">&#64;YiWang</a>, <a class="reference external" href="https://github.com/mxf469">&#64;mxf469</a>)</p>
+<ul class="simple">
+<li>Change List:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>added codes in the dfttk/scripts directory:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>run_dfttk_ext.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>handle the argumetns for the thelec and thfind modules</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<ul class="simple">
+<li>added python code in the dfttk directory:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>pyfind.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>database search engine</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>pythelec.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>for compatibiliy with Yphon</li>
+<li>generating the majority of thermodynamic properties, such as thermal expansion coefficient, Seebech coefficients, Lorenz number etc</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>pyphon.py for</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>calculate the phonon contributions to the various thermodynamic properties</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+<ul class="simple">
+<li>added python code in the dfttk/analysis directory:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>database</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>for plot phonon dispersions for all crystalline systems</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>ywutils.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>general utils code</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>ywplot.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>for plots of ~20 different phonon and thermodynamic properties in the png format</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div></blockquote>
+<ul class="simple">
+<li>made Yphon compatibile with phonopy</li>
+</ul>
+<blockquote>
+<div><ul>
+<li><p class="first">added codes in the CRO-soc directory:
+- phonopy2yphon, phonopy2yphon.py</p>
+<blockquote>
+<div><ul class="simple">
+<li>convert the phonopy force constant matrix in hdf5 format into superfij.out format used by Yphon</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">changed codes:</p>
+</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>in the dfttk/scripts directory:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>run_dfttk.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>added the following lines aimed to handle the argumetns for the thelec and thfind modules</li>
+</ul>
+<p># extension by Yi Wang, finalized on August 4, 2020
+# ———————————–
+from dfttk.scripts.run_dfttk_ext import run_ext_thelec
+run_ext_thelec(subparsers)</p>
+</div></blockquote>
+</div></blockquote>
+<ul class="simple">
+<li>in the dfttk/analysis directory:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>debye.py is renamed as debye_ext.py</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>to include the vibrational entropy (S_vib) and heat capacity (C_vib) into the “qha” MongoDB collection</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>quasiharmonic.py:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>copy the S_vib and C_vib from the “phonon” collection into the “qha_phonon” MongoDB collection</li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</div></blockquote>
+</div></blockquote>
+</div>
+<div class="section" id="id3">
+<h2>0.2 (2020-03-30)<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>New features</p>
+<p>(Contributor: <a class="reference external" href="https://github.com/bocklund">&#64;bocklund</a> , &#64;Peng_Gao, <a class="reference external" href="https://github.com/hitliaomq">&#64;hitliaomq</a> )</p>
+<ul class="simple">
+<li>The relax scheme is optimized. (from <code class="docutils literal"><span class="pre">ISIF=3</span></code> to <code class="docutils literal"><span class="pre">ISIF=2</span></code> followed by <code class="docutils literal"><span class="pre">ISIF=4</span></code>) (&#64;Peng_Gao)</li>
+<li>Change the static workflow to dynamic workflow. (<code class="docutils literal"><span class="pre">EVcheck_QHA.py</span></code> increase the data points atomately if the fitting of initial points is incorrect) (&#64;Peng_Gao)</li>
+<li>Support run dfttk by command. (Add <code class="docutils literal"><span class="pre">dfttk</span> <span class="pre">run</span> <span class="pre">[options]</span></code>) (<a class="reference external" href="https://github.com/hitliaomq">&#64;hitliaomq</a>)</li>
+<li>Support configrate dfttk automately. (Add <code class="docutils literal"><span class="pre">dfttk</span> <span class="pre">config</span> <span class="pre">[options]</span></code>) (<a class="reference external" href="https://github.com/hitliaomq">&#64;hitliaomq</a>)</li>
+<li>Documents’ enhance. (<a class="reference external" href="https://github.com/hitliaomq">&#64;hitliaomq</a>)</li>
+<li>Bug fix. (Including <a class="reference external" href="https://github.com/PhasesResearchLab/dfttk/issues/8">#8</a> ) (<a class="reference external" href="https://github.com/bocklund">&#64;bocklund</a>, &#64;Peng_Gao, <a class="reference external" href="https://github.com/hitliaomq">&#64;hitliaomq</a>)</li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h2>0.1 (2018-08-28)<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>Initial release. Includes</p>
+<p>(Contributor: <a class="reference external" href="https://github.com/bocklund">&#64;bocklund</a>, <a class="reference external" href="https://github.com/mxf469">&#64;mxf469</a>)</p>
+<ul class="simple">
+<li>Gibbs workflow for stable structures</li>
+<li>Analysis code and libraries for calculation quasiharmonic Gibbs energies with 0K, vibrational and thermal electronic contributions</li>
+<li>Useful utilities for interfacing with structure, calculations and the Materials Project</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">dfttk</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/CHANGES.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

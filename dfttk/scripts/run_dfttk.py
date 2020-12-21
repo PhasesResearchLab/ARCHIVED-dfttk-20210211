@@ -198,10 +198,10 @@ def get_wf_single(structure, WORKFLOW="get_wf_gibbs", settings={}):
     """
     #debug "eeeeeeeeeeeee"
     stencils = settings.get('stencils', [0.01])
-    """
     #sym_reduce = settings.get('sym_reduce', True)
     stencils = settings.get('stencils', [-0.01,0.01])
     #conventional = settings.get('conventional', True)
+    """
 
     uis = override_default_vasp_params.get('user_incar_settings', {})
 

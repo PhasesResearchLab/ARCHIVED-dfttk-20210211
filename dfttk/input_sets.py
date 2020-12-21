@@ -507,9 +507,9 @@ class ElasticSet(DictSet):
 
         from pymatgen.io.vasp.inputs import Kpoints
         if metal_check(structure):
-            grid_density = 8000
-            ElasticSet.CONFIG['INCAR']['ISMEAR'] = 1
-            ElasticSet.CONFIG['INCAR']['SIGMA'] = 0.2
+            grid_density = 15625
+            #ElasticSet.CONFIG['INCAR']['ISMEAR'] = 1
+            #ElasticSet.CONFIG['INCAR']['SIGMA'] = 0.2
         else:
             grid_density = 8000
         kpoints = Kpoints.automatic_gamma_density(structure, grid_density)

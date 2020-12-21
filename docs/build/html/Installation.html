@@ -1,0 +1,144 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Installation &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examaples" href="Examples.html" />
+    <link rel="prev" title="DFTTK: Density Functional Theory Tool Kit" href="README.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h1>
+<ul>
+<li><p class="first">Requirements</p>
+<p>DFTTK requires MongodB, Python 3. Python 2 support for NumPy ends 2019-01-01.</p>
+</li>
+<li><p class="first">Release version</p>
+<p>pip install dfttk</p>
+</li>
+<li><p class="first">Development version</p>
+<p>git clone <a class="reference external" href="https://github.com/PhasesResearchLab/dfttk.git">https://github.com/PhasesResearchLab/dfttk.git</a></p>
+<p>cd dfttk</p>
+<p>pip install -e .</p>
+</li>
+<li><p class="first">Run environmental setup</p>
+<p>dfttk config -mp -aci</p>
+</li>
+<li><p class="first">MongoDB</p>
+<p>Ask the MongoDB system manager to set up the access credential file named “db.json” containing:</p>
+</li>
+</ul>
+<p>{</p>
+<p>&nbsp; &nbsp; “database”: “psuid-results”,</p>
+<p>&nbsp; &nbsp; “collection”: “tasks”,</p>
+<p>&nbsp; &nbsp; “admin_user”: “psuid”,</p>
+<p>&nbsp; &nbsp; “admin_password”: “mz3vWHwKGvEU”,</p>
+<p>&nbsp; &nbsp; “readonly_user”: “psuid-ro”,</p>
+<p>&nbsp; &nbsp; “readonly_password”: “tv4BZQmHBinD”,</p>
+<p>&nbsp; &nbsp; “host”: “146.186.149.69”,</p>
+<p>&nbsp; &nbsp; “port”: 27018,</p>
+<p>&nbsp; &nbsp; “aliases”: {}
+}</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">dfttk</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Examaples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RELEASING.html">Releasing DFTTK</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="README.html" title="previous chapter">DFTTK: Density Functional Theory Tool Kit</a></li>
+      <li>Next: <a href="Examples.html" title="next chapter">Examaples</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/Installation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
