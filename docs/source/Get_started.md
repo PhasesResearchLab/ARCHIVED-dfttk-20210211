@@ -26,18 +26,18 @@ All the examples is run under current folder (get_started)
 
 ```shell
 get_started
-├── NaCl.cif
-├── NotSupportFile
-├── POSCAR
-└── test_folder
-    ├── Fe3Ni.cif
-    ├── Fe3Ni-settings.yaml
-    ├── POSCAR
-    ├── POSCAR-2
-    ├── SETTINGS-POSCAR.yaml
-    ├── SETTINGS.yaml
-    └── sub_folder
-        └── POSCAR
+ NaCl.cif
+ NotSupportFile
+ POSCAR
+ test_folder
+     Fe3Ni.cif
+     Fe3Ni-settings.yaml
+     POSCAR
+     POSCAR-2
+     SETTINGS-POSCAR.yaml
+     SETTINGS.yaml
+     sub_folder
+         POSCAR
 ```
 
 ### Run dfttk for a single structure or a single folder
@@ -49,7 +49,7 @@ dfttk run -f STRUCTURE/STRUCTURE_FOLDER
 ```
 
 - When the parameter value of `-f` is a file  it run this file; if it is a folder, it will search all supported files in the specified folder.
-- It support **POSCAR**, **CONTCAR**, **CHGCAR**, **LOCPOT**, **cif**, **vasprun.xml**, **pymatgen’s structures**, **mcsqs's structure**, more details, ref [pymatgen.core.structure.IStructure.from_file](https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file)
+- It support **POSCAR**, **CONTCAR**, **CHGCAR**, **LOCPOT**, **cif**, **vasprun.xml**, **pymatgens structures**, **mcsqs's structure**, more details, ref [pymatgen.core.structure.IStructure.from_file](https://pymatgen.org/pymatgen.core.structure.html#pymatgen.core.structure.IStructure.from_file)
   - For **POSCAR** or **CONTCAR**, the name should be **\*POSCAR\*** or **\*CONTCAR\*** or **\*.vasp**
   - For **CHGCAR** or **LOCPOT**, the name should be **\*CHGCAR\*** or **\*LOCPOT\***
   - For **cif**, the name should be **\*.cif*** or **\*.mcif\***
@@ -185,7 +185,7 @@ dfttk run -h
 
 ```shell
 DFTTK version: 0.1+98.ge7aa39c.dirty
-Copyright © Phases Research Lab (https://www.phaseslab.com/)
+Copyright  Phases Research Lab (https://www.phaseslab.com/)
 
 usage: dfttk run [-h] [-f STRUCTURE_FOLDER] [-mh MATCH_PATTERN] [-s SETTINGS]
                  [-r] [-wf WORKFLOW] [-l] [-m [MAX_JOB]] [-o]
