@@ -5,7 +5,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Examaples &#8212; dfttk 0.3.0 documentation</title>
+    <title>Examples &#8212; dfttk 0.3.0 documentation</title>
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -30,22 +30,28 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="examaples">
-<h1>Examaples<a class="headerlink" href="#examaples" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
 <p>The Examples folder is designed to keep the compounds/phases used to test the DFTTK package.
 At present, we only include Al here due to consideration of saving storage.
 Within the “Al” subfolder, one see two subfloders</p>
-<p>dir “input/” - contain input setup files using “Al” as the example on E-V, phonon, and thermodynamic property calculations</p>
-<p>Al_Fm-3m_225PBE/ - contain outputs by postprocessing data that saved in MongoDB by the above “Al” example.
-For the data within Al_Fm-3m_225PBE/</p>
-<div class="line-block">
-<div class="line">dir “Yphon/” - all data input/output for Yphon, e.x., hessian matrix (superfij.out), calculated phonon dos</div>
-<div class="line">dir “figures/” - plots in png format for most of the thermodynamic properities</div>
-<div class="line">file “readme” - extensive summary of the calculated results in json format</div>
-<div class="line">file “fvib_ele” - tablated data containing the calculated thermodynamic properties</div>
-<div class="line">file “fvib_eij” - tablated data containing the calculated thermal expansion coefficient tensor</div>
-<div class="line">file “record.json” - SGTE fitting record for heat capacity, Gibbs energy, enthalpy, and entropy at given temperature range</div>
-</div>
+<blockquote>
+<div><ul class="simple">
+<li><p>dir “input/” - contain input setup files using “Al” as the example on E-V, phonon, and thermodynamic property calculations</p></li>
+<li><p>Al_Fm-3m_225PBE/ - contain outputs by postprocessing data that saved in MongoDB by the above “Al” example.</p></li>
+</ul>
+</div></blockquote>
+<p>For the data within Al_Fm-3m_225PBE/</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>dir “Yphon/” - all data input/output for Yphon, e.x., hessian matrix (superfij.out), calculated phonon dos</p></li>
+<li><p>dir “figures/” - plots in png format for most of the thermodynamic properities</p></li>
+<li><p>file “readme” - extensive summary of the calculated results in json format</p></li>
+<li><p>file “fvib_ele” - tablated data containing the calculated thermodynamic properties</p></li>
+<li><p>file “fvib_eij” - tablated data containing the calculated thermal expansion coefficient tensor</p></li>
+<li><p>file “record.json” - SGTE fitting record for heat capacity, Gibbs energy, enthalpy, and entropy at given temperature range</p></li>
+</ul>
+</div></blockquote>
 <p>To run the Example for the VASP calculation, run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> Al/input
 dfttk run -wf robust -f POSCAR.Al -l -m <span class="m">1</span>
@@ -79,7 +85,7 @@ dfttk thfind -py -td -50 -plot find_or_DFT -eq <span class="m">4</span> -smooth 
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Examaples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
