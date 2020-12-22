@@ -1,38 +1,28 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FAQ &#8212; dfttk 0.3.0 documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.3.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Troubleshooting" href="troubleshooting.html" />
-    <link rel="prev" title="Examaples" href="Examples.html" />
+    <link rel="prev" title="Recipes" href="recipes.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
@@ -55,9 +45,20 @@ compound energy formalism.</p>
 CEF: sublattice site ratios, sublattice configurations, and sublattice occupancies.
 Sublattice site ratios are a list of integer or fraction ratios of the sublattice.
 There are no constraints on the order or values. Some valid ones would be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># 1 sublattice</span>
+<span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 3 occurrences of species in sublattice 1 and 2 in sublattice 2</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 1 occurrence of species in sublattice 1 and 1/2 in sublattice 2</span>
+<span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">11</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 16 occurrences of species in sublattice 1 and 11 in sublattice 2</span>
+</pre></div>
+</div>
 <p>DFTTK describes a sublattice configuration as a list of sublattices,
 where each sublattice is also a list of the components occupying that sublattice.
 Some examples are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="n">Fe</span><span class="p">,</span> <span class="n">Ni</span><span class="p">]]</span>  <span class="c1"># 1 sublattice with mixing of Fe and Ni</span>
+<span class="p">[[</span><span class="n">Mg</span><span class="p">],</span> <span class="p">[</span><span class="n">Cu</span><span class="p">]]</span>  <span class="c1"># 2 sublattices with no mixing in each sublattice.</span>
+<span class="p">[[</span><span class="n">Cr</span><span class="p">,</span> <span class="n">Fe</span><span class="p">],</span> <span class="p">[</span><span class="n">Cr</span><span class="p">],</span> <span class="p">[</span><span class="n">Cr</span><span class="p">,</span> <span class="n">Fe</span><span class="p">]]</span>  <span class="c1"># 3 sublattices with mixing in the first and last sublattice</span>
+</pre></div>
+</div>
 <p>The ordering of sublattices themselves have no distinct meaning. As a convention,
 DFTTK sorts the components in each sublattice by component name, e.g., Cr
 (starts with C) always comes before Fe (starts with F)). ESPEI requires
@@ -71,6 +72,11 @@ The only difference between DFTTK and ESPEI conigurations and occupancies is tha
 a singly occuped sublattice, e.g. [[Fe]] in DFTTK, is not wrapped in the sublattice
 parenthesis for both the configuration and occupancies. Some examples of ESPEI configuration
 and occupancy lists are given below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="n">FE</span><span class="p">,</span> <span class="n">NI</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]]</span>  <span class="c1"># this is the same as DFTTK, there are no single occupations</span>
+<span class="p">[</span><span class="n">MG</span><span class="p">,</span> <span class="n">CU</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>  <span class="c1"># each sublattice is singly-occupied and is not wrapped in the parenthesis</span>
+<span class="p">[[</span><span class="n">CR</span><span class="p">,</span> <span class="n">FE</span><span class="p">],</span> <span class="n">CR</span><span class="p">,</span> <span class="p">[</span><span class="n">CR</span><span class="p">,</span> <span class="n">FE</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">]]</span> <span class="c1"># the second sublattice is singly occupied and is not wrapped</span>
+</pre></div>
+</div>
 <p>As a final note, ESPEI format typically uses all uppercase, consistent with the
 CALPHAD community, while DFTTK usually uses standard element capitalization. The
 conversion tools take this into account.</p>
@@ -98,6 +104,7 @@ conversion tools take this into account.</p>
 <li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Examaples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#what-do-the-references-to-dfttk-style-or-espei-style-configurations-or-occupancies-mean">What do the references to DFTTK-style or ESPEI-style configurations or occupancies mean?</a></li>
 </ul>
@@ -112,21 +119,21 @@ conversion tools take this into account.</p>
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="Examples.html" title="previous chapter">Examaples</a></li>
+      <li>Previous: <a href="recipes.html" title="previous chapter">Recipes</a></li>
       <li>Next: <a href="troubleshooting.html" title="next chapter">Troubleshooting</a></li>
   </ul></li>
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -135,7 +142,7 @@ conversion tools take this into account.</p>
       &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, and Zi-Kui Liu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |

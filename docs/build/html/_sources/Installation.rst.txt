@@ -3,44 +3,75 @@ Installation
 
 - Requirements
 
-  DFTTK requires MongodB, Python 3. Python 2 support for NumPy ends 2019-01-01. 
+  DFTTK requires YPHON, MongodB, Python 3. Python 2 support for NumPy ends 2019-01-01. 
 
 - Release version
 
-  pip install dfttk
+.. code-block:: bash
+
+    pip install dfttk
 
 - Development version
 
-|    git clone https://github.com/PhasesResearchLab/dfttk.git
-|    cd dfttk
-|    pip install -e .
+.. code-block:: bash
+
+    git clone https://github.com/PhasesResearchLab/dfttk.git
+    cd dfttk
+    pip install -e .
 
 - Run environmental setup
 
-  dfttk config -mp -aci 
+.. code-block:: bash
+
+    dfttk config -mp -aci 
+
+- YPHON
+
+To postprocess the finite properties, the Yphon package is required. Yphon can be installed by run
+
+.. code-block:: bash
+
+    cd ~
+    git clone https://github.com/yiwang62/YphonPackage
+    #Note: Usually the precompiled binaries should be executable in the common Linux/Unix environment. If not, do the following:
+
+.. code-block:: bash
+
+    cd YphonPackage/YPHON/YPHON 
+    make
+    #Note: If errors reported in the compiling stage, insert one line “#define R_OK 1” after “#include”
+
+For csh user: the command search path should be changed by inserting line below into the .cshrc  (.tcshrc) file
+
+.. code-block:: bash
+
+    set path = (. ~/YphonPackage/YPHON/YPHON $BIN_PATH $path)
+
+For bsh user: the command search path should be changed by inserting the lines below into the .bash_profile (.bashrc) file
+
+.. code-block:: bash
+
+    PATH=.:~/YphonPackage/YPHON/YPHON:$BIN_PATH:$PATH
+    export PATH
+
 
 - MongoDB 
 
-  Ask the MongoDB system manager to set up the access credential file named "db.json" containing: 
+  Ask the MongoDB system manager to set up the access credential file named "db.json" containing 
 
-{
+.. _JSONLint: https://jsonlint.com
 
-    "database": "psuid-results",
+.. code-block:: JSON
 
-    "collection": "tasks",
-
-    "admin_user": "psuid",
-
-    "admin_password": "mz3vWHwKGvEU",
-
-    "readonly_user": "psuid-ro",
-
-    "readonly_password": "tv4BZQmHBinD",
-
-    "host": "146.186.149.69",
-
-    "port": 27018,
-
-    "aliases": {}
-}
+   {
+     "database": "psuid-results",
+     "collection": "tasks",
+     "admin_user": "psuid",
+     "admin_password": "vuXdp3NBGFBn",
+     "readonly_user": "psuid-ro",
+     "readonly_password": "oue4XhSVRKvq",
+     "host": "146.186.149.69",
+     "port": 27018,
+     "aliases": {}
+   }
 

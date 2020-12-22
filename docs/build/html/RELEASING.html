@@ -1,26 +1,17 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Releasing DFTTK &#8212; dfttk 0.3.0 documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    './',
-        VERSION:     '0.3.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Contribution Guide" href="CONTRIBUTING.html" />
@@ -30,8 +21,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
@@ -43,27 +33,26 @@
 <h1>Releasing DFTTK<a class="headerlink" href="#releasing-dfttk" title="Permalink to this headline">¶</a></h1>
 <p>When releasing a new version of DFTTK</p>
 <ol class="arabic simple">
-<li><code class="docutils literal"><span class="pre">git</span> <span class="pre">pull</span></code> to make sure you haven’t missed any last-minute commits. <strong>After this point, nothing else is making it into this version.</strong></li>
-<li>Ensure that all tests pass locally on develop.</li>
-<li><code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span></code> and verify all tests pass on all CI services.</li>
-<li>Generate a list of commits since the last version with <code class="docutils literal"><span class="pre">git</span> <span class="pre">--no-pager</span> <span class="pre">log</span> <span class="pre">--oneline</span> <span class="pre">--no-decorate</span> <span class="pre">0.1^..origin/master</span></code>
-Replace <code class="docutils literal"><span class="pre">0.1</span></code> with the tag of the last public version.</li>
-<li>Condense the change list into something user-readable. Update and commit CHANGES.rst with the release date.``</li>
-<li><code class="docutils literal"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">0.2</span> <span class="pre">master</span> <span class="pre">-m</span> <span class="pre">&quot;0.2&quot;</span></code> Replace <code class="docutils literal"><span class="pre">0.2</span></code> with the new version.
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">0.2</span></code> to ensure the correct commit was tagged
-<code class="docutils literal"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">master</span> <span class="pre">--tags</span></code></li>
-<li>The new version is tagged in the repository. Now the public package must be built and distributed.</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> to make sure you haven’t missed any last-minute commits. <strong>After this point, nothing else is making it into this version.</strong></p></li>
+<li><p>Ensure that all tests pass locally on develop.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code> and verify all tests pass on all CI services.</p></li>
+<li><p>Generate a list of commits since the last version with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">--no-pager</span> <span class="pre">log</span> <span class="pre">--oneline</span> <span class="pre">--no-decorate</span> <span class="pre">0.1^..origin/master</span></code>
+Replace <code class="docutils literal notranslate"><span class="pre">0.1</span></code> with the tag of the last public version.</p></li>
+<li><p>Condense the change list into something user-readable. Update and commit CHANGES.rst with the release date.``</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">0.2</span> <span class="pre">master</span> <span class="pre">-m</span> <span class="pre">&quot;0.2&quot;</span></code> Replace <code class="docutils literal notranslate"><span class="pre">0.2</span></code> with the new version.
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">0.2</span></code> to ensure the correct commit was tagged
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">master</span> <span class="pre">--tags</span></code></p></li>
+<li><p>The new version is tagged in the repository. Now the public package must be built and distributed.</p></li>
 </ol>
 <div class="section" id="uploading-to-pypi">
 <h2>Uploading to PyPI<a class="headerlink" href="#uploading-to-pypi" title="Permalink to this headline">¶</a></h2>
 <ol class="arabic">
-<li><p class="first"><code class="docutils literal"><span class="pre">rm</span> <span class="pre">-R</span> <span class="pre">dist/*</span></code> on Linux/OSX or <code class="docutils literal"><span class="pre">del</span> <span class="pre">dist/*</span></code> on Windows</p>
-</li>
-<li><p class="first">With the commit checked out which was tagged with the new version:
-<code class="docutils literal"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">sdist</span></code></p>
+<li><p><code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-R</span> <span class="pre">dist/*</span></code> on Linux/OSX or <code class="docutils literal notranslate"><span class="pre">del</span> <span class="pre">dist/*</span></code> on Windows</p></li>
+<li><p>With the commit checked out which was tagged with the new version:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">sdist</span></code></p>
 <p><strong>Make sure that the script correctly detected the new version exactly and not a dirty / revised state of the repo.</strong></p>
 <p>Assuming a correctly configured .pypirc:</p>
-<p><code class="docutils literal"><span class="pre">twine</span> <span class="pre">upload</span> <span class="pre">-u</span> <span class="pre">bocklund</span> <span class="pre">dist/*</span></code></p>
+<p><code class="docutils literal notranslate"><span class="pre">twine</span> <span class="pre">upload</span> <span class="pre">-u</span> <span class="pre">bocklund</span> <span class="pre">dist/*</span></code></p>
 </li>
 </ol>
 </div>
@@ -90,6 +79,7 @@ Replace <code class="docutils literal"><span class="pre">0.1</span></code> with 
 <li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="Examples.html">Examaples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
@@ -109,15 +99,15 @@ Replace <code class="docutils literal"><span class="pre">0.1</span></code> with 
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
     </form>
+    </div>
 </div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
+<script>$('#searchbox').show(0);</script>
         </div>
       </div>
       <div class="clearer"></div>
@@ -126,7 +116,7 @@ Replace <code class="docutils literal"><span class="pre">0.1</span></code> with 
       &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, and Zi-Kui Liu.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
       
       |

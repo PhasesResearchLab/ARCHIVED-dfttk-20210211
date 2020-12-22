@@ -19,14 +19,18 @@ For the data within Al_Fm-3m_225PBE/
 
 To run the Example for the VASP calculation, run
 
-| cd Al/input
-| dfttk run -wf robust -f POSCAR.Al -l -m 1
+.. code-block:: bash
+
+ cd Al/input
+ dfttk run -wf robust -f POSCAR.Al -l -m 1
 
 To postprocess calculations after the VASP calculation done, run
 
-| cd Al
-| dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a
-| ##note that the key "0c1887fa-0cb4-4ce2-9559-7f7909ffa11a" is obtained from the file "input/METADATAS.yaml" automatically produced by the VASP calculation step.
+.. code-block:: bash
+
+ cd Al
+ dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a
+ #note that the key "0c1887fa-0cb4-4ce2-9559-7f7909ffa11a" is obtained from the file "input/METADATAS.yaml" automatically produced by the VASP calculation step.
 
 
 
