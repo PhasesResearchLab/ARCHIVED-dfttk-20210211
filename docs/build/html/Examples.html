@@ -32,9 +32,12 @@
             
   <div class="section" id="examples">
 <h1>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h1>
-<p>The Examples folder is designed to keep the compounds/phases used to test the DFTTK package.
-At present, we only include Al here due to consideration of saving storage.
-Within the “Al” subfolder, one see two subfloders</p>
+<p>The Examples folder is designed to keep the data for user to test the DFTTK package. The two subfolder are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span> <span class="nb">dir</span> <span class="s2">&quot;Al/&quot;</span> <span class="o">-</span> <span class="n">contains</span> <span class="nb">all</span> <span class="n">data</span> <span class="k">for</span> <span class="n">test</span> <span class="n">run</span> <span class="k">for</span> <span class="n">Al</span>
+<span class="o">-</span> <span class="nb">dir</span> <span class="s2">&quot;ExptData/&quot;</span> <span class="o">-</span> <span class="n">contains</span> <span class="n">a</span> <span class="n">json</span> <span class="n">file</span> <span class="s2">&quot;ExptData.json&quot;</span> <span class="n">which</span> <span class="n">saves</span> <span class="n">the</span> <span class="n">experimental</span> <span class="n">thermodynamic</span> <span class="n">data</span> <span class="k">for</span> <span class="n">a</span> <span class="n">collection</span> <span class="n">of</span> <span class="n">materials</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Within the “Al” subfolder, one see two subfloders</p>
 <blockquote>
 <div><ul class="simple">
 <li><p>dir “input/” - contain input setup files using “Al” as the example on E-V, phonon, and thermodynamic property calculations</p></li>
@@ -59,10 +62,19 @@ dfttk run -wf robust -f POSCAR.Al -l -m <span class="m">1</span>
 </div>
 <p>To postprocess calculations after the VASP calculation done, run</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span> Al
-dfttk thfind -py -td -50 -plot find_or_DFT -eq <span class="m">4</span> -smooth -el <span class="m">1</span> -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a
+dfttk thfind -py -td -50 -plot find_or_DFT -eq <span class="m">4</span> -smooth -el <span class="m">1</span> -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a -expt ../ExptData/ExptData.json
 <span class="c1">#note that the key &quot;0c1887fa-0cb4-4ce2-9559-7f7909ffa11a&quot; is obtained from the file &quot;input/METADATAS.yaml&quot; automatically produced by the VASP calculation step.</span>
 </pre></div>
 </div>
+<p>To see the result, one run</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>display Al_Fm-3m_225PBE/figures/LTC.png <span class="c1">#to see the linear thermal expansion coefficient</span>
+</pre></div>
+</div>
+<img alt="_images/Al-LTC.png" src="_images/Al-LTC.png" />
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>display Al_Fm-3m_225PBE/figures/LTC.png <span class="c1">#to see the heat capaticity, and so on</span>
+</pre></div>
+</div>
+<img alt="_images/Al-Heat_capacities.png" src="_images/Al-Heat_capacities.png" />
 </div>
 
 

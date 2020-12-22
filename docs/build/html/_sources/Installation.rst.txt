@@ -39,7 +39,7 @@ To postprocess the finite properties, the Yphon package is required. Yphon can b
 
     cd YphonPackage/YPHON/YPHON 
     make
-    #Note: If errors reported in the compiling stage, insert one line “#define R_OK 1” after “#include”
+    #Note: If errors reported in the compiling stage, insert one line #define R_OK 1 after #include
 
 For csh user: the command search path should be changed by inserting line below into the .cshrc  (.tcshrc) file
 

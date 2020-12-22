@@ -1,8 +1,11 @@
 Examples
 =========
 
-The Examples folder is designed to keep the compounds/phases used to test the DFTTK package. 
-At present, we only include Al here due to consideration of saving storage.
+The Examples folder is designed to keep the data for user to test the DFTTK package. The two subfolder are::
+
+ - dir "Al/" - contains all data for test run for Al
+ - dir "ExptData/" - contains a json file "ExptData.json" which saves the experimental thermodynamic data for a collection of materials.
+
 Within the "Al" subfolder, one see two subfloders
 
  - dir "input/" - contain input setup files using "Al" as the example on E-V, phonon, and thermodynamic property calculations
@@ -29,8 +32,23 @@ To postprocess calculations after the VASP calculation done, run
 .. code-block:: bash
 
  cd Al
- dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a
+ dfttk thfind -py -td -50 -plot find_or_DFT -eq 4 -smooth -el 1 -renew -get -metatag 0c1887fa-0cb4-4ce2-9559-7f7909ffa11a -expt ../ExptData/ExptData.json
  #note that the key "0c1887fa-0cb4-4ce2-9559-7f7909ffa11a" is obtained from the file "input/METADATAS.yaml" automatically produced by the VASP calculation step.
+
+To see the result, one run
+
+.. code-block:: bash
+
+  display Al_Fm-3m_225PBE/figures/LTC.png #to see the linear thermal expansion coefficient
+
+.. image:: _static/Al-LTC.png
+
+.. code-block:: bash
+
+  display Al_Fm-3m_225PBE/figures/LTC.png #to see the heat capaticity, and so on
+
+.. image:: _static/Al-Heat_capacities.png
+
 
 
 

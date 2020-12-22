@@ -19,16 +19,16 @@ For configure dfttk, the following file you need to prepare.
 
 ```bash
 current_folder
-├── psp                          [specified by -psp]
-│   ├── pseudopotential_content  [required if you didnot configurate pymatgen]
-│   └── ...
-├── config                       [specified by -c parameter]
-│   ├── db.json                  [required]
-│   ├── my_launchpad.yaml        [required]
-│   ├── FW_config.yaml           [optional]
-│   ├── my_fworker.yaml          [optional]
-│   └── my_qadapter.yaml         [optional]
-└── vaspjob.pbs                  [optional, specified by -q parameter]
+ psp                          [specified by -psp]
+  pseudopotential_content  [required if you didnot configurate pymatgen]
+  ...
+ config                       [specified by -c parameter]
+  db.json                  [required]
+  my_launchpad.yaml        [required]
+  FW_config.yaml           [optional]
+  my_fworker.yaml          [optional]
+  my_qadapter.yaml         [optional]
+ vaspjob.pbs                  [optional, specified by -q parameter]
 ```
 
 After prepared the above **required** file, simply run `dfttk config -all` to finish the configuration. If such command successes, you can skip **all** of the reset part of this documents. If not, please reading the following parts.
@@ -43,32 +43,32 @@ After prepared the above **required** file, simply run `dfttk config -all` to fi
 
     **Note:** **1.**  The split can recognize`.`,`-`,`_`,`+`,`=`,`*` and `space` .
 
-    ​    **2.**  After split, the name will be a list. The condition e.g `contain 52` is the elements' level. It means `52` should be a elements of the list. But `US` is string level, which means `US` only need be a sub-string of the elements of the list. 
+        **2.**  After split, the name will be a list. The condition e.g `contain 52` is the elements' level. It means `52` should be a elements of the list. But `US` is string level, which means `US` only need be a sub-string of the elements of the list. 
 
-    ​    **3.** For compressed file, it support `*.tar.gz` and `*.tar`
+        **3.** For compressed file, it support `*.tar.gz` and `*.tar`
 
-    ​	e.g. `potpaw_PBE`, `PBE.tar.gz` and `potpaw_PBE_5254` will be recognized as `PBE`.
+    	e.g. `potpaw_PBE`, `PBE.tar.gz` and `potpaw_PBE_5254` will be recognized as `PBE`.
 
-    ​		    `potpaw_PBE.52` and `potpaw_PBE_52` will be recognized as `PBE_52`
+    		    `potpaw_PBE.52` and `potpaw_PBE_52` will be recognized as `PBE_52`
 
-    ​		    `potUSPP_LDA` and `POT_LDA_US` will be recognized as `LDA_US`
+    		    `potUSPP_LDA` and `POT_LDA_US` will be recognized as `LDA_US`
 
     After prepare, the file structure should look like as follows:
 
     <details>
         <summary>Click for details</summary>
         <pre><code>e.g. psp
-         ├── potpaw_LDA.54.tar.gz
-         ├── potpaw_PBE.54.tar.gz
-         └── ...
+          potpaw_LDA.54.tar.gz
+          potpaw_PBE.54.tar.gz
+          ...
      or: psp
-         ├── potpaw_LDA_54
-         │   ├── Ac
-         │   └── ...
-         ├── potpaw_PBE_54
-         │   ├── Ac
-         │   └── ...
-         └── ...</code></pre>
+          potpaw_LDA_54
+           Ac
+           ...
+          potpaw_PBE_54
+           Ac
+           ...
+          ...</code></pre>
     </details>
 
     The original pseudopotential file, please ask those who are in charge of vasp in your group.
@@ -156,20 +156,20 @@ In `test_config` folder
 
 ```shell
 test_config
-├── config
-│   ├── db.json
-│   ├── FW_config.yaml
-│   ├── my_fworker.yaml
-│   ├── my_launchpad.yaml
-│   └── my_qadapter.yaml
-├── logs
-└── vasp_psp
-    ├── POT_GGA_PAW_PBE_54
-    │   ├──Ac
-    │   └── ...
-    └── POT_LDA_PAW_54
-        ├──Ac
-        └── ...
+ config
+  db.json
+  FW_config.yaml
+  my_fworker.yaml
+  my_launchpad.yaml
+  my_qadapter.yaml
+ logs
+ vasp_psp
+     POT_GGA_PAW_PBE_54
+     Ac
+      ...
+     POT_LDA_PAW_54
+        Ac
+         ...
 ```
 
 In `~/.bashrc`
@@ -214,7 +214,7 @@ dfttk config -h
 
 ```shell
 DFTTK version: 0.1+121.g8fddda3.dirty
-Copyright © Phases Research Lab (https://www.phaseslab.com/)
+Copyright  Phases Research Lab (https://www.phaseslab.com/)
 
 usage: dfttk config [-h] [-all] [-p PATH_TO_STORE_CONFIG] [-a]
                     [-c CONFIG_FOLDER] [-q QUEUE_SCRIPT] [-qt QUEUE_TYPE]
