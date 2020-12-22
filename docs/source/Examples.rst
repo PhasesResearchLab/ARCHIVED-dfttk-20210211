@@ -45,7 +45,7 @@ To see the result, one run
 
 .. code-block:: bash
 
-  display Al_Fm-3m_225PBE/figures/LTC.png #to see the heat capaticity, and so on
+  display Al_Fm-3m_225PBE/figures/Heat_capacities.png #to see the heat capaticity, and so on
 
 .. image:: _static/Al-Heat_capacities.png
 
