@@ -3,10 +3,14 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to dfttk's documentation!
-=================================
+.. |logo| image:: _static/DFTTK-LOGO.png
+          :height: 30pt
+          :width: 30pt
+          :alt: Logo
 
-.. figure::DFTTK-LOGO.png
+========================================
+|logo| Welcome to dfttk's documentation!
+========================================
 
 .. toctree::
     :maxdepth: 3
