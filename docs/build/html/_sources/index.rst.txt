@@ -8,9 +8,9 @@
           :width: 30pt
           :alt: Logo
 
-=================================
-Welcome to dfttk's documentation!
-=================================
+========================================
+|logo| Welcome to dfttk's documentation!
+========================================
 
 .. toctree::
     :maxdepth: 3

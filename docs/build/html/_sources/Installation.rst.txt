@@ -73,7 +73,6 @@ For bsh user: the command search path should be changed by inserting the lines b
         "port": 27018,
         "aliases": {}
     }
-
     #note: Sometimes, when using "copy/paste" with Windows, some invisible characters may be hidden by linux "vi". Make sure show/delete the invisible characters by vi command ":set list". 
 
   Save this as a json file named "db.json" under the "dfttk/config" folder that created by "dfttk config -mp -aci" command mentioned above. 
