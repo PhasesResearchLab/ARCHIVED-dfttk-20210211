@@ -5,9 +5,13 @@ Changelog
 0.3.0 (2020-12-10)
 ================
 
-Revised dfttk/script/run_dfttk.py
- made workflow "get_wf_gibbs" run on "robust" with get_wf_gibbs_robust
- changed test module from get_wf_gibbs into get_wf_gibbs_robust
+(Contributor: @YiWang, @mxf469, @bocklund)
+- Change List:
+ - formally release dfttk version 0.3.0
+ - Revised dfttk/script/run_dfttk.py
+ - made workflow "get_wf_gibbs" run on "robust" with get_wf_gibbs_robust changed test module from get_wf_gibbs into get_wf_gibbs_robust
+ - Add elasticity calculation model
+ - Add Born effective charge calculations
 
 0.2.2 (2020-08-18)
 ================
