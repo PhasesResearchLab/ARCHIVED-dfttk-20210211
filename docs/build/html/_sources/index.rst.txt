@@ -16,7 +16,6 @@
     :maxdepth: 3
     :caption: Contents:
 
-    VM_MongoDB.rst
     README.rst
     Installation.rst  
     Examples.rst  
@@ -26,6 +25,7 @@
     CHANGES.rst
     CONTRIBUTING.rst
     RELEASING.rst
+    VM_MongoDB.rst
 
 
 Indices and tables
