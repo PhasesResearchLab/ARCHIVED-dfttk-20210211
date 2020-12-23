@@ -1,0 +1,283 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recipes &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="FAQ" href="faq.html" />
+    <link rel="prev" title="Examples" href="Examples.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="recipes">
+<h1>Recipes<a class="headerlink" href="#recipes" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="construct-a-series-of-debye-workflows-by-substituting-into-a-template-structure">
+<h2>Construct a series of Debye workflows by substituting into a template structure<a class="headerlink" href="#construct-a-series-of-debye-workflows-by-substituting-into-a-template-structure" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>DRY_RUN = True  # Don’t submit the workflows
+VERBOSE = True   # Turn on printing of substitutions</p>
+<p># Filename of the template structure to use, usually a dilute or SQS structure
+TEMPLATE_STRUCTURE_FILENAME = ‘structures/FCC_A1.sqs.12Ni-4Fe.POSCAR’</p>
+<p># sublattice configuration of the template structure.
+# This will be substitued exactly, this does not need to be sorted,
+# however the individual configurations to build should be sorted.
+TEMPLATE_SUBLATTICE_CONFIGURATION = [[‘Fe’, ‘Ni’]]
+TEMPLATE_SUBLATTICE_OCCUPANCIES = [[0.25, 0.75]]
+SUBLATTICE_SITE_RATIOS = [1.0]</p>
+<p>PHASE_NAME = ‘FCC_A1’</p>
+<p>configurations_to_build = [  # list of sublattice configurations in DFTTK format
+[[‘Cr’, ‘Ni’]],
+[[‘Fe’, ‘Ni’]],
+# [[‘V’, ‘Ni’]],  # should not use this because it’s out of order, make a second script with the templates flipped
+]</p>
+<p># Dictionary of densities for each pure element.
+# Not necessary, using the peridic_table in pymatgen instead
+#DENSITY_DICT = {
+#    ‘V’: 6.313,  # bcc
+#    ‘Cr’: 7.463,  # bcc
+#    ‘Ni’: 9.03,  # fcc
+#    ‘Ti’: 4.58,  # hcp
+#    ‘Fe’: 8.028  # bcc
+#}</p>
+<p># Should not need to edit below this line.</p>
+<p>from pymatgen import Structure
+from fireworks import LaunchPad
+from dfttk import get_wf_gibbs
+from dfttk.structure_builders.substitutions import substitute_configuration_with_metadata</p>
+<p>workflows = []</p>
+<p>temp_struct = Structure.from_file(TEMPLATE_STRUCTURE_FILENAME)</p>
+<dl>
+<dt>for config in configurations_to_build:</dt><dd><p>struct, meta = substitute_configuration_with_metadata(temp_struct, TEMPLATE_SUBLATTICE_CONFIGURATION, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, PHASE_NAME, SUBLATTICE_SITE_RATIOS)
+if VERBOSE:</p>
+<blockquote>
+<div><p>print(“PHASE: {}    CONFIGURATION: {}    OCCUPANCIES: {}    STRUCTURE: {}”.format(PHASE_NAME, config, TEMPLATE_SUBLATTICE_OCCUPANCIES, struct.composition.hill_formula))</p>
+</div></blockquote>
+<p>workflows.append(get_wf_gibbs(struct, deformation_fraction=(-0.05,0.10), phonon=False, num_deformations=11, t_max=2000, metadata=meta))</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt>if VERBOSE:</dt><dd><p>print(“{} workflows.”.format(len(workflows)))</p>
+</dd>
+<dt>if DRY_RUN:</dt><dd><p>exit()</p>
+</dd>
+<dt>if VERBOSE:</dt><dd><p>print(‘Adding workflows to LaunchPad’)</p>
+</dd>
+</dl>
+<p>lpad = LaunchPad.auto_load()</p>
+<dl class="simple">
+<dt>for workflow in workflows:</dt><dd><p>lpad.add_wf(workflow)</p>
+</dd>
+</dl>
+</div></blockquote>
+</div>
+<div class="section" id="espei-datasets-from-a-qha-database">
+<h2>ESPEI datasets from a QHA database<a class="headerlink" href="#espei-datasets-from-a-qha-database" title="Permalink to this headline">¶</a></h2>
+<p>The following code snippet will take ESPEI datasets from a QHA database,
+optionally writing the (nicely named) files to dict.
+The QHA database requires the following metadata schema:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span>{
+  &#39;metadata&#39;: {
+    &#39;phase_name&#39;: &#39;FCC_A1&#39;,
+    &#39;tag&#39;: &#39;ed447049-ad67-4090-ba99-378188d3416b&#39;,
+    &#39;sublattice&#39;: {
+      &#39;configuration&#39;: [[&#39;Cr&#39;, &#39;Ni&#39;]],
+      &#39;occupancies&#39;: [[0.03125, 0.96875]]
+     },
+  }
+}
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">########</span>
+<span class="c1"># EDIT #</span>
+<span class="c1">########</span>
+
+<span class="n">phase_name</span> <span class="o">=</span> <span class="s1">&#39;BCC_A2&#39;</span>
+<span class="n">configuration_to_find</span> <span class="o">=</span> <span class="p">[[</span><span class="s1">&#39;Ni&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">]]</span>
+<span class="n">sublattice_site_ratios</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span>
+<span class="n">db_username</span> <span class="o">=</span> <span class="s1">&#39;BrandonResultsRO&#39;</span>
+<span class="n">db_password</span> <span class="o">=</span> <span class="s1">&#39;piqhg38hap3&#39;</span>
+<span class="n">db_uri</span> <span class="o">=</span> <span class="s1">&#39;mongodb://206.189.190.225:27018&#39;</span>
+<span class="n">WRITE_FILES</span> <span class="o">=</span> <span class="kc">True</span>
+
+<span class="n">temperature_index</span> <span class="o">=</span> <span class="mi">59</span>  <span class="c1"># index of 300 K temperature (close to 298 K), found by hand</span>
+
+<span class="n">refstate_tags</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;Fe&#39;</span><span class="p">:</span> <span class="s1">&#39;4ac77fce-0e43-4c07-8418-4843a2cd5723&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Ni&#39;</span><span class="p">:</span> <span class="s1">&#39;0059ee69-4a8f-4e86-9895-9b40cf67dd96&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Cr&#39;</span><span class="p">:</span> <span class="s1">&#39;8cceb186-2796-4488-ba8c-2380c5278f62&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;V&#39;</span><span class="p">:</span> <span class="s1">&#39;fba46b6b-1699-419f-b5e1-da9533530701&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1">########################</span>
+<span class="c1">### SCRIPT</span>
+<span class="c1">########################</span>
+
+<span class="kn">from</span> <span class="nn">dfttk.analysis.formation_energies</span> <span class="kn">import</span> <span class="n">get_formation_energy</span><span class="p">,</span> <span class="n">get_thermal_props</span>
+<span class="kn">from</span> <span class="nn">dfttk.espei_compat</span> <span class="kn">import</span> <span class="n">make_dataset</span><span class="p">,</span> <span class="n">dfttk_config_to_espei</span><span class="p">,</span> <span class="n">dfttk_occupancies_to_espei</span>
+<span class="kn">from</span> <span class="nn">pymatgen</span> <span class="kn">import</span> <span class="n">Structure</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">dfttk.utils</span> <span class="kn">import</span> <span class="n">recursive_flatten</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">pymongo</span> <span class="kn">import</span> <span class="n">MongoClient</span>
+
+<span class="c1"># create the MongoClient</span>
+<span class="n">cli</span> <span class="o">=</span> <span class="n">MongoClient</span><span class="p">(</span><span class="n">db_uri</span><span class="p">)</span>
+<span class="n">db</span> <span class="o">=</span> <span class="n">cli</span><span class="o">.</span><span class="n">results</span>
+<span class="n">db</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">db_username</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">db_password</span><span class="p">)</span>
+<span class="n">coll</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">qha</span>
+
+<span class="c1"># construct the energies, assupmtion of same temperature grid</span>
+<span class="c1"># energies are J/mol-atom</span>
+<span class="n">refstate_energies</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">el</span><span class="p">,</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">refstate_tags</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">qha_result</span> <span class="o">=</span> <span class="n">coll</span><span class="o">.</span><span class="n">find_one</span><span class="p">({</span><span class="s1">&#39;metadata.tag&#39;</span><span class="p">:</span> <span class="n">tag</span><span class="p">})</span>
+    <span class="n">refstate_energies</span><span class="p">[</span><span class="n">el</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_thermal_props</span><span class="p">(</span><span class="n">qha_result</span><span class="p">)</span>
+
+<span class="c1"># calculate all the dataset values</span>
+<span class="n">configs</span>     <span class="o">=</span> <span class="p">[]</span>
+<span class="n">occupancies</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">hm_values</span>   <span class="o">=</span> <span class="p">[]</span>
+<span class="n">sm_values</span>   <span class="o">=</span> <span class="p">[]</span>
+<span class="n">cpm_values</span>  <span class="o">=</span> <span class="p">[]</span>
+
+<span class="c1"># we&#39;ll change the T to the right temperatures later</span>
+<span class="n">fixed_conds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="mi">101325</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+<span class="n">temp_conds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;P&#39;</span><span class="p">:</span> <span class="mi">101325</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+
+<span class="k">for</span> <span class="n">qha_res</span> <span class="ow">in</span> <span class="n">coll</span><span class="o">.</span><span class="n">find</span><span class="p">({</span><span class="s1">&#39;metadata.sublattice.configuration&#39;</span><span class="p">:</span> <span class="n">configuration_to_find</span><span class="p">,</span> <span class="s1">&#39;metadata.phase_name&#39;</span><span class="p">:</span> <span class="n">phase_name</span><span class="p">}):</span>
+    <span class="n">configs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qha_res</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;sublattice&#39;</span><span class="p">][</span><span class="s1">&#39;configuration&#39;</span><span class="p">])</span>
+    <span class="n">occupancies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qha_res</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">][</span><span class="s1">&#39;sublattice&#39;</span><span class="p">][</span><span class="s1">&#39;occupancies&#39;</span><span class="p">])</span>
+
+    <span class="n">tprops</span> <span class="o">=</span> <span class="n">get_thermal_props</span><span class="p">(</span><span class="n">qha_res</span><span class="p">)</span>
+    <span class="n">struct</span> <span class="o">=</span> <span class="n">Structure</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">qha_res</span><span class="p">[</span><span class="s1">&#39;structure&#39;</span><span class="p">])</span>
+    <span class="n">hm_form</span> <span class="o">=</span> <span class="n">get_formation_energy</span><span class="p">(</span><span class="n">tprops</span><span class="p">,</span> <span class="n">struct</span><span class="p">,</span> <span class="n">refstate_energies</span><span class="p">,</span> <span class="s1">&#39;HM&#39;</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">temperature_index</span><span class="p">)</span>
+    <span class="n">sm_form</span> <span class="o">=</span> <span class="n">get_formation_energy</span><span class="p">(</span><span class="n">tprops</span><span class="p">,</span> <span class="n">struct</span><span class="p">,</span> <span class="n">refstate_energies</span><span class="p">,</span> <span class="s1">&#39;SM&#39;</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="n">temperature_index</span><span class="p">)</span>
+    <span class="n">cpm_form</span> <span class="o">=</span> <span class="n">get_formation_energy</span><span class="p">(</span><span class="n">tprops</span><span class="p">,</span> <span class="n">struct</span><span class="p">,</span> <span class="n">refstate_energies</span><span class="p">,</span> <span class="s1">&#39;CPM&#39;</span><span class="p">,</span> <span class="n">thin</span><span class="o">=</span><span class="mi">10</span><span class="p">)[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">fixed_temp</span> <span class="o">=</span> <span class="n">tprops</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">][</span><span class="n">temperature_index</span><span class="p">]</span>
+    <span class="n">cpm_temps</span> <span class="o">=</span> <span class="n">tprops</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">][::</span><span class="mi">10</span><span class="p">][:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">hm_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hm_form</span><span class="p">)</span>
+    <span class="n">sm_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sm_form</span><span class="p">)</span>
+    <span class="n">cpm_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cpm_form</span><span class="p">)</span>
+
+<span class="n">fixed_conds</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_temp</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<span class="n">temp_conds</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cpm_temps</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="c1"># make the HM, SM, CPM values arrays of the proper shape</span>
+<span class="n">hm_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">hm_values</span><span class="p">]])</span>
+<span class="n">sm_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">sm_values</span><span class="p">]])</span>
+<span class="n">cpm_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cpm_values</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
+
+<span class="k">if</span> <span class="n">WRITE_FILES</span><span class="p">:</span>
+    <span class="c1"># write JSON files</span>
+    <span class="n">comps</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">recursive_flatten</span><span class="p">(</span><span class="n">configuration_to_find</span><span class="p">))]</span>
+    <span class="k">for</span> <span class="n">prop</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">conds</span> <span class="ow">in</span> <span class="p">[(</span><span class="s1">&#39;HM_FORM&#39;</span><span class="p">,</span> <span class="n">hm_values</span><span class="p">,</span> <span class="n">fixed_conds</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;SM_FORM&#39;</span><span class="p">,</span> <span class="n">sm_values</span><span class="p">,</span> <span class="n">fixed_conds</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;CPM_FORM&#39;</span><span class="p">,</span> <span class="n">cpm_values</span><span class="p">,</span> <span class="n">temp_conds</span><span class="p">)]:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">make_dataset</span><span class="p">(</span><span class="n">phase_name</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">sublattice_site_ratios</span><span class="p">,</span> <span class="n">configs</span><span class="p">,</span> <span class="n">conds</span><span class="p">,</span> <span class="n">vals</span><span class="p">,</span> <span class="n">occupancies</span><span class="o">=</span><span class="n">occupancies</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">-</span><span class="si">{}</span><span class="s1">-DFTTK.json&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">comps</span><span class="p">),</span> <span class="n">phase_name</span><span class="p">,</span> <span class="n">prop</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">fp</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/DFTTK-LOGO.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Recipes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#construct-a-series-of-debye-workflows-by-substituting-into-a-template-structure">Construct a series of Debye workflows by substituting into a template structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espei-datasets-from-a-qha-database">ESPEI datasets from a QHA database</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RELEASING.html">Releasing DFTTK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="VM_MongoDB.html">Virtual Machines (VM) hosting</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="Examples.html" title="previous chapter">Examples</a></li>
+      <li>Next: <a href="faq.html" title="next chapter">FAQ</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/recipes.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

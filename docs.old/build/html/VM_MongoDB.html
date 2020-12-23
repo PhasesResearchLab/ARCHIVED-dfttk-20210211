@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Machines (VM) hosting &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Releasing DFTTK" href="RELEASING.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="virtual-machines-vm-hosting">
+<h1>Virtual Machines (VM) hosting<a class="headerlink" href="#virtual-machines-vm-hosting" title="Permalink to this headline">¶</a></h1>
+<p>This section is for the dfttk users who want to host their MongoDB by themselves.</p>
+<p>In computing, a virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer. Their implementations may involve specialized hardware, software, or a combination. See <a class="reference external" href="https://en.wikipedia.org/wiki/Virtual_machine">https://en.wikipedia.org/wiki/Virtual_machine</a></p>
+<div class="section" id="vm-setup">
+<h2>VM setup<a class="headerlink" href="#vm-setup" title="Permalink to this headline">¶</a></h2>
+<blockquote>
+<div><p>Connect your VM by ssh (ssh <a class="reference external" href="mailto:yourpsuid&#37;&#52;&#48;146&#46;186&#46;149&#46;69">yourpsuid<span>&#64;</span>146<span>&#46;</span>186<span>&#46;</span>149<span>&#46;</span>69</a> in our case). One should use VPN if you have firewall for your system</p>
+<ul class="simple">
+<li><p>To add user to your VM linux system</p></li>
+</ul>
+</div></blockquote>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo adduser newuser
+usermod -aG sudo newuser <span class="c1">#add admin user to your VM</span>
+</pre></div>
+</div>
+<p>Note on adding other users to access the VM. In order to add other users to access the VM from the Morpheus portal you would need to add them to the VM. For the VM itself you would need to add their user ID to the /etc/security/access.conf file and if they need sudo access you would need to add their ID to the /etc/sudoers.d/sudo-users file as well.</p>
+</div>
+<div class="section" id="mongodb">
+<h2>MongoDB<a class="headerlink" href="#mongodb" title="Permalink to this headline">¶</a></h2>
+<p>MongoDB installation</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>apt update
+apt install mongodb
+</pre></div>
+</div>
+<p>More information about installing and configuring MongoDB 3.6 is available here:
+<a class="reference external" href="https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/">https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/</a></p>
+<p>If you would like the most recent version of MongoDB (4.4), please reference this guide for installation and configuration instructions for Ubuntu 18.04:
+<a class="reference external" href="https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/">https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/</a>.
+#Note: In step 2 of the link listed above, please reference the command for Ubuntu 18.04 (Bionic)</p>
+<p>Additional configuration info for MongoDB 4.4 can be found here:
+<a class="reference external" href="https://www.digitalocean.com/community/tutorials/how-to-install-mongodb-on-ubuntu-18-04-source">https://www.digitalocean.com/community/tutorials/how-to-install-mongodb-on-ubuntu-18-04-source</a></p>
+<p>Start mongdb service</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mongod --bind_ip_all -port <span class="m">27018</span> <span class="p">&amp;</span>
+</pre></div>
+</div>
+<p>Connect to MongoDB by port 27018</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mongo -port <span class="m">27018</span>
+</pre></div>
+</div>
+<p>Shut down</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>db.adminCommand<span class="o">(</span> <span class="o">{</span> shutdown: <span class="m">1</span> <span class="o">}</span> <span class="o">)</span>
+</pre></div>
+</div>
+<p>MongodB user management, see <a class="reference external" href="https://docs.mongodb.com/manual/tutorial/enable-authentication/">https://docs.mongodb.com/manual/tutorial/enable-authentication/</a></p>
+<p>Create admin user</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">use</span> <span class="n">admin</span>
+<span class="n">db</span><span class="o">.</span><span class="n">createUser</span><span class="p">(</span>
+  <span class="p">{</span>
+    <span class="n">user</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span><span class="p">,</span>
+    <span class="n">pwd</span><span class="p">:</span> <span class="s2">&quot;xxxxxxxxx&quot;</span><span class="p">,</span> <span class="o">//</span> <span class="ow">or</span> <span class="n">cleartext</span> <span class="n">password</span>
+    <span class="n">roles</span><span class="p">:</span> <span class="p">[</span> <span class="p">{</span> <span class="n">role</span><span class="p">:</span> <span class="s2">&quot;userAdminAnyDatabase&quot;</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="s2">&quot;admin&quot;</span> <span class="p">},</span> <span class="s2">&quot;readWriteAnyDatabase&quot;</span> <span class="p">]</span>
+  <span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Create general user</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mongo</span> <span class="o">--</span><span class="n">port</span> <span class="mi">27018</span> <span class="o">--</span><span class="n">authenticationDatabase</span> <span class="s2">&quot;admin&quot;</span> <span class="o">-</span><span class="n">u</span> <span class="s2">&quot;admin&quot;</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">use</span> <span class="n">psuid</span><span class="o">-</span><span class="n">fws</span>
+<span class="n">db</span><span class="o">.</span><span class="n">createUser</span><span class="p">({</span><span class="n">user</span><span class="p">:</span> <span class="s2">&quot;psuid&quot;</span><span class="p">,</span> <span class="n">pwd</span><span class="p">:</span> <span class="s2">&quot;B5nRcUvoCZ92&quot;</span><span class="p">,</span> <span class="n">roles</span><span class="p">:</span> <span class="p">[{</span><span class="n">role</span><span class="p">:</span> <span class="s2">&quot;dbOwner&quot;</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="s2">&quot;psuid-fws&quot;</span><span class="p">}]})</span>
+<span class="n">use</span> <span class="n">psuid</span><span class="o">-</span><span class="n">results</span>
+<span class="n">db</span><span class="o">.</span><span class="n">createUser</span><span class="p">({</span><span class="n">user</span><span class="p">:</span> <span class="s2">&quot;psuid&quot;</span><span class="p">,</span> <span class="n">pwd</span><span class="p">:</span> <span class="s2">&quot;BeFihJ2mrKGm&quot;</span><span class="p">,</span> <span class="n">roles</span><span class="p">:</span> <span class="p">[{</span><span class="n">role</span><span class="p">:</span> <span class="s2">&quot;dbOwner&quot;</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="s2">&quot;psuid-results&quot;</span><span class="p">}]})</span>
+<span class="n">db</span><span class="o">.</span><span class="n">createUser</span><span class="p">({</span><span class="n">user</span><span class="p">:</span> <span class="s2">&quot;psuid-ro&quot;</span><span class="p">,</span> <span class="n">pwd</span><span class="p">:</span> <span class="s2">&quot;QIvaUT9ca6H8&quot;</span><span class="p">,</span> <span class="n">roles</span><span class="p">:</span> <span class="p">[{</span><span class="n">role</span><span class="p">:</span> <span class="s2">&quot;read&quot;</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="s2">&quot;psuid-results&quot;</span><span class="p">}]})</span>
+</pre></div>
+</div>
+<p>Remove user</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">db</span><span class="o">.</span><span class="n">removeUser</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Check if mongodb is running</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ps</span> <span class="o">-</span><span class="n">ef</span> <span class="o">|</span> <span class="n">grep</span> <span class="n">mongo</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/DFTTK-LOGO.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RELEASING.html">Releasing DFTTK</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Virtual Machines (VM) hosting</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#vm-setup">VM setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mongodb">MongoDB</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="RELEASING.html" title="previous chapter">Releasing DFTTK</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/VM_MongoDB.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

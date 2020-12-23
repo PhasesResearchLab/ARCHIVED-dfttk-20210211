@@ -1,0 +1,139 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Releasing DFTTK &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Virtual Machines (VM) hosting" href="VM_MongoDB.html" />
+    <link rel="prev" title="Contribution Guide" href="CONTRIBUTING.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="releasing-dfttk">
+<h1>Releasing DFTTK<a class="headerlink" href="#releasing-dfttk" title="Permalink to this headline">¶</a></h1>
+<p>When releasing a new version of DFTTK</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span></code> to make sure you haven’t missed any last-minute commits. <strong>After this point, nothing else is making it into this version.</strong></p></li>
+<li><p>Ensure that all tests pass locally on develop.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span></code> and verify all tests pass on all CI services.</p></li>
+<li><p>Generate a list of commits since the last version with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">--no-pager</span> <span class="pre">log</span> <span class="pre">--oneline</span> <span class="pre">--no-decorate</span> <span class="pre">0.1^..origin/master</span></code>
+Replace <code class="docutils literal notranslate"><span class="pre">0.1</span></code> with the tag of the last public version.</p></li>
+<li><p>Condense the change list into something user-readable. Update and commit CHANGES.rst with the release date.``</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">tag</span> <span class="pre">0.2</span> <span class="pre">master</span> <span class="pre">-m</span> <span class="pre">&quot;0.2&quot;</span></code> Replace <code class="docutils literal notranslate"><span class="pre">0.2</span></code> with the new version.
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">show</span> <span class="pre">0.2</span></code> to ensure the correct commit was tagged
+<code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">master</span> <span class="pre">--tags</span></code></p></li>
+<li><p>The new version is tagged in the repository. Now the public package must be built and distributed.</p></li>
+</ol>
+<div class="section" id="uploading-to-pypi">
+<h2>Uploading to PyPI<a class="headerlink" href="#uploading-to-pypi" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p><code class="docutils literal notranslate"><span class="pre">rm</span> <span class="pre">-R</span> <span class="pre">dist/*</span></code> on Linux/OSX or <code class="docutils literal notranslate"><span class="pre">del</span> <span class="pre">dist/*</span></code> on Windows</p></li>
+<li><p>With the commit checked out which was tagged with the new version:
+<code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">setup.py</span> <span class="pre">sdist</span></code></p>
+<p><strong>Make sure that the script correctly detected the new version exactly and not a dirty / revised state of the repo.</strong></p>
+<p>Assuming a correctly configured .pypirc:</p>
+<p><code class="docutils literal notranslate"><span class="pre">twine</span> <span class="pre">upload</span> <span class="pre">-u</span> <span class="pre">bocklund</span> <span class="pre">dist/*</span></code></p>
+</li>
+</ol>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/DFTTK-LOGO.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Releasing DFTTK</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#uploading-to-pypi">Uploading to PyPI</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="VM_MongoDB.html">Virtual Machines (VM) hosting</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="CONTRIBUTING.html" title="previous chapter">Contribution Guide</a></li>
+      <li>Next: <a href="VM_MongoDB.html" title="next chapter">Virtual Machines (VM) hosting</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/RELEASING.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

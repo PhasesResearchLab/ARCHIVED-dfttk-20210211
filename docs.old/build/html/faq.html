@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FAQ &#8212; dfttk 0.3.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting" href="troubleshooting.html" />
+    <link rel="prev" title="Recipes" href="recipes.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="faq">
+<h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="what-do-the-references-to-dfttk-style-or-espei-style-configurations-or-occupancies-mean">
+<h2>What do the references to DFTTK-style or ESPEI-style configurations or occupancies mean?<a class="headerlink" href="#what-do-the-references-to-dfttk-style-or-espei-style-configurations-or-occupancies-mean" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="http://espei.org">ESPEI</a> is separate software for fitting thermodynamic
+databases within the CALPHAD method. The CALPHAD method requires descriptions of
+the formation and mixing energies of phases described by sublattices, as in the
+compound energy formalism.</p>
+<p>DFTTK is an excellent tool for calculating the temperature and composition
+dependent thermodynamic properties of sublattice configurations within the
+compound energy formalism.</p>
+<p>In both ESPEI and DFTTK, there are three key aspects to describing a phase in the
+CEF: sublattice site ratios, sublattice configurations, and sublattice occupancies.
+Sublattice site ratios are a list of integer or fraction ratios of the sublattice.
+There are no constraints on the order or values. Some valid ones would be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># 1 sublattice</span>
+<span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 3 occurrences of species in sublattice 1 and 2 in sublattice 2</span>
+<span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 1 occurrence of species in sublattice 1 and 1/2 in sublattice 2</span>
+<span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">11</span><span class="p">]</span>  <span class="c1"># 2 sublattices with 16 occurrences of species in sublattice 1 and 11 in sublattice 2</span>
+</pre></div>
+</div>
+<p>DFTTK describes a sublattice configuration as a list of sublattices,
+where each sublattice is also a list of the components occupying that sublattice.
+Some examples are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="n">Fe</span><span class="p">,</span> <span class="n">Ni</span><span class="p">]]</span>  <span class="c1"># 1 sublattice with mixing of Fe and Ni</span>
+<span class="p">[[</span><span class="n">Mg</span><span class="p">],</span> <span class="p">[</span><span class="n">Cu</span><span class="p">]]</span>  <span class="c1"># 2 sublattices with no mixing in each sublattice.</span>
+<span class="p">[[</span><span class="n">Cr</span><span class="p">,</span> <span class="n">Fe</span><span class="p">],</span> <span class="p">[</span><span class="n">Cr</span><span class="p">],</span> <span class="p">[</span><span class="n">Cr</span><span class="p">,</span> <span class="n">Fe</span><span class="p">]]</span>  <span class="c1"># 3 sublattices with mixing in the first and last sublattice</span>
+</pre></div>
+</div>
+<p>The ordering of sublattices themselves have no distinct meaning. As a convention,
+DFTTK sorts the components in each sublattice by component name, e.g., Cr
+(starts with C) always comes before Fe (starts with F)). ESPEI requires
+each sublattice to be ordered in this way.</p>
+<p>Sublattice occupancies or occupations describe how a sublattice is filled with
+each particular element. The shape of these corresponds exactly to the configuration
+that the occupancy list describes. The sorting of the occupancies therefore is
+also in the same order of the configuration.</p>
+<p>DFTTK includes several tools to help build ESPEI-compatible sublattice descriptions.
+The only difference between DFTTK and ESPEI conigurations and occupancies is that
+a singly occuped sublattice, e.g. [[Fe]] in DFTTK, is not wrapped in the sublattice
+parenthesis for both the configuration and occupancies. Some examples of ESPEI configuration
+and occupancy lists are given below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[[</span><span class="n">FE</span><span class="p">,</span> <span class="n">NI</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]]</span>  <span class="c1"># this is the same as DFTTK, there are no single occupations</span>
+<span class="p">[</span><span class="n">MG</span><span class="p">,</span> <span class="n">CU</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>  <span class="c1"># each sublattice is singly-occupied and is not wrapped in the parenthesis</span>
+<span class="p">[[</span><span class="n">CR</span><span class="p">,</span> <span class="n">FE</span><span class="p">],</span> <span class="n">CR</span><span class="p">,</span> <span class="p">[</span><span class="n">CR</span><span class="p">,</span> <span class="n">FE</span><span class="p">]],</span> <span class="p">[[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">]]</span> <span class="c1"># the second sublattice is singly occupied and is not wrapped</span>
+</pre></div>
+</div>
+<p>As a final note, ESPEI format typically uses all uppercase, consistent with the
+CALPHAD community, while DFTTK usually uses standard element capitalization. The
+conversion tools take this into account.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<p class="logo">
+  <a href="index.html">
+    <img class="logo" src="_static/DFTTK-LOGO.png" alt="Logo"/>
+    
+  </a>
+</p>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="README.html">DFTTK: Density Functional Theory Tool Kit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipes.html">Recipes</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">FAQ</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-do-the-references-to-dfttk-style-or-espei-style-configurations-or-occupancies-mean">What do the references to DFTTK-style or ESPEI-style configurations or occupancies mean?</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGES.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CONTRIBUTING.html">Contribution Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RELEASING.html">Releasing DFTTK</a></li>
+<li class="toctree-l1"><a class="reference internal" href="VM_MongoDB.html">Virtual Machines (VM) hosting</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="recipes.html" title="previous chapter">Recipes</a></li>
+      <li>Next: <a href="troubleshooting.html" title="next chapter">Troubleshooting</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.0</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/faq.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
