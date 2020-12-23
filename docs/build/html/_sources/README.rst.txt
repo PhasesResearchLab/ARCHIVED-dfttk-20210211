@@ -57,12 +57,11 @@ This branch is based the robust_relax branch
    Lorenz number
    Absolute thermal electric force
 
-
-
-
-
 Usage of thelec module:
-usage: dfttk thelec [-h] [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]
+
+.. code-block:: bash
+
+       dfttk thelec [-h] [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]
                     [-xup [XUP]] [-dope [DOPE]] [-ne [NDOSMX]]
                     [-natom [NATOM]] [-e [EVERYT]] [-gauss [GAUSSIAN]]
                     [-i [DOSCAR]] [-o [OUTF]] [-noel] [-metatag [METATAG]]
@@ -71,6 +70,9 @@ usage: dfttk thelec [-h] [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]
                     [-xlim [XLIM]]
 
 optional arguments:
+
+.. code-block:: bash
+
   -h, --help            show this help message and exit
   -py, --pyphon         use Yphon to recalculate vibrational properties.
                         Default: False
@@ -126,7 +128,10 @@ optional arguments:
 
 
 Usage of thfind module:
-usage: dfttk thfind [-h] [-q [QHAMODE]] [-w [WITHIN]] [-all [CONTAINALL]]
+
+.. code-block:: bash
+
+       dfttk thfind [-h] [-q [QHAMODE]] [-w [WITHIN]] [-all [CONTAINALL]]
                     [-any [CONTAINANY]] [-v [NV]] [-ss [SUPERCELLN]] [-get]
                     [-py] [-T0 [T0]] [-T1 [T1]] [-dT [TD]] [-xdn [XDN]]
                     [-xup [XUP]] [-dope [DOPE]] [-ne [NDOSMX]]
@@ -136,6 +141,9 @@ usage: dfttk thfind [-h] [-q [QHAMODE]] [-w [WITHIN]] [-all [CONTAINALL]]
                     [-plot] [-g] [-expt [EXPT]] [-xlim [XLIM]]
 
 optional arguments:
+
+.. code-block:: bash
+
   -h, --help            show this help message and exit
   -q [QHAMODE], --qhamode [QHAMODE]
                         Collection. 'phonon', 'qha'. Default: 'phonon'

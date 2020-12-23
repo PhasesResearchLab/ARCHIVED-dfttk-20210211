@@ -25,6 +25,7 @@
     CHANGES.rst
     CONTRIBUTING.rst
     RELEASING.rst
+    VM_MongoDB.rst
 
 
 Indices and tables

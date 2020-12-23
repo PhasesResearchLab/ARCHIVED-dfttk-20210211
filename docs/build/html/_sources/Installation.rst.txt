@@ -10,6 +10,9 @@ Installation
 .. code-block:: bash
 
     pip install dfttk
+    mkdir dfttk #if dfttk folder not exist. 
+    cd dfttk
+    dfttk config -mp -aci #a folder named "config" will be created where running environmental info saved
 
 - Development version
 
@@ -18,12 +21,8 @@ Installation
     git clone https://github.com/PhasesResearchLab/dfttk.git
     cd dfttk
     pip install -e .
-
-- Run environmental setup
-
-.. code-block:: bash
-
-    dfttk config -mp -aci 
+    cd dfttk
+    dfttk config -mp -aci #a folder named "config" will be created where running environmental info saved
 
 - YPHON
 
@@ -57,21 +56,23 @@ For bsh user: the command search path should be changed by inserting the lines b
 
 - MongoDB 
 
-  Ask the MongoDB system manager to set up the access credential file named "db.json" containing 
+  Ask the MongoDB system manager to set up the access credential information containing in the JSON format similiar to the following lines
 
 .. _JSONLint: https://jsonlint.com
 
 .. code-block:: JSON
 
-   {
-     "database": "psuid-results",
-     "collection": "tasks",
-     "admin_user": "psuid",
-     "admin_password": "vuXdp3NBGFBn",
-     "readonly_user": "psuid-ro",
-     "readonly_password": "oue4XhSVRKvq",
-     "host": "146.186.149.69",
-     "port": 27018,
-     "aliases": {}
-   }
+    {
+        "database": "psuid-results",
+        "collection": "tasks",
+        "admin_user": "psuid",
+        "admin_password": "BeFihJ2mrKGm",
+        "readonly_user": "psuid-ro",
+        "readonly_password": "QIvaUT9ca6H8",
+        "host": "146.186.149.69",
+        "port": 27018,
+        "aliases": {}
+    }
+    #note: Sometimes, when using "copy/paste" with Windows, some invisible characters may be hidden by linux "vi". Make sure show/delete the invisible characters by vi command ":set list". 
 
+  Save this as a json file named "db.json" under the "dfttk/config" folder that created by "dfttk config -mp -aci" command mentioned above. 
