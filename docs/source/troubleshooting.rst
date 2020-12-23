@@ -3,7 +3,35 @@ Troubleshooting
 ***************
 
 
-This document covers how to handle jobs that have fizzled. There are two main sections: general troubleshooting workflow to find the root cause of issue and specific issues and their fixes.
+This document covers how to handle jobs that have fizzled. There are three main sections: common troubleshooting, general troubleshooting workflow to find the root cause of issue and specific issues and their fixes.
+
+Common troubleshooting
+======================
+
+1.      In the config stages, one may need properly set up VASP environments, such as
+
+.. code-block:: bash
+
+    module load intel impi vasp
+
+2.      Make the latest automate installed;
+3.      In .bashrc/.cshrc, make sure not messed up with previous atomate FW config;
+4.      Make sure the setup in the .bashrc file or (equivalently in the .cshrc file)
+
+.. code-block:: bash
+
+    export FW_CONFIG_FILE=~/dfttk/config/FW_config.yaml
+
+5.      git push issue for contributors, see https://docs.github.com/en/github/authenticating-to-github/adding-a-new-ssh-key-to-your-github-account
+6.      for batch run of the postprocessing modules, make sure compatibilities of non-ascii character by:
+
+.. code-block:: bash
+
+    export LC_ALL='en_US.utf8' #for bsh;
+    setenv LC_ALL en_US.utf8 #for csh
+
+7.      For phonon calculations, due to certain reasons (such as temperature range too high), one may not see results in the ‘qha_phonon’ or “qha” MongoDB collections. In this case, the subcommand ‘dfttk thfind’ will try to find results from the “phonon” collection and process the data by calling “Yphon’
+8.      When you are interesting in revising the code, if have job running in the system before your changes, the codes in the batch system might not be updated and the results might be not as you assumed. It takes me two days to figure out this problem. The solution is to kill all the dfttk running job and resubmit tem.
 
 
 Troubleshooting Workflow
