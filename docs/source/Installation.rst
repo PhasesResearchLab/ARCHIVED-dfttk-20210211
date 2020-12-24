@@ -56,7 +56,7 @@ For bsh user: the command search path should be changed by inserting the lines b
 
 - MongoDB 
 
-  Ask the MongoDB system manager to set up the access credential information containing in the JSON format similiar to the following lines
+  Ask the MongoDB system manager to set up the access credential information :by downlond containing in the JSON format similiar to the following lines
 
 .. _JSONLint: https://jsonlint.com
 

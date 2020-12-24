@@ -19,13 +19,13 @@
     README.rst
     Installation.rst  
     Examples.rst  
+    troubleshooting.rst
+    VM_MongoDB.rst
     recipes.rst
     faq.rst
-    troubleshooting.rst
     CHANGES.rst
     CONTRIBUTING.rst
     RELEASING.rst
-    VM_MongoDB.rst
 
 
 Indices and tables

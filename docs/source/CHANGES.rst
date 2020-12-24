@@ -11,9 +11,44 @@ Changelog
 
  - formally release dfttk version 0.3.0
  - Revised dfttk/script/run_dfttk.py
- - made workflow "get_wf_gibbs" run on "robust" with get_wf_gibbs_robust changed test module from get_wf_gibbs into get_wf_gibbs_robust
+ - made workflow ``get_wf_gibbs`` run on ``robust`` with ``get_wf_gibbs_robust`` 
+ - changed test module from ``get_wf_gibbs`` into ``get_wf_gibbs_robust``
  - Add elasticity calculation model
  - Add Born effective charge calculations
+
+September 17, 2020
+==================
+
+•       Bug fixes:
+•       Replaced ``curve-fit`` by ``ployfit`` for BM fitting
+•       Fixed bugs on result checks
+•       Summarizing installation/run documents for DFTTK (This documents)
+
+September 3, 2020
+=================
+
+•       Added a module ``EVfind`` per discussion with Shunli and enhanced calculation summary
+•       E-V, P-V, Stress-V, Strain-V
+•       Implemented 4 numerical schemes for evaluating LTC
+•       Enhanced plots
+•       LO-TO splitting were marked
+•       Gamma point phonon frequencies
+•       Prepared ~50 testing structures/compounds
+•       Made LDA pseudopotential as an option
+•       Speed up calculation
+•       Turned on ``LREAL=Auto`` from default 
+•       Change into ``ISPIN=1`` for nonmagnetic system from default
+•       For better relaxation
+•       Turned on ``EDIFF=1.e-8`` (why it showed 2e-7 in the OUTCAR?)
+•       Turned on ``EdiffG=-1.e-3`` (testing, could be the reason for poor phonon data quality) 
+•       Data report
+•       Phonon quality
+•       LTC quality
+•       Found phonopy was unable handle Cv below 1 K 
+•       Added experimental data for plotting results 
+•       Working on
+•       Calculate Born effective charge/dielectric tensors for insulators 
+•       Launch by module ``EVfind`` when band gaps found and if not calculated
 
 0.2.2 (2020-08-18)
 ==================
