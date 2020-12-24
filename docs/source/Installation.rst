@@ -56,7 +56,27 @@ For bsh user: the command search path should be changed by inserting the lines b
 
 - MongoDB 
 
-  Ask the MongoDB system manager to set up the access credential information containing in the JSON format similiar to the following lines
+  Ask the MongoDB system manager to set up the access credential information by downlond a python code named
+  ``mongodb_user.py`` from https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts followed run it by
+
+.. code-block:: bash
+
+    python mongodb_user.py
+
+  The run will prompt the MongoDB manager to input an userid for your user. After you input userid 
+  and hit enter, the following lines 
+
+.. code-block:: python
+
+    use psuid-fws
+    db.createUser({user: "psuid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "psuid-fws"}]})
+    use psuid-results
+    db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
+    db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
+
+  These lines will be used by the MongoDB manager the MongoDB user setup, see the ``VM setup`` section in this document.
+
+  Meanwhile, a file named ``db.json`` containing in the JSON format similiar to the following lines which should be sent to your user.
 
 .. _JSONLint: https://jsonlint.com
 
