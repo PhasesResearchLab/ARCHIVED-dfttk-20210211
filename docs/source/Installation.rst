@@ -74,9 +74,9 @@ For bsh user: the command search path should be changed by inserting the lines b
     db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
     db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
 
-  These lines will be used by the MongoDB manager the MongoDB user setup, see the ``VM setup`` section in this document.
+These lines will be used by the MongoDB manager the MongoDB user setup, see the ``VM setup`` section in this document.
 
-  Meanwhile, a file named ``db.json`` containing in the JSON format similiar to the following lines which should be sent to your user.
+Meanwhile, a file named ``db.json`` containing in the JSON format similiar to the following lines which should be sent to your user.
 
 .. _JSONLint: https://jsonlint.com
 
@@ -95,4 +95,4 @@ For bsh user: the command search path should be changed by inserting the lines b
     }
     #note: Sometimes, when using "copy/paste" with Windows, some invisible characters may be hidden by linux "vi". Make sure show/delete the invisible characters by vi command ":set list". 
 
-  Save this as a json file named "db.json" under the "dfttk/config" folder that created by "dfttk config -mp -aci" command mentioned above. 
+Save this as a json file named "db.json" under the "dfttk/config" folder that created by "dfttk config -mp -aci" command mentioned above. 
