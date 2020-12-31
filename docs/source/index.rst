@@ -16,6 +16,7 @@
     :maxdepth: 3
     :caption: Contents:
 
+    License.rst
     README.rst
     Installation.rst  
     Examples.rst  
