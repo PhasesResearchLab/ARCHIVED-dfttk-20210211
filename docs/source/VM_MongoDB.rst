@@ -5,12 +5,16 @@ This section is for the dfttk users who want to host their MongoDB by themselves
 
 In computing, a virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer. Their implementations may involve specialized hardware, software, or a combination. See https://en.wikipedia.org/wiki/Virtual_machine
 
-VM setup
---------
+In our case, we have changed the default tcp port from 27017 into 27018 due to historical reason
+
+VM operation
+------------
 
   Connect your VM by ssh (ssh yourpsuid@146.186.149.69 in our case). One should use VPN if you have firewall for your system
 
-  - To add user to your VM linux system
+- To add user to your VM linux system
+
+  Run the follwing command under Linux
 
 .. code-block:: bash
 
@@ -19,10 +23,12 @@ VM setup
 
 Note on adding other users to access the VM. In order to add other users to access the VM from the Morpheus portal you would need to add them to the VM. For the VM itself you would need to add their user ID to the /etc/security/access.conf file and if they need sudo access you would need to add their ID to the /etc/sudoers.d/sudo-users file as well. 
 
-MongoDB
--------
+MongoDB operation
+-----------------
 
-MongoDB installation
+- MongoDB installation
+
+  Run the follwing command
 
 .. code-block:: bash
 
@@ -39,27 +45,33 @@ https://docs.mongodb.com/manual/tutorial/install-mongodb-on-ubuntu/.
 Additional configuration info for MongoDB 4.4 can be found here:
 https://www.digitalocean.com/community/tutorials/how-to-install-mongodb-on-ubuntu-18-04-source
 
-Start mongdb service
+- Start mongdb service
 
 .. code-block:: bash
 
     mongod --bind_ip_all -port 27018 &
 
-Connect to MongoDB by port 27018
-
-.. code-block:: bash
-
-    mongo -port 27018
-
-Shut down
+- Shut down mongdb service
 
 .. code-block:: bash
 
     db.adminCommand( { shutdown: 1 } )
 
-MongodB user management, see https://docs.mongodb.com/manual/tutorial/enable-authentication/
+For more details on MongodB user management, see https://docs.mongodb.com/manual/tutorial/enable-authentication/
 
-Create admin user
+- Connect to MongoDB by port 27018 for management
+
+.. code-block:: bash
+
+    mongo -port 27018
+
+- Quit from MongoDB
+
+  hit ``Ctrl+d``
+
+- Create admin user for mongdb
+
+  After connected to your mongoDB by ``mongo -port 27018``, input the following lines
 
 .. code-block:: python
 
@@ -67,29 +79,31 @@ Create admin user
     db.createUser(
       {
         user: "admin",
-        pwd: "xxxxxxxxx", // or cleartext password
+        pwd: "xxxxxxxxx", // xxxxxxxx is the admin password of your choice
         roles: [ { role: "userAdminAnyDatabase", db: "admin" }, "readWriteAnyDatabase" ]
       }
     )
 
-Create general user
+- Create general user
+
+  Connect to your mongoDB as admin user by ``mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p``, 
+  followed by inputting the following lines
 
 .. code-block:: python
 
-    mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
     use psuid-fws
     db.createUser({user: "psuid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "psuid-fws"}]})
     use psuid-results
     db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
     db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
 
-Remove user
+- Remove user
 
 .. code-block:: python
 
     db.removeUser(username)
 
-Check if mongodb is running
+- Check if mongodb is running, use
 
 .. code-block:: python
 
