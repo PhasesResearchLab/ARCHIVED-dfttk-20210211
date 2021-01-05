@@ -49,7 +49,7 @@ master_doc = 'index'
 # General information about the project.
 project = 'dfttk'
 copyright = '2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu'
-author = 'Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu'
+author = 'Yi Wang, Mingqing Liao, Brandon J. Bocklund,\nShunli Shang, Long-Qing Chen, and Zi-Kui Liu'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
