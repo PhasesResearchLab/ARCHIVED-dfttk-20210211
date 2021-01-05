@@ -48,7 +48,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'dfttk'
-copyright = '2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu'
+copyright = '2020, Yi Wang, Mingqing Liao, Brandon J. Bocklund,\nShunli Shang, Long-Qing Chen, and Zi-Kui Liu'
 author = 'Yi Wang, Mingqing Liao, Brandon J. Bocklund,\nShunli Shang, Long-Qing Chen, and Zi-Kui Liu'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -145,7 +145,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'dfttk.tex', 'dfttk Documentation',
-     'Yi Wang, Mingqing Liao, Brandon J. Bocklund, Shunli Shang, Long-Qing Chen, and Zi-Kui Liu', 'manual'),
+     'Yi Wang, Mingqing Liao, Brandon J. Bocklund,\nShunli Shang, Long-Qing Chen, and Zi-Kui Liu', 'manual'),
 ]
 
 
