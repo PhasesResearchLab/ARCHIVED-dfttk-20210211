@@ -26,3 +26,30 @@ Uploading to PyPI
    Assuming a correctly configured .pypirc:
 
    ``twine upload -u bocklund dist/*``
+
+Some useful commands are following
+----------------------------------
+
+.. code-block:: bash
+
+    git checkout master
+    #
+    git pull
+    git pull upstream master
+    git --version
+    git remote set-url --all upstream git@github.com:PhasesResearchLab/dfttk.git
+    git remote set-url --add upstream git@github.com:PhasesResearchLab/dfttk.git
+    git remote set-url --delete upstream git@github.com:PhasesResearchLab/dfttk.git
+    git remote remove upstream
+    git remote rm upstream
+    git remote -v
+    git remote add upstream git@github.com:PhasesResearchLab/dfttk.git
+    #
+    git tag -d 0.3.0
+    git push --delete upstream 0.3.0
+    git tag 0.3.0 master -m "0.3.0"
+    git push upstream master --tags
+    rm dist/*
+    python setup.py sdist
+    twine upload -u yiwang62 dist/*
+    
