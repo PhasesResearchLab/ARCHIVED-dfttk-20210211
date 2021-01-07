@@ -97,6 +97,40 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
     db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
     db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
 
+  These lines can be produced by dfttk by run a python code named ``mongodb_user.py`` which 
+  can be downlonded from
+  https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts
+  After download the code, one can run it by 
+
+.. code-block:: bash
+
+    python mongodb_user.py
+
+  The run will prompt the MongoDB system manager to input an userid for the user. After you input 
+  userid and hit enter, one gets the above outputs in the screen. 
+
+  Meanwhile, a file named ``db.json`` in the JSON format containing something similiar to 
+  the following lines which should be sent to the MongoDB user.
+
+.. _JSONLint: https://jsonlint.com
+
+.. code-block:: JSON
+
+    {
+        "database": "psuid-results",
+        "collection": "tasks",
+        "admin_user": "psuid",
+        "admin_password": "BeFihJ2mrKGm",
+        "readonly_user": "psuid-ro",
+        "readonly_password": "QIvaUT9ca6H8",
+        "host": "146.186.149.69",
+        "port": 27018,
+        "aliases": {}
+    }
+
+  The MongoDB user should save this data in a json file named "db.json" under the path 
+  "dfttk/config" that created by "dfttk config -mp -aci" command.
+
 - Remove user
 
 .. code-block:: python
