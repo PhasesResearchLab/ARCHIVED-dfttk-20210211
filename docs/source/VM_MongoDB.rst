@@ -10,7 +10,7 @@ In our case, we have changed the default tcp port from 27017 into 27018 due to h
 VM operation
 ------------
 
-  Connect your VM by ssh (ssh yourpsuid@146.186.149.69 in our case). One should use VPN if you have firewall for your system
+  Connect your VM by ssh (ssh youruserid@146.186.149.69 in our case). One should use VPN if you have firewall for your system
 
 - To add user to your VM linux system
 
@@ -91,11 +91,11 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 .. code-block:: python
 
-    use psuid-fws
-    db.createUser({user: "psuid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "psuid-fws"}]})
-    use psuid-results
-    db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
-    db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
+    use userid-fws
+    db.createUser({user: "userid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "userid-fws"}]})
+    use userid-results
+    db.createUser({user: "userid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "userid-results"}]})
+    db.createUser({user: "userid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "userid-results"}]})
 
   These lines can be produced by dfttk by run a python code named ``mongodb_user.py`` which 
   can be downlonded from
@@ -117,11 +117,11 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 .. code-block:: JSON
 
     {
-        "database": "psuid-results",
+        "database": "userid-results",
         "collection": "tasks",
-        "admin_user": "psuid",
+        "admin_user": "userid",
         "admin_password": "BeFihJ2mrKGm",
-        "readonly_user": "psuid-ro",
+        "readonly_user": "userid-ro",
         "readonly_password": "QIvaUT9ca6H8",
         "host": "146.186.149.69",
         "port": 27018,
