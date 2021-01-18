@@ -68,11 +68,11 @@ Connect DFTTK to MongoDB server
 .. code-block:: JSON
 
     {
-        "database": "psuid-results",
+        "database": "userid-results",
         "collection": "tasks",
-        "admin_user": "psuid",
+        "admin_user": "userid",
         "admin_password": "BeFihJ2mrKGm",
-        "readonly_user": "psuid-ro",
+        "readonly_user": "userid-ro",
         "readonly_password": "QIvaUT9ca6H8",
         "host": "146.186.149.69",
         "port": 27018,
@@ -84,9 +84,17 @@ Access MongoDB database from desktop
 
   One can download robo3T from https://robomongo.org/. After install it one use the information
   from the ``db.json`` file to setup robo3T connection as indicated in the following figure
-  #note: One need to replace ``yuw3`` by one's own used id
+
+  #note
+
+  1. ``PSU-VM`` is an arbitray name for the connection that you want to use;
+
+  2. ``146.186.149.69`` is the ip address of one's MongoDB server;
+
+  3. One need to replace ``userid`` by one's own usedid provided by one's MongoDB system manage
 
 .. image:: _static/robo3Tsetup.png
+
 
 
 
