@@ -63,7 +63,7 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 .. code-block:: bash
 
-    mongo -port 27018
+    mongod -port 27018
 
 - Quit from MongoDB
 
@@ -86,8 +86,8 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 - Create general user
 
-  Connect to your mongoDB as admin user by ``mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p``, 
-  followed by inputting the following lines
+    Connect to your mongoDB as admin user by ``mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p``, 
+    followed by inputting the following lines
 
 .. code-block:: python
 

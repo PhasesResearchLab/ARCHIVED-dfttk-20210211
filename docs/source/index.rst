@@ -20,6 +20,8 @@
     README.rst
     Installation.rst  
     Examples.rst  
+    usages.rst  
+    SETTINGS.rst
     Jobmonitor.rst
     troubleshooting.rst
     VM_MongoDB.rst
