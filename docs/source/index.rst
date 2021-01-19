@@ -20,7 +20,7 @@
     README.rst
     Installation.rst  
     Examples.rst  
-    usages.rst  
+    modules.rst  
     SETTINGS.rst
     Jobmonitor.rst
     troubleshooting.rst
