@@ -1,16 +1,20 @@
-Virtual Machines (VM) hosting
-=============================
+MongoDB Virtual Machines (VM) hosting
+=====================================
 
 This section is for the dfttk users who want to host their MongoDB by themselves.
 
+MongoDB is one of the most popular document-oriented databases under the banner of NoSQL database. The schema-free implementation of MongoDB eliminates the prerequisites of defining a fixed structure required by the SQL database. 
+
 In computing, a virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer. Their implementations may involve specialized hardware, software, or a combination. See https://en.wikipedia.org/wiki/Virtual_machine
+
+Our MongoDB databases are currently by Penn State's VM hosting service that provides cost-effective, reliable VM for departments, colleges, and research units at Penn State University.
 
 In our case, we have changed the default tcp port from 27017 into 27018 due to historical reason
 
 VM operation
 ------------
 
-  Connect your VM by ssh (ssh yourpsuid@146.186.149.69 in our case). One should use VPN if you have firewall for your system
+  Connect your VM by ssh (ssh youruserid@146.186.149.69 in our case). One should use VPN if you have firewall for your system
 
 - To add user to your VM linux system
 
@@ -63,7 +67,7 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 .. code-block:: bash
 
-    mongo -port 27018
+    mongod -port 27018
 
 - Quit from MongoDB
 
@@ -71,7 +75,7 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 - Create admin user for mongdb
 
-  After connected to your mongoDB by ``mongo -port 27018``, input the following lines
+After connected to your mongoDB by ``mongo -port 27018``, input the following lines
 
 .. code-block:: python
 
@@ -86,16 +90,55 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 - Create general user
 
-  Connect to your mongoDB as admin user by ``mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p``, 
-  followed by inputting the following lines
+Connect to your mongoDB as admin user by 
 
-.. code-block:: python
+.. code-block:: bash
 
-    use psuid-fws
-    db.createUser({user: "psuid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "psuid-fws"}]})
-    use psuid-results
-    db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
-    db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
+    mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
+
+followed by inputting the following lines
+
+.. code-block:: bash
+
+    use userid-fws
+    db.createUser({user: "userid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "userid-fws"}]})
+    use userid-results
+    db.createUser({user: "userid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "userid-results"}]})
+    db.createUser({user: "userid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "userid-results"}]})
+
+These lines can be produced by dfttk by run a python code named ``mongodb_user.py`` which 
+can be downlonded from
+https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts
+After download the code, one can run it by 
+
+.. code-block:: bash
+
+    python mongodb_user.py
+
+The run will prompt the MongoDB system manager to input an userid for the user. After you input 
+userid and hit enter, one gets the above outputs in the screen. 
+
+Meanwhile, a file named ``db.json`` in the JSON format containing something similiar to 
+the following lines which should be sent to the MongoDB user.
+
+.. _JSONLint: https://jsonlint.com
+
+.. code-block:: bash
+
+    {
+        "database": "userid-results",
+        "collection": "tasks",
+        "admin_user": "userid",
+        "admin_password": "BeFihJ2mrKGm",
+        "readonly_user": "userid-ro",
+        "readonly_password": "QIvaUT9ca6H8",
+        "host": "146.186.149.69",
+        "port": 27018,
+        "aliases": {}
+    }
+
+The MongoDB user should save this data in a json file named ``db.json`` under the path 
+``dfttk/config`` that created by ``dfttk config -mp -aci`` command.
 
 - Remove user
 

@@ -24,7 +24,8 @@ Installation
     cd dfttk
     dfttk config -mp -aci #a folder named "config" will be created where running environmental info saved
 
-- YPHON
+YPHON
+-----
 
 To postprocess the finite properties, the Yphon package is required. Yphon can be installed by run
 
@@ -54,45 +55,46 @@ For bsh user: the command search path should be changed by inserting the lines b
     export PATH
 
 
-- MongoDB 
+Connect DFTTK to MongoDB server
+-------------------------------
 
-  Ask the MongoDB system manager to set up the access credential information by downlond a python code named
-  ``mongodb_user.py`` from https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts followed run it by
-
-.. code-block:: bash
-
-    python mongodb_user.py
-
-  The run will prompt the MongoDB manager to input an userid for your user. After you input userid 
-  and hit enter, the following lines 
-
-.. code-block:: python
-
-    use psuid-fws
-    db.createUser({user: "psuid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "psuid-fws"}]})
-    use psuid-results
-    db.createUser({user: "psuid", pwd: "BeFihJ2mrKGm", roles: [{role: "dbOwner", db: "psuid-results"}]})
-    db.createUser({user: "psuid-ro", pwd: "QIvaUT9ca6H8", roles: [{role: "read", db: "psuid-results"}]})
-
-These lines will be used by the MongoDB manager the MongoDB user setup, see the ``VM setup`` section in this document.
-
-Meanwhile, a file named ``db.json`` containing in the JSON format similiar to the following lines which should be sent to your user.
+  Ask the MongoDB system manager for a json file named ``db.json`` to get your DFTTK results
+  saved in MongoDB database.  The ``db.json`` file contains something similiar to the 
+  following lines which should saved under the "dfttk/config" folder 
+  that was created by "dfttk config -mp -aci" command mentioned above. 
 
 .. _JSONLint: https://jsonlint.com
 
 .. code-block:: JSON
 
     {
-        "database": "psuid-results",
+        "database": "userid-results",
         "collection": "tasks",
-        "admin_user": "psuid",
+        "admin_user": "userid",
         "admin_password": "BeFihJ2mrKGm",
-        "readonly_user": "psuid-ro",
+        "readonly_user": "userid-ro",
         "readonly_password": "QIvaUT9ca6H8",
         "host": "146.186.149.69",
         "port": 27018,
         "aliases": {}
     }
-    #note: Sometimes, when using "copy/paste" with Windows, some invisible characters may be hidden by linux "vi". Make sure show/delete the invisible characters by vi command ":set list". 
 
-Save this as a json file named "db.json" under the "dfttk/config" folder that created by "dfttk config -mp -aci" command mentioned above. 
+Access MongoDB database from desktop
+------------------------------------
+
+  One can download robo3T from https://robomongo.org/. After install it one use the information
+  from the ``db.json`` file to setup robo3T connection as indicated in the following figure
+
+  #note
+
+  1. ``PSU-VM`` is an arbitray name for the connection that you want to use;
+
+  2. ``146.186.149.69`` is the ip address of one's MongoDB server;
+
+  3. One need to replace ``userid`` by one's own usedid provided by one's MongoDB system manage
+
+.. image:: _static/robo3Tsetup.png
+
+
+
+
