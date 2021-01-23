@@ -1,5 +1,5 @@
-MongoDB Virtual Machines (VM) hosting
-=====================================
+MongoDB VM hosting
+==================
 
 This section is for the dfttk users who want to host their MongoDB by themselves.
 

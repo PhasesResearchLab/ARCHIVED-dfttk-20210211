@@ -148,7 +148,7 @@ After prepared the above **required** file, simply run `dfttk config -all` to fi
 
 ## Example
 
-```shel
+```shell
 dfttk config -all -p test_config -mapi test_api
 ```
 

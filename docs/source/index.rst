@@ -18,18 +18,22 @@
 
     License.rst
     README.rst
-    Installation.rst  
+    Installation.rst
     Examples.rst  
-    modules.rst  
+    quickrun.rst
+    Configuration.md
     SETTINGS.rst
+    Get_started.md
+    dfttkpostprocessing.rst  
+    modules.rst
     Jobmonitor.rst
     troubleshooting.rst
     VM_MongoDB.rst
-    recipes.rst
-    faq.rst
     CHANGES.rst
     CONTRIBUTING.rst
     RELEASING.rst
+    recipes.rst
+    faq.rst
 
 
 Indices and tables

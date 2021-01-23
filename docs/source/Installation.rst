@@ -4,6 +4,24 @@ Installation
 - Requirements
 
   DFTTK requires YPHON, MongodB, Python 3. Python 2 support for NumPy ends 2019-01-01. 
+  Anaconda packages of DFTTK are currently not supported. If you are using Anaconda, 
+  you should be able to install with ``pip``.
+
+Virtual environment
+-------------------
+
+- Create virtual environment (optional)
+
+Anaconda or Miniconda is required. (Another option is using virtualenv)
+
+.. code-block:: bash
+
+    #conda create -n ENV_NAME python=VERSION
+    conda create -n dfttk python=3.6
+    #Activate
+    conda activate dfttk
+    #Deactivate
+    conda deactivate
 
 - Release version
 
@@ -55,8 +73,10 @@ For bsh user: the command search path should be changed by inserting the lines b
     export PATH
 
 
-Connect DFTTK to MongoDB server
--------------------------------
+Config MongoDB
+--------------
+
+DFTTK needs MongoDB to manage DFT inputs/outputs settings including structure, force constants etc. The users of DFTTK can either buy the commercial MongoDB database management or set up their own MongoDB server. 
 
   Ask the MongoDB system manager for a json file named ``db.json`` to get your DFTTK results
   saved in MongoDB database.  The ``db.json`` file contains something similiar to the 
