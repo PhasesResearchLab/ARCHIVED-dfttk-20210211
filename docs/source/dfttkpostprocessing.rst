@@ -21,13 +21,6 @@ Scheme to find equilibrium volume
     | If the data quality is good (may use as default), fit the 0-K total energies using 4-parameter Birch-Murnaghan 
     | Fit the finite T part of the free energies by UnivariateSpline
 
-Scheme for LTC
---------------
- 
-    | If the data quality is fair (~20% cases), 
-    |     fit the 0-K total energies using 4-parameter Birch-Murnaghan 
-    |     fit the finite T part of the free energies by linear function f=a+b*V
-
 Scheme to calculate derivative
 ------------------------------
 
@@ -44,8 +37,8 @@ Scheme to calculate derivative
 
     Deriv=-\frac{2}{3}bx^{-\frac{5}{3}}-\frac{4}{3}cx^{-\frac{7}{3}}-\frac{6}{3}dx^{-\frac{9}{3}}
 
-Scheme for LTC by V derivative
-------------------------------
+Scheme for LTC
+--------------
 
  1. By entropy derivative
 
@@ -62,4 +55,11 @@ where :math:`B_{T}` is isothermal bulk modulus
     \alpha =\frac{1}{B_{T} T}(\frac{\partial U}{\partial V}+P)
 
 where :math:`P` is pressure
+
+
+ 3. When the data quality is fair (~20% cases)
+ 
+  | Fit the 0-K total energies using 4-parameter Birch-Murnaghan; and 
+  | fit the finite T part of the free energies by linear function f=a+b*V
+
 

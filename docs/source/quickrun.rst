@@ -39,10 +39,11 @@ file ``record.json`` - json file contains Shomate Equation (SGTE) fitting of Cp,
 
 folder ``Yphon`` - extracted data to run Yphon for further analysis
 
-The figures stored in the figures folder can viewed by the command ``display``, e.x
+The figures stored in the figures folder can viewed by the command ``display``, e.x, to see the evolution of Helmholtz energy as functions of volume and temperature
 
 .. code-block:: bash
 
-    display Al_Fm-3m_225PBE/figures/Helmholtz_energy.png
+    display Al_Fm-3m_225PBE/figures/Helmholtz_energy.png 
 
 .. image:: _static/Al-Helmholtz_energy.png
+
