@@ -1,5 +1,3 @@
-
-
 =======
 Recipes
 =======
@@ -11,6 +9,8 @@ Construct a series of Debye workflows by substituting into a template structure
    ##############
    # User Input #
    ##############
+
+ .. code-block:: console
 
    DRY_RUN = True  # Don't submit the workflows
    VERBOSE = True   # Turn on printing of substitutions
@@ -44,11 +44,13 @@ Construct a series of Debye workflows by substituting into a template structure
    #}
 
 
-   ##########
-   # SCRIPT #
-   ##########
+##########
+# SCRIPT #
+##########
 
    # Should not need to edit below this line.
+
+.. code-block:: console
 
    from pymatgen import Structure
    from fireworks import LaunchPad
@@ -92,7 +94,7 @@ The following code snippet will take ESPEI datasets from a QHA database,
 optionally writing the (nicely named) files to dict.
 The QHA database requires the following metadata schema:
 
-.. code-block:: json
+.. code-block:: console
 
    {
      'metadata': {
