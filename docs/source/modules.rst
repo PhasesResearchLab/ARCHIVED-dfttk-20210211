@@ -80,14 +80,6 @@ Depend on the cases, dfttk postprocess may take longer time to finish. If it is 
 Usage of run module
 -------------------
 
-- Workflow for the ``run`` module
-
-.. image:: _static/workflow.png
-
-- Robust relaxation scheme of dfttk
-
-.. image:: _static/Robust.png
-
 - ``dfttk run`` : call VASP to perform 0 K E-V, phonon, elastic moduli, Born effective charge (dielectric tensor), etc
 
 .. code-block:: bash

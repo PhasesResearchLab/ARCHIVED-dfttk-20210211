@@ -39,11 +39,6 @@ To postprocess calculations after the VASP calculation done, run
 The above will produce more thatn 20 figures stored in the folder “Al_Fm-3m_225PBE/figures/” and they
 can be view them using the linux command ``display`` to show the figure, for example
 
-.. code-block:: bash
-
-  display Al_Fm-3m_225PBE/figures/Helmholtz_energy.png #to see the evolution of Helmholtz energy as functions volume and temperature
-
-.. image:: _static/Al-Helmholtz_energy.png
 
 .. code-block:: bash
 
