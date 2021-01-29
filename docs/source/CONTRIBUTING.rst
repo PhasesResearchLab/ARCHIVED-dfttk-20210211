@@ -2,21 +2,10 @@
 Contribution Guide
 ==================
 
-Project Goal
-------------
-
-Provide robust density functional theory workflows for calculating thermodynamic properties in temperature and composition space.
-
-How to Contribute 
------------------
-
-1. Clone the repository to your local machine
-2. Create a new branch for your addition or changes (``git checkout -b mybranchname``)
-3. Write code or make changes and commit them to your branch
-4. Push your branch to the repository (``git push origin mybranchname``)
-5. Submit a pull request
-
-After you submit a merge request, other members of the group are able to review your changes and give feedback. Someone with a rank of Master or higher in the project can merge your commits into the master branch.
+.. |fork| image:: _static/fork_sign.png
+          :height: 14pt
+          :width: 80pt
+          :alt: Logo
 
 Style Guidelines
 ----------------
@@ -33,3 +22,47 @@ In general, code style should follow PEP8_ and PEP20_. Specifics are summarized 
 
 .. _PEP8: https://www.python.org/dev/peps/pep-0008/
 .. _PEP20: https://www.python.org/dev/peps/pep-0020/
+
+How to Contribute 
+-----------------
+
+It is recommended to first install `anaconda <https://docs.anaconda.com/anaconda/install/>`_ if one has not done it yet. 
+
+1. Register an account in www.github.com or www.gitlab.com, depending on where the package is resided that you want to contribute to. 
+2. Sign into your web account in github or gitlab
+3. find the the package is resided that you want to contribute to
+4. make a fork by click the |fork| sign on top-right corner of the repositary (for instance, see the web site of `DFTTK <https://github.com/yiwang62/dfttk>`_) to be contributed to.
+5. go back to your web account, you will see the repositary shown  in your account
+6. login in your local machine
+7. Clone the repository to your local machine and go to/create a folder that you want to reside your contribution, then install the development vsersion
+
+  .. code-block:: bash
+
+    git clone https://github.com/PhasesResearchLab/dfttk.git
+    cd dfttk
+    pip install -e .
+    dfttk config -mp -aci #a folder named "config" will be created where running environmental info saved
+
+8. Create a new branch for your addition or changes (``git checkout -b mybranchname``), something like
+
+  .. code-block:: bash
+
+    git checkout -b yourhname # "yourhname" is a name that you prefered to use
+
+9. Write codes or make changes and commit them to your branch. (#Note from me, try your best not changing the original code, only focusing expanding codes will save a lot of troubles when merge your changes to the package)
+
+  .. code-block:: bash
+
+    git commit -am "your notation for the changes"
+
+10. Push your branch to the repository
+
+  .. code-block:: bash
+
+    git push #push your changes to github/gitlab
+
+11. Submit a pull request by going to your web account
+
+
+After you submit a merge request, other members of the group are able to review your changes and give feedback. Someone with a rank of Master or higher in the project can merge your commits into the master branch.
+

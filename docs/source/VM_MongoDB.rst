@@ -7,7 +7,7 @@ MongoDB is one of the most popular document-oriented databases under the banner 
 
 In computing, a virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer. Their implementations may involve specialized hardware, software, or a combination. See https://en.wikipedia.org/wiki/Virtual_machine
 
-Our MongoDB databases are currently by Penn State's VM hosting service that provides cost-effective, reliable VM for departments, colleges, and research units at Penn State University.
+Our MongoDB databases are currently hosted by `Penn State's VM hosting service <https://cyberinfrastructure.psu.edu/?q=node/161>`_ that provides cost-effective, reliable VM for departments, colleges, and research units at Penn State University.
 
 VM operation
 ------------
