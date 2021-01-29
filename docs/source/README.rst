@@ -2,8 +2,10 @@
 DFTTK: Density Functional Theory Tool Kit
 =========================================
 
-The goal and solution
----------------------
+Project Goal
+------------
+
+Provide robust density functional theory workflows for calculating thermodynamic properties in temperature and composition space.
 
 For a given structure and elements, calculate all kinds of thermodynamic properties at finite temperature and pressure by first-principles approach based on density functional theory, including lattice vibration, thermal electron excitation, Seebeck coefficient, Lorenz number, effective charge carrier concentration etc. 
 
