@@ -84,6 +84,12 @@ Connecting to the MongoDB server console
 - Assuming the service is running and configured with authentication (see above), connect to the MongoDB console by::
 
    mongo 146.186.149.69:27018 --authenticationDatabase admin -u <admin username> -p <admin password>
+ 
+  or by::
+
+   mongosh --username <admin username> --password --authenticationDatabase admin --host 146.186.149.69 --port 27018
+
+
 
 - To exit, run the command ``exit`` or give an EOF (``Ctrl+D``)
 
@@ -92,9 +98,7 @@ User management
 
 For more details on MongoDB user management, see https://docs.mongodb.com/manual/tutorial/enable-authentication/
 
-- Create admin user for mongodb
-
-.. code-block:: python
+- Create admin user for mongodb::
 
     use admin
     db.createUser(
@@ -107,11 +111,14 @@ For more details on MongoDB user management, see https://docs.mongodb.com/manual
 
 - Create general user
 
-Connect to your mongoDB as admin user by
-
-.. code-block:: bash
+Connect to your mongoDB as admin user locally by::
 
     mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
+
+or remotelly by::
+
+    mongo 146.186.149.69:27018 --authenticationDatabase admin -u <admin username> -p <admin password>
+
 
 followed by inputting the following lines
 
@@ -126,9 +133,7 @@ followed by inputting the following lines
 These lines can be produced by dfttk by run a python code named ``mongodb_user.py`` which
 can be downlonded from
 https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts
-After download the code, one can run it by
-
-.. code-block:: bash
+After download the code, one can run it by::
 
     python mongodb_user.py
 
@@ -136,11 +141,7 @@ The run will prompt the MongoDB system manager to input an userid for the user. 
 userid and hit enter, one gets the above outputs in the screen.
 
 Meanwhile, a file named ``db.json`` in the JSON format containing something similiar to
-the following lines which should be sent to the MongoDB user.
-
-.. _JSONLint: https://jsonlint.com
-
-.. code-block:: bash
+the following lines which should be sent to the MongoDB user::
 
     {
         "database": "userid-results",
@@ -157,15 +158,11 @@ the following lines which should be sent to the MongoDB user.
 The MongoDB user should save this data in a json file named ``db.json`` under the path
 ``dfttk/config`` that created by ``dfttk config -mp -aci`` command.
 
-- Remove user
-
-.. code-block:: python
+- Remove user::
 
     db.removeUser(username)
 
-- Check if mongodb is running, use
-
-.. code-block:: python
+- Check if mongodb is running, use::
 
     ps -ef | grep mongo
 
