@@ -3,9 +3,9 @@ Contribution Guide
 ==================
 
 .. |fork| image:: _static/fork_sign.png
-          :height: 14pt
-          :width: 80pt
-          :alt: Logo
+
+.. |pull| image:: _static/pull_request.png
+
 
 Style Guidelines
 ----------------
@@ -26,15 +26,15 @@ In general, code style should follow PEP8_ and PEP20_. Specifics are summarized 
 How to Contribute 
 -----------------
 
-It is recommended to first install `anaconda <https://docs.anaconda.com/anaconda/install/>`_ if one has not done it yet. 
+It is recommended to first install `anaconda <https://docs.anaconda.com/anaconda/install/>`_ if one does not have it installed yet. 
 
-1. Register an account in www.github.com or www.gitlab.com, depending on where the package is resided that you want to contribute to. 
-2. Sign into your web account in github or gitlab
-3. find the the package is resided that you want to contribute to
-4. make a fork by click the |fork| sign on top-right corner of the repositary (for instance, see the web site of `DFTTK <https://github.com/yiwang62/dfttk>`_) to be contributed to.
-5. go back to your web account, you will see the repositary shown  in your account
+1. Register an account in www.github.com or www.gitlab.com, depending on where the package that you want to contribute to is resided. 
+2. Sign into your web account
+3. find the the package that you want to contribute to
+4. make a fork by click the |fork| sign on top-right corner of the repositary (for instance, see the web site of `DFTTK <https://github.com/yiwang62/dfttk>`_)
+5. go back to your web account, you will see the forked repositary shown in your account
 6. login in your local machine
-7. Clone the repository to your local machine and go to/create a folder that you want to reside your contribution, then install the development vsersion
+7. clone the repository to your local machine and go to/create a folder that you want to reside your contribution, then install the development version by
 
   .. code-block:: bash
 
@@ -49,7 +49,7 @@ It is recommended to first install `anaconda <https://docs.anaconda.com/anaconda
 
     git checkout -b yourhname # "yourhname" is a name that you prefered to use
 
-9. Write codes or make changes and commit them to your branch. (#Note from me, try your best not changing the original code, only focusing expanding codes will save a lot of troubles when merge your changes to the package)
+9. Write codes or make changes and commit them to your branch. (#Note from me, try your best not changing the original codes, only focusing expanding codes will save a lot of troubles when merging your changes to the package)
 
   .. code-block:: bash
 
@@ -61,7 +61,7 @@ It is recommended to first install `anaconda <https://docs.anaconda.com/anaconda
 
     git push #push your changes to github/gitlab
 
-11. Submit a pull request by going to your web account
+11. ``*When and only when your are sure that your changes are completely correct*``, submit a pull request by going to your web account and click the sign of |pull| on the top-left side of your repository
 
 
 After you submit a merge request, other members of the group are able to review your changes and give feedback. Someone with a rank of Master or higher in the project can merge your commits into the master branch.
