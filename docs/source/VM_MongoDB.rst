@@ -98,7 +98,7 @@ For more details on MongoDB user management, see https://docs.mongodb.com/manual
 
 1. Start MongoDB in your VM without access control::
 
-    mongod --port 27018 --dbpath <pathtyourmongodb>
+    mongod --port 27018 --dbpath </path/to/database>
 
 2. Connect to the instance by open another terminal in your VM and connect a mongo shell to the instance::
 
@@ -131,7 +131,7 @@ after the prompt ">" input::
 
         .. code-block:: bash
 
-          mongod --auth --port 27018 --dbpath <pathtyourmongodb>
+          mongod --auth --port 27018 --dbpath </path/to/database>
 
       - or If you start the mongod using a configuration file, add the security.authorization configuration file setting
 
