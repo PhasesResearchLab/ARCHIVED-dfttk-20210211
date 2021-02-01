@@ -34,6 +34,7 @@
     RELEASING.rst
     recipes.rst
     faq.rst
+    Acknowledgements.rst
 
 
 Indices and tables
