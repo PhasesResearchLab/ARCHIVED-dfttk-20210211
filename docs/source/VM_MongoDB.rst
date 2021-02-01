@@ -59,6 +59,8 @@ MongoDB operation
 Managing the MongoDB service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+**This section assumes that you already have your VM set up and your are managing it under linux environment.**
+
 The MongoDB server is managed by a systemd service that is managed through ``systemctl``. Common commands are:
 
 - Check status of mongodb service::
@@ -81,24 +83,28 @@ The MongoDB server is managed by a systemd service that is managed through ``sys
 Connecting to the MongoDB server console
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Assuming the service is running and configured with authentication (see above), connect to the MongoDB console by::
+**This section deals with your MongoDB database management to locally or remotely operate on it.** This is to say you are going to manage your database from your local computer by ``mongo`` or ``mongosh``. 
 
-   mongo 146.186.149.69:27018 --authenticationDatabase admin -u <admin username> -p <admin password>
- 
-  or by::
-
-   mongosh --username <admin username> --password --authenticationDatabase admin --host 146.186.149.69 --port 27018
+#note mongosh by `MongoDB Shell <https://www.mongodb.com/try/download/shell?jmp=docs>`_ is the quickest way to connect, configure, query, and work with your MongoDB database 
 
 
+- Create admin user for mongodb
 
-- To exit, run the command ``exit`` or give an EOF (``Ctrl+D``)
+These are the **one time setup** steps for MongoDB:
 
-User management
-~~~~~~~~~~~~~~~
+With access control enabled, ensure you have a user with userAdmin or userAdminAnyDatabase role in the admin database. This user can administrate user and roles such as: create users, grant or revoke roles from users, and create or modify customs roles.
 
 For more details on MongoDB user management, see https://docs.mongodb.com/manual/tutorial/enable-authentication/
 
-- Create admin user for mongodb::
+1. Start MongoDB in your VM without access control::
+
+    mongod --port 27018 --dbpath <pathtyourmongodb>
+
+2. Connect to the instance by open another terminal in your VM and connect a mongo shell to the instance::
+
+    mongod --port 27018
+
+after the prompt ">" input::
 
     use admin
     db.createUser(
@@ -109,20 +115,46 @@ For more details on MongoDB user management, see https://docs.mongodb.com/manual
       }
     )
 
+3. Re-start the MongoDB instance with access control
+
+    a. Shut down the mongod instance
+
+      .. code-block:: bash
+
+        db.adminCommand( { shutdown: 1 } )
+
+    b. Exit the mongo shell by run the command ``exit`` or give an EOF (``Ctrl+D``)
+
+    c. Start the mongod with access control enabled by
+
+      - If you start the mongod from the command line
+
+        .. code-block:: bash
+
+          mongod --auth --port 27018 --dbpath <pathtyourmongodb>
+
+      - or If you start the mongod using a configuration file, add the security.authorization configuration file setting
+
+        .. code-block:: bash
+
+          security:
+              authorization: enabled
+
 - Create general user
 
-Connect to your mongoDB as admin user locally by::
+Assuming the service is running and configured with authentication (see above), Connect to your mongoDB as admin user locally by::
 
-    mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
+   mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
 
 or remotelly by::
 
-    mongo 146.186.149.69:27018 --authenticationDatabase admin -u <admin username> -p <admin password>
+   mongo 146.186.149.69:27018 --authenticationDatabase admin -u <admin username> -p <admin password>
+ 
+or remotelly use ``mongosh`` by::
 
+   mongosh --username <admin username> --password --authenticationDatabase admin --host 146.186.149.69 --port 27018
 
-followed by inputting the following lines
-
-.. code-block:: bash
+followed by inputting the following lines after the prompt ">"::
 
     use userid-fws
     db.createUser({user: "userid", pwd: "B5nRcUvoCZ92", roles: [{role: "dbOwner", db: "userid-fws"}]})
@@ -162,7 +194,4 @@ The MongoDB user should save this data in a json file named ``db.json`` under th
 
     db.removeUser(username)
 
-- Check if mongodb is running, use::
-
-    ps -ef | grep mongo
 

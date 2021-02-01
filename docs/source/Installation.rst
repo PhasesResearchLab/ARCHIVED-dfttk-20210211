@@ -51,18 +51,18 @@ DFTTK needs MongoDB to manage DFT inputs/outputs settings including structure, f
 Access MongoDB database from desktop
 ------------------------------------
 
-  One can download robo3T from https://robomongo.org/. After install it one use the information
-  from the ``db.json`` file to setup robo3T connection as indicated in the following figure
-
-  #note
-
-  1. ``PSU-VM`` is an arbitray name for the connection that you want to use;
-
-  2. ``146.186.149.69`` is the ip address of one's MongoDB server;
-
-  3. One need to replace ``userid`` by one's own usedid provided by one's MongoDB system manage
+  One can install robo3T from https://robomongo.org/. One needs to use the information
+  from the ``db.json`` file to setup robo3T connection as indicated below
 
 .. image:: _static/robo3Tsetup.png
+
+#note
+
+  1. ``PSU-VM`` is a label of your choice to remark the MongoDB connection;
+  2. ``146.186.149.69`` is the ip address of the MongoDB server;
+  3. One needs to replace ``userid`` with the one (i.e. the value field of ``admin_user``) from the ``db.json`` file together with the the value field of ``admin_password``
+
+
 
 YPHON
 -----
