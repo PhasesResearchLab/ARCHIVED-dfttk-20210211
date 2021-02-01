@@ -96,11 +96,8 @@ With access control enabled, ensure you have a user with userAdmin or userAdminA
 
 For more details on MongoDB user management, see https://docs.mongodb.com/manual/tutorial/enable-authentication/
 
-1. Start MongoDB in your VM without access control::
 
-    mongod --port 27018 --dbpath </path/to/database>
-
-2. Connect to the instance by open another terminal in your VM and connect a mongo shell to the instance::
+1. Connect to the instance by open another terminal in your VM and connect a mongo shell to the instance::
 
     mongod --port 27018
 
@@ -115,30 +112,26 @@ after the prompt ">" input::
       }
     )
 
-3. Re-start the MongoDB instance with access control
+2. Re-start the MongoDB instance with access control
 
     a. Shut down the mongod instance
-
-      .. code-block:: bash
-
-        db.adminCommand( { shutdown: 1 } )
-
     b. Exit the mongo shell by run the command ``exit`` or give an EOF (``Ctrl+D``)
 
     c. Start the mongod with access control enabled by
 
-      - If you start the mongod from the command line
-
-        .. code-block:: bash
-
-          mongod --auth --port 27018 --dbpath </path/to/database>
-
-      - or If you start the mongod using a configuration file, add the security.authorization configuration file setting
+      - adding the security.authorization configuration file setting
 
         .. code-block:: bash
 
           security:
               authorization: enabled
+
+      - or If you start the mongod from the command line
+
+        .. code-block:: bash
+
+          mongod --auth --port 27018 
+
 
 - Create general user
 
