@@ -3,6 +3,8 @@ MongoDB VM hosting
 
 This section is for the dfttk users who want to host their MongoDB by themselves.
 
+#Bug fix
+
 MongoDB is one of the most popular document-oriented databases under the banner of NoSQL database. The schema-free implementation of MongoDB eliminates the prerequisites of defining a fixed structure required by the SQL database. 
 
 In computing, a virtual machine (VM) is an emulation of a computer system. Virtual machines are based on computer architectures and provide functionality of a physical computer. Their implementations may involve specialized hardware, software, or a combination. See https://en.wikipedia.org/wiki/Virtual_machine
