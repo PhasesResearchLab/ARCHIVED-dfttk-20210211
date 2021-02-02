@@ -11,6 +11,8 @@ Our MongoDB databases are currently hosted by `Penn State's VM hosting service <
 
 In our case, we have changed the default tcp port from 27017 into 27018 due to historical reason
 
+In our case, we have changed the default tcp port from 27017 into 27018 due to historical reason
+
 VM operation
 ------------
 
@@ -31,9 +33,15 @@ MongoDB operation
 -----------------
 
 - MongoDB installation
+<<<<<<< HEAD
 
   Run the follwing command
 
+=======
+
+  Run the follwing command
+
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 .. code-block:: bash
 
     apt update
@@ -51,6 +59,7 @@ https://www.digitalocean.com/community/tutorials/how-to-install-mongodb-on-ubunt
 
 - Start mongdb service
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 More broadly, the `MongoDB security checklist <https://docs.mongodb.com/manual/administration/security-checklist/>`_ should be followed. Critically, you should `enable access control <https://docs.mongodb.com/manual/tutorial/enable-authentication/>`_ and set up an authentication database and credentials for at least one administrator.
 
@@ -82,6 +91,9 @@ The MongoDB server is managed by a systemd service that is managed through ``sys
 =======
 .. code-block:: bash
 >>>>>>> parent of ceaf9b3f... Merge branch 'master' of github.com:PhasesResearchLab/dfttk into 20200807
+=======
+.. code-block:: bash
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 
     mongod --bind_ip_all -port 27018 &
 
@@ -95,6 +107,7 @@ For more details on MongodB user management, see https://docs.mongodb.com/manual
 
 - Connect to MongoDB by port 27018 for management
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 **This section deals with your MongoDB database management to locally or remotely operate on it.** This is to say you are going to manage your database from your local computer by ``mongo`` or ``mongosh``. 
 
@@ -122,6 +135,19 @@ With access control enabled, ensure you have a user with userAdmin or userAdminA
 =======
 After connected to your mongoDB by ``mongo -port 27018``, input the following lines
 >>>>>>> parent of ceaf9b3f... Merge branch 'master' of github.com:PhasesResearchLab/dfttk into 20200807
+=======
+.. code-block:: bash
+
+    mongod -port 27018
+
+- Quit from MongoDB
+
+  hit ``Ctrl+d``
+
+- Create admin user for mongdb
+
+After connected to your mongoDB by ``mongo -port 27018``, input the following lines
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 
 1. Connect to the instance by open another terminal in your VM and connect a mongo shell to the instance::
 
@@ -162,10 +188,14 @@ after the prompt ">" input::
 - Create general user
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Assuming the service is running and configured with authentication (see above), Connect to your mongoDB as admin user locally by::
 =======
 Connect to your mongoDB as admin user by 
 >>>>>>> parent of ceaf9b3f... Merge branch 'master' of github.com:PhasesResearchLab/dfttk into 20200807
+=======
+Connect to your mongoDB as admin user by 
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 
    mongo --port 27018 --authenticationDatabase "admin" -u "admin" -p
 
@@ -189,8 +219,11 @@ These lines can be produced by dfttk by run a python code named ``mongodb_user.p
 can be downlonded from
 https://github.com/PhasesResearchLab/dfttk/tree/master/dfttk/scripts
 <<<<<<< HEAD
+<<<<<<< HEAD
 After download the code, one can run it by::
 =======
+=======
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 After download the code, one can run it by 
 
 .. code-block:: bash
@@ -202,9 +235,12 @@ The run will prompt the MongoDB system manager to input an userid for the user. 
 userid and hit enter, one gets the above outputs in the screen. 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Meanwhile, a file named ``db.json`` in the JSON format containing something similiar to
 the following lines which should be sent to the MongoDB user::
 =======
+=======
+>>>>>>> parent of 447699ec... Merge pull request #42 from PhasesResearchLab/mongodb-service-docs
 Meanwhile, a file named ``db.json`` in the JSON format containing something similiar to 
 the following lines which should be sent to the MongoDB user.
 
