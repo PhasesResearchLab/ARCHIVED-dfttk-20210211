@@ -39,7 +39,7 @@ After prepared the above **required** file, simply run `dfttk config -all` to fi
 
   - It can be compressed file (`*.tar.gz`) or uncompressed folder. The name is handled as follows:
 
-    ![Parse PSP Name](./Parse_PSP_Name.png)
+    ![Parse PSP Name](_static/Parse_PSP_Name.png)
 
     **Note:** **1.**  The split can recognize`.`,`-`,`_`,`+`,`=`,`*` and `space` .
 
@@ -148,7 +148,7 @@ After prepared the above **required** file, simply run `dfttk config -all` to fi
 
 ## Example
 
-```shel
+```shell
 dfttk config -all -p test_config -mapi test_api
 ```
 

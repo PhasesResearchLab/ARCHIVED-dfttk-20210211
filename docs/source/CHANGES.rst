@@ -2,6 +2,15 @@
 Changelog
 =========
 
+0.3.1 (2021-02-03)
+==================
+
+(Contributor: @YiWang, @mxf469, @bocklund)
+
+- Change List:
+ - Made a significant online documentation using readthdocs
+ - Documentation open online by www.dfttk.org
+
 0.3.0 (2020-12-10)
 ==================
 
